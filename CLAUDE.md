@@ -1,136 +1,80 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+> Think carefully and implement the most concise solution that changes as little code as possible.
 
-## Project Overview
+## Project Information
+- **Repository**: JokerTrickster/joker_backend
+- **GitHub URL**: https://github.com/JokerTrickster/joker_backend
+- **Project**: joker_backend
 
-This repository is a **Claude Skills development framework** for creating, testing, and packaging custom skills that Claude can use to automate specific tasks. Skills bundle instructions, reference materials, code templates, and examples into a structured format.
+## CCPM Integration (Claude Code PM)
+This project uses CCPM for structured project management with AI agents. 
 
-## Core Architecture
+### Quick Commands:
+- `/pm:prd-new feature-name` - Create new Product Requirements Document
+- `/pm:prd-parse feature-name` - Convert PRD to implementation plan
+- `/pm:epic-oneshot feature-name` - Decompose and sync to GitHub issues
+- `/pm:issue-start 1234` - Start working on GitHub issue with specialized agent
+- `/pm:next` - Get next priority task with context
+- `/pm:status` - Overall project dashboard
 
-### Skill Structure
-Every skill follows this standardized directory layout:
+## USE SUB-AGENTS FOR CONTEXT OPTIMIZATION
 
-```
-skill-name/
-├── SKILL.md          # Required: Metadata (name, description) + instructions
-├── references/       # Optional: Design guidelines, patterns, documentation
-├── scripts/          # Optional: Code templates, utilities
-└── examples/         # Optional: Usage examples, sample prompts
-```
+### 1. Always use the file-analyzer sub-agent when asked to read files.
+The file-analyzer agent is an expert in extracting and summarizing critical information from files, particularly log files and verbose outputs. It provides concise, actionable summaries that preserve essential information while dramatically reducing context usage.
 
-### SKILL.md Format
-The entry point for every skill with YAML frontmatter:
+### 2. Always use the code-analyzer sub-agent when asked to search code, analyze code, research bugs, or trace logic flow.
 
-```markdown
----
-name: skill-name
-description: Brief description of when and how to use this skill
----
+The code-analyzer agent is an expert in code analysis, logic tracing, and vulnerability detection. It provides concise, actionable summaries that preserve essential information while dramatically reducing context usage.
 
-# Skill Name
+### 3. Always use the test-runner sub-agent to run tests and analyze the test results.
 
-[Instructions for Claude to follow]
+Using the test-runner agent ensures:
 
-## Workflow
-- Step-by-step process
-```
+- Full test output is captured for debugging
+- Main conversation stays clean and focused
+- Context usage is optimized
+- All issues are properly surfaced
+- No approval dialogs interrupt the workflow
 
-**Critical**: The `name` field in frontmatter determines how users invoke the skill.
+## Philosophy
 
-## Development Workflow
+### Error Handling
 
-### Creating a New Skill
+- **Fail fast** for critical configuration (missing text model)
+- **Log and continue** for optional features (extraction model)
+- **Graceful degradation** when external services unavailable
+- **User-friendly messages** through resilience layer
 
-1. **Structure Setup**: Create directory with `SKILL.md` as minimum requirement
-2. **Write Instructions**: Define clear, actionable steps Claude should follow
-3. **Add Supporting Materials**:
-   - `references/`: Design patterns, API specs, guidelines
-   - `scripts/`: Reusable code templates with inline documentation
-   - `examples/`: Sample prompts showing skill invocation
-4. **Package**: ZIP the skill folder for distribution
+### Testing
 
-### Skill Design Principles
+- Always use the test-runner agent to execute tests.
+- Do not use mock services for anything ever.
+- Do not move on to the next test until the current test is complete.
+- If the test fails, consider checking if the test is structured correctly before deciding we need to refactor the codebase.
+- Tests to be verbose so we can use them for debugging.
 
-- **Specificity**: Skills should target concrete use cases (API development, error handling, testing)
-- **Completeness**: Include all context needed - don't assume external knowledge
-- **Template-Driven**: Provide code templates in `scripts/` that demonstrate patterns
-- **Reference Integration**: Link to relevant files using relative paths
+## Tone and Behavior
 
-### Example Skill Analysis
+- Criticism is welcome. Please tell me when I am wrong or mistaken, or even when you think I might be wrong or mistaken.
+- Please tell me if there is a better approach than the one I am taking.
+- Please tell me if there is a relevant standard or convention that I appear to be unaware of.
+- Be skeptical.
+- Be concise.
+- Short summaries are OK, but don't give an extended breakdown unless we are working through the details of a plan.
+- Do not flatter, and do not give compliments unless I am specifically asking for your judgement.
+- Occasional pleasantries are fine.
+- Feel free to ask many questions. If you are in doubt of my intent, don't guess. Ask.
 
-The included `example-skill/` demonstrates backend API helper patterns:
+## ABSOLUTE RULES:
 
-- **SKILL.md**: Defines RESTful principles, error handling workflow, response formats
-- **references/api-design-guidelines.md**: Resource naming, HTTP methods, status codes, versioning strategy
-- **scripts/api-template.js**: Express.js template with validation, business logic placeholders, consistent error handling
-- **examples/usage-example.md**: Sample prompts for endpoint creation, error handling improvements, design reviews
-
-## Skill Invocation Pattern
-
-Users invoke skills via natural language:
-```
-"Use the 'backend-api-helper' skill to create a GET endpoint for user profiles"
-```
-
-Claude will automatically load `SKILL.md` and reference supporting materials from the skill folder.
-
-## Key Design Patterns
-
-### API Response Standardization
-All API-related skills follow consistent JSON response structure:
-
-**Success**:
-```json
-{
-  "success": true,
-  "data": { ... },
-  "message": "Operation completed successfully"
-}
-```
-
-**Error**:
-```json
-{
-  "success": false,
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Error description"
-  }
-}
-```
-
-### RESTful Conventions
-- **URLs**: `/api/v{version}/{resources}` (plural nouns, lowercase, hyphens)
-- **Methods**: GET (read), POST (create), PUT (full update), PATCH (partial), DELETE
-- **Status Codes**: 200 (OK), 201 (Created), 400 (Bad Request), 401 (Unauthorized), 403 (Forbidden), 404 (Not Found), 500 (Server Error)
-
-### Security Baseline
-All code templates incorporate:
-- Request parameter validation before business logic
-- Input sanitization to prevent injection attacks
-- Proper authentication token verification
-- Comprehensive error logging without exposing internals
-
-## Development Guidelines
-
-### When Creating Skills
-- **Single Responsibility**: Each skill should address one domain or task type
-- **Actionable Instructions**: Write step-by-step workflows, not abstract concepts
-- **Code Quality**: Templates should be production-ready, not pseudocode
-- **Localization**: Current examples use Korean for descriptions - maintain consistency
-
-### File Organization
-- Keep `references/` focused on design decisions and architectural patterns
-- Use `scripts/` for concrete, copy-paste-ready code (not pseudo-code)
-- Make `examples/` demonstrate actual user prompts, not theoretical scenarios
-
-## Extension Points
-
-To add a new skill domain:
-1. Create `{skill-name}/SKILL.md` with clear problem scope
-2. Document design decisions in `references/`
-3. Provide working templates in `scripts/`
-4. Show usage patterns in `examples/`
-
-The framework is unopinionated about technology stack - adapt structure to any language/framework.
+- NO PARTIAL IMPLEMENTATION
+- NO SIMPLIFICATION : no "//This is simplified stuff for now, complete implementation would blablabla"
+- NO CODE DUPLICATION : check existing codebase to reuse functions and constants Read files before writing new functions. Use common sense function name to find them easily.
+- NO DEAD CODE : either use or delete from codebase completely
+- IMPLEMENT TEST FOR EVERY FUNCTIONS
+- NO CHEATER TESTS : test must be accurate, reflect real usage and be designed to reveal flaws. No useless tests! Design tests to be verbose so we can use them for debuging.
+- NO INCONSISTENT NAMING - read existing codebase naming patterns.
+- NO OVER-ENGINEERING - Don't add unnecessary abstractions, factory patterns, or middleware when simple functions would work. Don't think "enterprise" when you need "working"
+- NO MIXED CONCERNS - Don't put validation logic inside API handlers, database queries inside UI components, etc. instead of proper separation
+- NO RESOURCE LEAKS - Don't forget to close database connections, clear timeouts, remove event listeners, or clean up file handles
