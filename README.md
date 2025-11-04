@@ -1,50 +1,194 @@
-# Claude 스킬 생성 가이드
+# Joker Backend
 
-## Claude 스킬이란?
+통합 백엔드 서비스 플랫폼 - Go, Echo, MySQL 기반의 클린 아키텍처
 
-Claude 스킬(Skills)은 특정 작업에 필요한 지침, 코드, 참고 자료 등을 하나의 폴더로 묶어, Claude가 자동으로 활용할 수 있게 해주는 기능입니다. 이를 통해 반복적인 프롬프트 입력 없이도 일관된 결과를 얻을 수 있습니다.
+## 기술 스택
 
-## 스킬 생성 방법
+- **언어**: Go 1.23+
+- **프레임워크**: Echo v4
+- **데이터베이스**: MySQL 8.0
+- **아키텍처**: Clean Architecture
+- **컨테이너**: Docker & Docker Compose
 
-### 1. 기본 구조
+## 프로젝트 구조
 
 ```
-my-skill/
-├── SKILL.md          # 필수: 스킬 메타데이터 및 지침
-├── references/       # 선택: 참고 자료
-│   └── ...
-├── scripts/          # 선택: 실행 가능한 코드
-│   └── ...
-└── examples/         # 선택: 예시 파일
-    └── ...
+joker_backend/
+├── cmd/
+│   └── server/          # 애플리케이션 엔트리 포인트
+│       └── main.go
+├── config/              # 설정 관리
+│   └── config.go
+├── internal/            # 비즈니스 로직 (Clean Architecture)
+│   ├── handler/         # HTTP 핸들러 (Presentation Layer)
+│   ├── service/         # 비즈니스 로직 (Use Case Layer)
+│   ├── repository/      # 데이터 접근 (Data Layer)
+│   ├── model/           # 도메인 모델
+│   └── middleware/      # 커스텀 미들웨어
+├── pkg/                 # 공용 패키지
+│   ├── database/        # 데이터베이스 연결
+│   ├── logger/          # 로깅 유틸리티
+│   └── response/        # 표준 응답 포맷
+├── scripts/             # 데이터베이스 초기화 스크립트
+├── docker-compose.yml   # 다중 서비스 오케스트레이션
+├── Dockerfile           # 컨테이너 이미지 정의
+└── Makefile             # 빌드 자동화
+
 ```
 
-### 2. SKILL.md 파일 작성
+## 클린 아키텍처 레이어
 
-`SKILL.md` 파일은 반드시 포함해야 하며, 다음 형식으로 작성합니다:
-
-```markdown
----
-name: my-skill-name
-description: 이 스킬의 기능과 사용 상황을 설명합니다.
----
-
-# My Skill Name
-
-여기에 Claude가 따라야 할 지침을 작성하세요.
-
-## Workflow
-- Step 1
-- Step 2
+```
+Handler (Presentation) → Service (Use Case) → Repository (Data) → Database
 ```
 
-### 3. 스킬 업로드 및 사용
+- **Handler**: HTTP 요청/응답 처리, 입력 검증
+- **Service**: 비즈니스 로직 구현, 트랜잭션 관리
+- **Repository**: 데이터 영속성, SQL 쿼리 실행
+- **Model**: 도메인 엔티티 정의
 
-1. 스킬 폴더를 ZIP 파일로 압축
-2. Claude 인터페이스의 "Capabilities" 메뉴에서 업로드
-3. 사용 시: "방금 만든 'my-skill-name' 스킬을 사용하여 이 작업을 수행해줘"
+## 빠른 시작
 
-## 예시 스킬 구조
+### 사전 요구사항
 
-이 프로젝트에는 다양한 예시 스킬이 포함되어 있습니다. 각 스킬 폴더를 참고하세요.
+- Go 1.23 이상
+- Docker & Docker Compose
+- Make (선택사항)
 
+### 로컬 개발 (Docker Compose)
+
+```bash
+# 1. 환경 변수 설정
+cp .env.example .env
+
+# 2. Docker Compose로 모든 서비스 시작
+make docker-up
+# 또는
+docker-compose up -d
+
+# 3. 로그 확인
+make docker-logs
+
+# 4. 서비스 중지
+make docker-down
+```
+
+### 로컬 개발 (Go 직접 실행)
+
+```bash
+# 1. 의존성 설치
+go mod tidy
+
+# 2. MySQL 시작 (Docker)
+docker-compose up -d mysql
+
+# 3. 환경 변수 설정
+export DB_HOST=localhost
+export DB_PORT=3306
+export DB_USER=joker_user
+export DB_PASSWORD=joker_password
+export DB_NAME=joker_backend
+
+# 4. 애플리케이션 실행
+make run
+# 또는
+go run ./cmd/server/main.go
+```
+
+### 빌드
+
+```bash
+# 바이너리 빌드
+make build
+
+# 실행
+./bin/server
+```
+
+## API 엔드포인트
+
+### Health Check
+
+```bash
+GET /health
+```
+
+### Users API (v1)
+
+```bash
+# 사용자 조회
+GET /api/v1/users/:id
+
+# 사용자 생성
+POST /api/v1/users
+Content-Type: application/json
+
+{
+  "name": "홍길동",
+  "email": "hong@example.com"
+}
+```
+
+### 응답 형식
+
+**성공 응답**:
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "Operation completed successfully"
+}
+```
+
+**에러 응답**:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Error description"
+  }
+}
+```
+
+## Make 명령어
+
+```bash
+make help           # 사용 가능한 명령어 보기
+make build          # Go 애플리케이션 빌드
+make run            # 로컬에서 애플리케이션 실행
+make test           # 테스트 실행
+make clean          # 빌드 아티팩트 삭제
+make docker-up      # Docker Compose 서비스 시작
+make docker-down    # Docker Compose 서비스 중지
+make docker-logs    # Docker 로그 확인
+make docker-rebuild # Docker 서비스 재빌드
+make tidy           # Go 모듈 정리
+make fmt            # Go 코드 포맷팅
+```
+
+## 개발 가이드
+
+### 새로운 API 추가하기
+
+1. **Model 정의** (`internal/model/`)
+2. **Repository 구현** (`internal/repository/`)
+3. **Service 로직 작성** (`internal/service/`)
+4. **Handler 생성** (`internal/handler/`)
+5. **Routes 등록** (`internal/handler/routes.go`)
+
+### 환경 변수
+
+| 변수 | 설명 | 기본값 |
+|------|------|--------|
+| `DB_HOST` | MySQL 호스트 | localhost |
+| `DB_PORT` | MySQL 포트 | 3306 |
+| `DB_USER` | MySQL 사용자 | root |
+| `DB_PASSWORD` | MySQL 비밀번호 | - |
+| `DB_NAME` | 데이터베이스 이름 | joker_backend |
+| `PORT` | API 서버 포트 | 8080 |
+| `LOG_LEVEL` | 로그 레벨 | info |
+
+## 라이센스
+
+MIT
