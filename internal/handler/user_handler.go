@@ -8,7 +8,10 @@ import (
 	"github.com/luxrobo/joker_backend/internal/model"
 	"github.com/luxrobo/joker_backend/internal/service"
 	"github.com/luxrobo/joker_backend/pkg/database"
+	customErrors "github.com/luxrobo/joker_backend/pkg/errors"
+	"github.com/luxrobo/joker_backend/pkg/logger"
 	"github.com/luxrobo/joker_backend/pkg/response"
+	"go.uber.org/zap"
 )
 
 type UserHandler struct {
@@ -24,16 +27,20 @@ func NewUserHandler(db *database.DB) *UserHandler {
 func (h *UserHandler) GetUser(c echo.Context) error {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, response.Error("INVALID_PARAMS", "Invalid user ID"))
+		return customErrors.InvalidInput("Invalid user ID format")
 	}
 
 	user, err := h.service.GetUserByID(id)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, response.Error("INTERNAL_ERROR", err.Error()))
+		logger.Error("Failed to get user",
+			zap.Int64("user_id", id),
+			zap.Error(err),
+		)
+		return customErrors.InternalServerError("Failed to retrieve user")
 	}
 
 	if user == nil {
-		return c.JSON(http.StatusNotFound, response.Error("NOT_FOUND", "User not found"))
+		return customErrors.ResourceNotFound("User")
 	}
 
 	return c.JSON(http.StatusOK, response.Success(user, "User retrieved successfully"))
@@ -42,16 +49,20 @@ func (h *UserHandler) GetUser(c echo.Context) error {
 func (h *UserHandler) CreateUser(c echo.Context) error {
 	var req model.CreateUserRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, response.Error("INVALID_DATA", "Invalid request data"))
+		return customErrors.BadRequest("Invalid request data")
 	}
 
 	if req.Email == "" || req.Name == "" {
-		return c.JSON(http.StatusBadRequest, response.Error("INVALID_DATA", "Email and name are required"))
+		return customErrors.ValidationError("Email and name are required")
 	}
 
 	user, err := h.service.CreateUser(&req)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, response.Error("INTERNAL_ERROR", err.Error()))
+		logger.Error("Failed to create user",
+			zap.String("email", req.Email),
+			zap.Error(err),
+		)
+		return customErrors.InternalServerError("Failed to create user")
 	}
 
 	return c.JSON(http.StatusCreated, response.Success(user, "User created successfully"))
