@@ -6,15 +6,15 @@ WORKDIR /app
 # Install build dependencies
 RUN apk add --no-cache git
 
-# Copy go mod files
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Copy shared module (for local development)
+# Copy shared module first (required for go mod download)
 COPY ../../shared /app/shared
 
 # Copy migrations
 COPY ../../migrations /app/migrations
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
 
 # Copy source code
 COPY . .
