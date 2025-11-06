@@ -93,6 +93,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache-dependency-path: services/auth-service/go.sum
+
+      - name: Run E2E Tests
+        env:
+          TEST_DB_HOST: localhost
+          TEST_DB_PORT: 3306
+          TEST_DB_USER: ${{ secrets.DB_USER }}
+          TEST_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          TEST_DB_NAME: backend_dev_test
+        run: |
+          cd services/auth-service
+          echo "📦 Downloading dependencies..."
+          go mod download
+          echo "🧪 Running E2E tests..."
+          make test-e2e
+
       - name: Clean up disk space
         run: |
           echo "🧹 Cleaning up disk space..."
@@ -126,6 +146,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache-dependency-path: services/game-service/go.sum
+
+      - name: Run E2E Tests
+        env:
+          TEST_DB_HOST: localhost
+          TEST_DB_PORT: 3306
+          TEST_DB_USER: ${{ secrets.DB_USER }}
+          TEST_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          TEST_DB_NAME: backend_dev_test
+        run: |
+          cd services/game-service
+          echo "📦 Downloading dependencies..."
+          go mod download
+          echo "🧪 Running E2E tests..."
+          make test-e2e
+
       - name: Clean up disk space
         run: |
           echo "🧹 Cleaning up disk space..."
@@ -158,6 +198,26 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache-dependency-path: services/payment-service/go.sum
+
+      - name: Run E2E Tests
+        env:
+          TEST_DB_HOST: localhost
+          TEST_DB_PORT: 3306
+          TEST_DB_USER: ${{ secrets.DB_USER }}
+          TEST_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          TEST_DB_NAME: backend_dev_test
+        run: |
+          cd services/payment-service
+          echo "📦 Downloading dependencies..."
+          go mod download
+          echo "🧪 Running E2E tests..."
+          make test-e2e
 
       - name: Clean up disk space
         run: |
