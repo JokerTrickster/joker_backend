@@ -30,6 +30,10 @@ func (h *UserHandler) GetUser(c echo.Context) error {
 		return customErrors.InvalidInput("Invalid user ID format")
 	}
 
+	if id <= 0 {
+		return customErrors.InvalidInput("User ID must be a positive number")
+	}
+
 	user, err := h.service.GetUserByID(id)
 	if err != nil {
 		logger.Error("Failed to get user",
