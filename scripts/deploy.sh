@@ -49,17 +49,21 @@ ENV=production
 EOF
 fi
 
-# Check and start MySQL if needed
-if docker ps -a --format '{{.Names}}' | grep -q '^joker_mysql$'; then
-  echo "✅ MySQL container exists"
-  if ! docker ps --format '{{.Names}}' | grep -q '^joker_mysql$'; then
-    echo "🔄 Starting existing MySQL container..."
-    docker start joker_mysql
+# Check and use existing MySQL
+if sudo lsof -Pi :3306 -sTCP:LISTEN -t >/dev/null 2>&1; then
+  echo "✅ MySQL is already running on port 3306"
+
+  # Find the container using port 3306
+  MYSQL_CONTAINER=$(docker ps --filter "publish=3306" --format "{{.Names}}" | head -1)
+
+  if [ -n "$MYSQL_CONTAINER" ]; then
+    echo "📦 Using existing MySQL container: $MYSQL_CONTAINER"
   else
-    echo "✅ MySQL is already running"
+    echo "⚠️  Port 3306 is in use but not by a Docker container"
+    echo "    Assuming external MySQL is available"
   fi
 else
-  echo "🆕 Creating new MySQL container..."
+  echo "🆕 No MySQL found on port 3306, creating new container..."
   cd "${DEPLOY_DIR}"
   docker-compose -f docker-compose.prod.yml up -d mysql
 fi

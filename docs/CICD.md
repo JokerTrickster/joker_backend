@@ -106,9 +106,10 @@ Repository → Settings → Secrets and variables → Actions → New repository
 **디스크 공간 관리**: 각 배포마다 자동으로 사용하지 않는 Docker 리소스를 정리하여 "no space left on device" 에러를 방지합니다.
 
 **MySQL 컨테이너 재사용**:
-- 기존 `joker_mysql` 컨테이너가 있으면 재사용
-- 없으면 새로 생성
+- 3306 포트를 사용 중인 MySQL이 있으면 재사용 (컨테이너 이름 무관)
+- 없으면 새로 `joker_mysql` 컨테이너 생성
 - 각 배포 시 API 컨테이너만 재빌드하여 빠른 배포
+- 기존 MySQL의 `backend_dev` 데이터베이스 접근
 
 ## 수동 배포
 
