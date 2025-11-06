@@ -10,6 +10,12 @@ RUN apk add --no-cache git
 COPY go.mod go.sum ./
 RUN go mod download
 
+# Copy shared module (for local development)
+COPY ../../shared /app/shared
+
+# Copy migrations
+COPY ../../migrations /app/migrations
+
 # Copy source code
 COPY . .
 
@@ -26,6 +32,9 @@ RUN apk --no-cache add ca-certificates
 
 # Copy binary from builder
 COPY --from=builder /app/main .
+
+# Copy migrations from builder
+COPY --from=builder /app/migrations ./migrations
 
 # Expose port
 EXPOSE 6000

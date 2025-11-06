@@ -37,6 +37,7 @@ services:
       DB_NAME: backend_dev
       LOG_LEVEL: info
       PORT: 6000
+      MIGRATIONS_PATH: ./migrations
     ports:
       - "6000:6000"
     depends_on:

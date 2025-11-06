@@ -44,6 +44,11 @@ echo "📦 Copying shared code..."
 rsync -av --exclude='.git' \
   "${PROJECT_ROOT}/shared/" "${DEPLOY_DIR}/shared/"
 
+# Copy migrations
+echo "📦 Copying migrations..."
+rsync -av --exclude='.git' \
+  "${PROJECT_ROOT}/migrations/" "${DEPLOY_DIR}/migrations/"
+
 # Check and use existing MySQL
 MYSQL_EXISTS=false
 MYSQL_CONTAINER_NAME="mysql"
@@ -86,6 +91,7 @@ DB_PASSWORD=${DB_PASSWORD:-change_me}
 DB_NAME=backend_dev
 LOG_LEVEL=info
 ENV=production
+MIGRATIONS_PATH=./migrations
 EOF
 
 # Stop existing container

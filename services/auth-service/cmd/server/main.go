@@ -12,6 +12,7 @@ import (
 	customErrors "github.com/luxrobo/joker_backend/shared/errors"
 	"github.com/luxrobo/joker_backend/shared/logger"
 	customMiddleware "github.com/luxrobo/joker_backend/shared/middleware"
+	"github.com/luxrobo/joker_backend/shared/migrate"
 	"go.uber.org/zap"
 )
 
@@ -39,6 +40,22 @@ func main() {
 	defer db.Close()
 
 	logger.Info("Database connected successfully")
+
+	// Run migrations
+	logger.Info("Running database migrations...")
+	migrationsPath := os.Getenv("MIGRATIONS_PATH")
+	if migrationsPath == "" {
+		// Default path for local development
+		migrationsPath = "../../migrations"
+	}
+	migrateConfig := migrate.Config{
+		MigrationsPath: migrationsPath,
+		DatabaseName:   cfg.Database.Database,
+	}
+	if err := migrate.Run(db.DB, migrateConfig); err != nil {
+		logger.Fatal("Failed to run migrations", zap.Error(err))
+	}
+	logger.Info("Database migrations completed successfully")
 
 	// Initialize Echo
 	e := echo.New()

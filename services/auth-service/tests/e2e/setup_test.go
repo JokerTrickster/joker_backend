@@ -13,6 +13,7 @@ import (
 	customErrors "github.com/luxrobo/joker_backend/shared/errors"
 	"github.com/luxrobo/joker_backend/shared/logger"
 	customMiddleware "github.com/luxrobo/joker_backend/shared/middleware"
+	"github.com/luxrobo/joker_backend/shared/migrate"
 )
 
 var (
@@ -66,8 +67,12 @@ func setupTestEnvironment() error {
 		return fmt.Errorf("failed to create test database: %w", err)
 	}
 
-	// Run migrations
-	if err := runMigrations(); err != nil {
+	// Run migrations using migrate package
+	migrateConfig := migrate.Config{
+		MigrationsPath: "../../../../migrations",
+		DatabaseName:   getEnv("TEST_DB_NAME", "backend_dev_test"),
+	}
+	if err := migrate.Run(testDB.DB, migrateConfig); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
@@ -117,23 +122,6 @@ func createTestDatabase() error {
 	// Create test database if it doesn't exist
 	createDBSQL := "CREATE DATABASE IF NOT EXISTS backend_dev_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
 	_, err := testDB.Exec(createDBSQL)
-	return err
-}
-
-func runMigrations() error {
-	// Create users table
-	createUsersTable := `
-	CREATE TABLE IF NOT EXISTS users (
-		id BIGINT AUTO_INCREMENT PRIMARY KEY,
-		name VARCHAR(255) NOT NULL,
-		email VARCHAR(255) NOT NULL UNIQUE,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-		INDEX idx_email (email)
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-	`
-
-	_, err := testDB.Exec(createUsersTable)
 	return err
 }
 
