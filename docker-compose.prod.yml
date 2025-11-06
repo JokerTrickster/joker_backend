@@ -30,7 +30,7 @@ services:
       dockerfile: Dockerfile
     container_name: ${SERVICE_NAME:-joker-backend}_api
     environment:
-      DB_HOST: mysql
+      DB_HOST: ${DB_HOST:-mysql}
       DB_PORT: 3306
       DB_USER: ${DB_USER:-joker_user}
       DB_PASSWORD: ${DB_PASSWORD:-joker_password}
@@ -60,3 +60,4 @@ volumes:
 networks:
   joker_network:
     driver: bridge
+    name: ${NETWORK_NAME:-joker_network}

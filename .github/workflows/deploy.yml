@@ -57,7 +57,13 @@ jobs:
 
             if [ -n "$MYSQL_CONTAINER" ]; then
               echo "📦 Using existing MySQL container: $MYSQL_CONTAINER"
+
+              # Get the network of the existing MySQL container
+              MYSQL_NETWORK=$(docker inspect $MYSQL_CONTAINER --format '{{range $key, $value := .NetworkSettings.Networks}}{{$key}}{{end}}')
+              echo "🌐 MySQL is using network: $MYSQL_NETWORK"
+
               echo "MYSQL_CONTAINER_NAME=$MYSQL_CONTAINER" >> $GITHUB_ENV
+              echo "MYSQL_NETWORK=$MYSQL_NETWORK" >> $GITHUB_ENV
               echo "MYSQL_EXISTS=true" >> $GITHUB_ENV
             else
               echo "⚠️  Port 3306 is in use but not by a Docker container"
@@ -80,6 +86,7 @@ jobs:
             done
 
             echo "MYSQL_CONTAINER_NAME=joker_mysql" >> $GITHUB_ENV
+            echo "MYSQL_NETWORK=joker_network" >> $GITHUB_ENV
             echo "MYSQL_EXISTS=false" >> $GITHUB_ENV
           fi
 
@@ -112,8 +119,35 @@ jobs:
       - name: Build and start API container
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          # Use --no-deps to prevent starting mysql service
-          docker-compose -f docker-compose.prod.yml up -d --no-deps --build api
+
+          # Build the API image first
+          docker-compose -f docker-compose.prod.yml build api
+
+          # Stop and remove old API container if exists
+          docker stop ${{ env.SERVICE_NAME }}_api 2>/dev/null || true
+          docker rm ${{ env.SERVICE_NAME }}_api 2>/dev/null || true
+
+          # Get the image name that was just built
+          IMAGE_NAME=$(docker-compose -f docker-compose.prod.yml images -q api | head -1)
+          if [ -z "$IMAGE_NAME" ]; then
+            IMAGE_NAME="joker-backend-api"
+          fi
+          echo "📦 Using image: $IMAGE_NAME"
+
+          # Start API container and connect to MySQL network
+          if [ "${{ env.MYSQL_EXISTS }}" == "true" ]; then
+            echo "🔗 Connecting API to MySQL network: ${{ env.MYSQL_NETWORK }}"
+            docker run -d \
+              --name ${{ env.SERVICE_NAME }}_api \
+              --network ${{ env.MYSQL_NETWORK }} \
+              --env-file .env \
+              -p ${{ env.SERVICE_PORT }}:${{ env.SERVICE_PORT }} \
+              --restart unless-stopped \
+              $IMAGE_NAME
+          else
+            # Use docker-compose if we created our own MySQL
+            docker-compose -f docker-compose.prod.yml up -d --no-deps api
+          fi
 
       - name: Wait for services to be healthy
         run: |
