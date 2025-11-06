@@ -7,10 +7,12 @@ WORKDIR /app
 RUN apk add --no-cache git
 
 # Copy shared module first (required for go mod download)
-COPY ../../shared /app/shared
+# Note: deploy script copies shared to service directory
+COPY shared /app/shared
 
 # Copy migrations
-COPY ../../migrations /app/migrations
+# Note: deploy script copies migrations to service directory
+COPY migrations /app/migrations
 
 # Copy go mod files
 COPY go.mod go.sum ./
