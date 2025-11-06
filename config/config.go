@@ -29,7 +29,7 @@ func Load() (*Config, error) {
 			Port:     getEnv("DB_PORT", "3306"),
 			User:     getEnv("DB_USER", "root"),
 			Password: getEnv("DB_PASSWORD", ""),
-			Database: getEnv("DB_NAME", "joker_backend"),
+			Database: getEnv("DB_NAME", "backend_dev"),
 		},
 		LogLevel: getEnv("LOG_LEVEL", "info"),
 	}
