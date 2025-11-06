@@ -34,7 +34,7 @@ func (h *UserHandler) GetUser(c echo.Context) error {
 		return customErrors.InvalidInput("User ID must be a positive number")
 	}
 
-	user, err := h.service.GetUserByID(id)
+	user, err := h.service.GetUserByID(c.Request().Context(), id)
 	if err != nil {
 		logger.Error("Failed to get user",
 			zap.Int64("user_id", id),
@@ -60,7 +60,7 @@ func (h *UserHandler) CreateUser(c echo.Context) error {
 		return customErrors.ValidationError("Email and name are required")
 	}
 
-	user, err := h.service.CreateUser(&req)
+	user, err := h.service.CreateUser(c.Request().Context(), &req)
 	if err != nil {
 		logger.Error("Failed to create user",
 			zap.String("email", req.Email),

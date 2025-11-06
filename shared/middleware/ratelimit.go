@@ -22,6 +22,7 @@ type RateLimiter struct {
 	mu       sync.RWMutex
 	rate     rate.Limit
 	burst    int
+	done     chan struct{}
 }
 
 // NewRateLimiter creates a new rate limiter
@@ -32,12 +33,24 @@ func NewRateLimiter(rps float64, burst int) *RateLimiter {
 		visitors: make(map[string]*visitor),
 		rate:     rate.Limit(rps),
 		burst:    burst,
+		done:     make(chan struct{}),
 	}
 
 	// Clean up old visitors every 3 minutes
 	go rl.cleanupVisitors()
 
+	logger.Info("Rate limiter initialized",
+		zap.Float64("rps", rps),
+		zap.Int("burst", burst),
+	)
+
 	return rl
+}
+
+// Close stops the cleanup goroutine
+func (rl *RateLimiter) Close() {
+	close(rl.done)
+	logger.Info("Rate limiter cleanup stopped")
 }
 
 func (rl *RateLimiter) getVisitor(ip string) *rate.Limiter {
@@ -59,16 +72,33 @@ func (rl *RateLimiter) getVisitor(ip string) *rate.Limiter {
 }
 
 func (rl *RateLimiter) cleanupVisitors() {
-	for {
-		time.Sleep(3 * time.Minute)
+	ticker := time.NewTicker(3 * time.Minute)
+	defer ticker.Stop()
 
-		rl.mu.Lock()
-		for ip, v := range rl.visitors {
-			if time.Since(v.lastSeen) > 3*time.Minute {
-				delete(rl.visitors, ip)
+	for {
+		select {
+		case <-ticker.C:
+			rl.mu.Lock()
+			before := len(rl.visitors)
+			for ip, v := range rl.visitors {
+				if time.Since(v.lastSeen) > 3*time.Minute {
+					delete(rl.visitors, ip)
+				}
 			}
+			after := len(rl.visitors)
+			rl.mu.Unlock()
+
+			if before != after {
+				logger.Info("Rate limiter cleanup completed",
+					zap.Int("visitors_before", before),
+					zap.Int("visitors_after", after),
+					zap.Int("removed", before-after),
+				)
+			}
+		case <-rl.done:
+			logger.Info("Rate limiter cleanup goroutine stopped")
+			return
 		}
-		rl.mu.Unlock()
 	}
 }
 

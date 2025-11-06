@@ -69,7 +69,7 @@ func main() {
 	e.Use(customMiddleware.RequestID())
 	e.Use(customMiddleware.Recovery())
 	e.Use(customMiddleware.RequestLogger())
-	e.Use(customMiddleware.CORS())
+	e.Use(customMiddleware.CORS(cfg.CORS.AllowedOrigins))
 
 	// Rate limiting (10 requests per second, burst of 20)
 	rateLimiter := customMiddleware.NewRateLimiter(10, 20)

@@ -8,7 +8,13 @@ import (
 
 type Config struct {
 	Database DatabaseConfig
+	CORS     CORSConfig
 	LogLevel string
+	Env      string
+}
+
+type CORSConfig struct {
+	AllowedOrigins string
 }
 
 type DatabaseConfig struct {
@@ -23,6 +29,14 @@ func Load() (*Config, error) {
 	// Load .env file if exists
 	_ = godotenv.Load()
 
+	env := getEnv("ENV", "development")
+
+	// Set secure CORS defaults for production
+	defaultCORSOrigins := "http://localhost:3000,http://localhost:3001"
+	if env == "production" {
+		defaultCORSOrigins = "" // Force explicit configuration in production
+	}
+
 	cfg := &Config{
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
@@ -31,7 +45,11 @@ func Load() (*Config, error) {
 			Password: getEnv("DB_PASSWORD", ""),
 			Database: getEnv("DB_NAME", "backend_dev"),
 		},
+		CORS: CORSConfig{
+			AllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", defaultCORSOrigins),
+		},
 		LogLevel: getEnv("LOG_LEVEL", "info"),
+		Env:      env,
 	}
 
 	return cfg, nil

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/luxrobo/joker_backend/services/auth-service/internal/model"
@@ -15,11 +16,11 @@ func NewUserRepository(db *database.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
-func (r *UserRepository) FindByID(id int64) (*model.User, error) {
+func (r *UserRepository) FindByID(ctx context.Context, id int64) (*model.User, error) {
 	query := "SELECT id, name, email, created_at, updated_at FROM users WHERE id = ?"
 
 	user := &model.User{}
-	err := r.db.QueryRow(query, id).Scan(
+	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&user.ID,
 		&user.Name,
 		&user.Email,
@@ -37,10 +38,10 @@ func (r *UserRepository) FindByID(id int64) (*model.User, error) {
 	return user, nil
 }
 
-func (r *UserRepository) Create(user *model.User) error {
+func (r *UserRepository) Create(ctx context.Context, user *model.User) error {
 	query := "INSERT INTO users (name, email) VALUES (?, ?)"
 
-	result, err := r.db.Exec(query, user.Name, user.Email)
+	result, err := r.db.ExecContext(ctx, query, user.Name, user.Email)
 	if err != nil {
 		return err
 	}
