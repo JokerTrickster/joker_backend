@@ -120,17 +120,19 @@ Repository → Settings → Secrets and variables → Actions → New repository
 
 ```bash
 # 서비스 시작
-docker compose -f docker-compose.prod.yml up -d --build
+docker-compose -f docker-compose.prod.yml up -d --build
 
 # 서비스 중지
-docker compose -f docker-compose.prod.yml down
+docker-compose -f docker-compose.prod.yml down
 
 # 로그 확인
-docker compose -f docker-compose.prod.yml logs -f api
+docker-compose -f docker-compose.prod.yml logs -f api
 
 # 상태 확인
-docker compose -f docker-compose.prod.yml ps
+docker-compose -f docker-compose.prod.yml ps
 ```
+
+**참고**: `docker-compose` (하이픈 포함) 명령어를 사용합니다.
 
 ## 새 서비스 추가 방법
 
@@ -235,18 +237,18 @@ sudo kill -9 <PID>
 
 ```bash
 # 특정 서비스 재시작
-docker compose -f docker-compose.prod.yml restart api
+docker-compose -f docker-compose.prod.yml restart api
 
 # 전체 재시작
-docker compose -f docker-compose.prod.yml restart
+docker-compose -f docker-compose.prod.yml restart
 ```
 
 ### 데이터베이스 초기화
 
 ```bash
 # 주의: 모든 데이터가 삭제됩니다!
-docker compose -f docker-compose.prod.yml down -v
-docker compose -f docker-compose.prod.yml up -d
+docker-compose -f docker-compose.prod.yml down -v
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
 ### 디스크 공간 확보
@@ -280,7 +282,7 @@ git checkout <commit-hash>
 
 # 3. 또는 Docker 이미지 태그 사용
 docker tag joker_backend-api:latest joker_backend-api:backup
-docker compose -f docker-compose.prod.yml up -d
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
 ## 참고 자료

@@ -59,12 +59,12 @@ jobs:
       - name: Stop existing containers
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          docker compose -f docker-compose.prod.yml down || true
+          docker-compose -f docker-compose.prod.yml down || true
 
       - name: Build and start containers
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          docker compose -f docker-compose.prod.yml up -d --build
+          docker-compose -f docker-compose.prod.yml up -d --build
 
       - name: Wait for services to be healthy
         run: |
@@ -74,7 +74,7 @@ jobs:
 
           # Check MySQL health
           for i in {1..30}; do
-            if docker compose -f docker-compose.prod.yml ps mysql | grep -q "healthy"; then
+            if docker-compose -f docker-compose.prod.yml ps mysql | grep -q "healthy"; then
               echo "✅ MySQL is healthy"
               break
             fi
@@ -96,7 +96,7 @@ jobs:
         run: |
           # Check if containers are running
           cd ${{ env.DEPLOY_PATH }}
-          docker compose -f docker-compose.prod.yml ps
+          docker-compose -f docker-compose.prod.yml ps
 
           # Test health endpoint
           echo "Testing health endpoint..."

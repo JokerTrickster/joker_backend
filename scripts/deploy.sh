@@ -45,11 +45,11 @@ fi
 # Stop existing containers
 echo "🛑 Stopping existing containers..."
 cd "${DEPLOY_DIR}"
-docker compose -f docker-compose.prod.yml down || true
+docker-compose -f docker-compose.prod.yml down || true
 
 # Build and start containers
 echo "🔨 Building and starting containers..."
-docker compose -f docker-compose.prod.yml up -d --build
+docker-compose -f docker-compose.prod.yml up -d --build
 
 # Wait for services
 echo "⏳ Waiting for services to be ready..."
@@ -57,7 +57,7 @@ sleep 10
 
 # Check MySQL health
 for i in {1..30}; do
-  if docker compose -f docker-compose.prod.yml ps mysql | grep -q "healthy"; then
+  if docker-compose -f docker-compose.prod.yml ps mysql | grep -q "healthy"; then
     echo "✅ MySQL is healthy"
     break
   fi
@@ -77,7 +77,7 @@ done
 
 # Verify deployment
 echo "🔍 Verifying deployment..."
-docker compose -f docker-compose.prod.yml ps
+docker-compose -f docker-compose.prod.yml ps
 
 # Test health endpoint
 if curl -f http://localhost:${SERVICE_PORT}/health > /dev/null 2>&1; then
@@ -88,6 +88,6 @@ if curl -f http://localhost:${SERVICE_PORT}/health > /dev/null 2>&1; then
   exit 0
 else
   echo "❌ Deployment failed - Health check failed"
-  docker compose -f docker-compose.prod.yml logs api
+  docker-compose -f docker-compose.prod.yml logs api
   exit 1
 fi
