@@ -16,17 +16,17 @@ GitHub Repository (push) → GitHub Actions → Self-hosted Runner → Docker Bu
 
 ## 서비스 포트 구조
 
-각 서비스는 독립된 포트에서 실행되며, **MySQL은 3306 포트로 공유**됩니다:
+각 서비스는 독립된 포트에서 실행되며, **MySQL(3306)과 데이터베이스(backend_dev)를 공유**합니다:
 
-| 서비스 | API 포트 | DB 이름 | 설명 |
-|--------|----------|---------|------|
-| 인증 서비스 (joker-backend) | 6000 | joker_backend | 기본 백엔드 |
-| 게임 서버 | 6001 | game_server | 추가 예정 |
-| 결제 서비스 | 6002 | payment_service | 추가 예정 |
+| 서비스 | API 포트 | 설명 |
+|--------|----------|------|
+| 인증 서비스 (joker-backend) | 6000 | 기본 백엔드 |
+| 게임 서버 | 6001 | 추가 예정 |
+| 결제 서비스 | 6002 | 추가 예정 |
 
 **주요 특징:**
 - **공유 MySQL**: 모든 서비스가 3306 포트의 MySQL 인스턴스 공유
-- **독립 데이터베이스**: 각 서비스는 고유한 데이터베이스 이름 사용
+- **공유 데이터베이스**: 모든 서비스가 `backend_dev` 데이터베이스 사용
 - **독립 API 포트**: 각 서비스는 고유한 포트에서 실행
 
 ## Self-hosted Runner 설정
@@ -115,13 +115,14 @@ Repository → Settings → Secrets and variables → Actions → New repository
 ### 스크립트 사용
 
 ```bash
-# 기본 서비스 배포 (포트 6000, DB: joker_backend)
+# 기본 서비스 배포 (포트 6000)
 ./scripts/deploy.sh
 
 # 특정 서비스 배포
-./scripts/deploy.sh game-server 6001 game_server
+./scripts/deploy.sh game-server 6001
 
-# 매개변수: [서비스명] [API포트] [DB이름]
+# 매개변수: [서비스명] [API포트]
+# 모든 서비스가 backend_dev 데이터베이스 사용
 ```
 
 ### Docker Compose 직접 사용
@@ -156,7 +157,7 @@ cp .env.production.example .env.game-server
 ```env
 SERVICE_NAME=game-server
 PORT=6001
-DB_NAME=game_server
+DB_NAME=backend_dev  # 모든 서비스가 동일한 DB 사용
 DB_PORT=3306  # 모든 서비스가 동일한 MySQL 사용
 # ... 기타 설정
 ```
@@ -169,34 +170,20 @@ DB_PORT=3306  # 모든 서비스가 동일한 MySQL 사용
 env:
   SERVICE_NAME: game-server
   SERVICE_PORT: 6001
-  # DB_PORT는 항상 3306으로 고정
+  # DB는 backend_dev로 모든 서비스 공유
 ```
 
-### 3. 데이터베이스 초기화
-
-새 서비스용 데이터베이스를 생성합니다:
-
-```sql
--- MySQL에 접속
-mysql -u root -p -h localhost -P 3306
-
--- 새 데이터베이스 생성
-CREATE DATABASE game_server CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- 권한 부여
-GRANT ALL PRIVILEGES ON game_server.* TO 'joker_user'@'%';
-FLUSH PRIVILEGES;
-```
-
-### 4. 배포
+### 3. 배포
 
 ```bash
 # 수동 배포
-./scripts/deploy.sh game-server 6001 game_server
+./scripts/deploy.sh game-server 6001
 
 # 또는 GitHub에 push하여 자동 배포
 git push origin main
 ```
+
+**참고**: 모든 서비스가 `backend_dev` 데이터베이스를 공유하므로 별도의 데이터베이스 생성이 필요하지 않습니다.
 
 ## 모니터링 및 로그
 

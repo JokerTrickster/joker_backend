@@ -200,10 +200,10 @@ make fmt            # Go 코드 포맷팅
 git push origin main
 
 # 수동 배포: 배포 스크립트 사용
-./scripts/deploy.sh [service-name] [port] [db-name]
+./scripts/deploy.sh [service-name] [port]
 
 # 예시
-./scripts/deploy.sh joker-backend 6000 joker_backend
+./scripts/deploy.sh joker-backend 6000
 
 # 디스크 공간 정리 (필요시)
 ./scripts/cleanup.sh
@@ -213,15 +213,15 @@ git push origin main
 
 ## 다중 서비스 지원
 
-각 서비스는 독립된 포트에서 실행되며, **MySQL(3306)은 공유**됩니다:
+각 서비스는 독립된 포트에서 실행되며, **MySQL(3306)과 데이터베이스(backend_dev)를 공유**합니다:
 
-- 인증 서비스: API 포트 6000, DB 이름: joker_backend
-- 게임 서버: API 포트 6001, DB 이름: game_server (추가 예정)
-- 결제 서비스: API 포트 6002, DB 이름: payment_service (추가 예정)
+- 인증 서비스: API 포트 6000
+- 게임 서버: API 포트 6001 (추가 예정)
+- 결제 서비스: API 포트 6002 (추가 예정)
 
 **주요 특징:**
 - 공유 MySQL 인스턴스 (포트 3306)
-- 서비스별 독립 데이터베이스
+- 공유 데이터베이스 (backend_dev)
 - 서비스별 독립 API 포트
 
 새 서비스 추가 방법은 [CI/CD 가이드](docs/CICD.md)를 참고하세요.

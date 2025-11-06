@@ -7,7 +7,7 @@ services:
     container_name: joker_mysql
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: joker_backend
+      MYSQL_DATABASE: backend_dev
       MYSQL_USER: joker_user
       MYSQL_PASSWORD: joker_password
     ports:
@@ -34,7 +34,7 @@ services:
       DB_PORT: 3306
       DB_USER: joker_user
       DB_PASSWORD: joker_password
-      DB_NAME: joker_backend
+      DB_NAME: backend_dev
       LOG_LEVEL: info
       PORT: 6000
     ports:
