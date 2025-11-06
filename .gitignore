@@ -29,6 +29,7 @@ build/
 *.egg-info/
 *.egg
 target/
+bin/
 
 # Logs
 logs/
@@ -64,3 +65,7 @@ secrets.yaml
 # CCPM (Claude Code PM) 관련
 .claude/epics/
 .claude/settings.local.json
+.claude.backup*/
+
+# Production environment
+.env.production

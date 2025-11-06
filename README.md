@@ -189,6 +189,35 @@ make fmt            # Go 코드 포맷팅
 | `PORT` | API 서버 포트 | 8080 |
 | `LOG_LEVEL` | 로그 레벨 | info |
 
+## CI/CD
+
+이 프로젝트는 GitHub Actions와 Self-hosted Runner를 사용한 자동 배포를 지원합니다.
+
+### 배포 방법
+
+```bash
+# 자동 배포: main 브랜치에 push
+git push origin main
+
+# 수동 배포: 배포 스크립트 사용
+./scripts/deploy.sh [service-name] [port]
+
+# 예시
+./scripts/deploy.sh joker-backend 6000
+```
+
+자세한 내용은 [CI/CD 가이드](docs/CICD.md)를 참고하세요.
+
+## 다중 서비스 지원
+
+각 서비스는 독립된 포트에서 실행됩니다:
+
+- 인증 서비스: 포트 6000 (DB: 3309)
+- 게임 서버: 포트 6001 (DB: 3310) - 추가 예정
+- 결제 서비스: 포트 6002 (DB: 3311) - 추가 예정
+
+새 서비스 추가 방법은 [CI/CD 가이드](docs/CICD.md)를 참고하세요.
+
 ## 라이센스
 
 MIT

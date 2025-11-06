@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # MySQL Database (공유)
+  mysql:
+    image: mysql:8.0
+    container_name: ${SERVICE_NAME:-joker-backend}_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-joker_backend}
+      MYSQL_USER: ${DB_USER:-joker_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-joker_password}
+    ports:
+      - "${DB_PORT:-3309}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - joker_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Backend API Server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ${SERVICE_NAME:-joker-backend}_api
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-joker_user}
+      DB_PASSWORD: ${DB_PASSWORD:-joker_password}
+      DB_NAME: ${DB_NAME:-joker_backend}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PORT: ${PORT:-6000}
+      ENV: ${ENV:-production}
+    ports:
+      - "${PORT:-6000}:${PORT:-6000}"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - joker_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:${PORT:-6000}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  joker_network:
+    driver: bridge
