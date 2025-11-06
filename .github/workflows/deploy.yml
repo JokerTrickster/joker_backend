@@ -66,15 +66,33 @@ jobs:
           ENV=production
           EOF
 
-      - name: Stop existing containers
+      - name: Check and start MySQL if needed
         run: |
-          cd ${{ env.DEPLOY_PATH }}
-          docker-compose -f docker-compose.prod.yml down || true
+          # Check if joker_mysql container exists and is running
+          if docker ps -a --format '{{.Names}}' | grep -q '^joker_mysql$'; then
+            echo "✅ MySQL container exists"
+            if ! docker ps --format '{{.Names}}' | grep -q '^joker_mysql$'; then
+              echo "🔄 Starting existing MySQL container..."
+              docker start joker_mysql
+            else
+              echo "✅ MySQL is already running"
+            fi
+          else
+            echo "🆕 Creating new MySQL container..."
+            cd ${{ env.DEPLOY_PATH }}
+            docker-compose -f docker-compose.prod.yml up -d mysql
+          fi
 
-      - name: Build and start containers
+      - name: Stop existing API container
+        run: |
+          # Stop only the API container, not MySQL
+          docker stop ${{ env.SERVICE_NAME }}_api 2>/dev/null || true
+          docker rm ${{ env.SERVICE_NAME }}_api 2>/dev/null || true
+
+      - name: Build and start API container
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          docker-compose -f docker-compose.prod.yml up -d --build
+          docker-compose -f docker-compose.prod.yml up -d --build api
 
       - name: Wait for services to be healthy
         run: |

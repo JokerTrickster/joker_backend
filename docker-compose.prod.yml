@@ -1,7 +1,8 @@
 version: '3.8'
 
 services:
-  # MySQL Database (공유 - 모든 서비스가 다른 DB 사용)
+  # MySQL Database (공유 - 외부 컨테이너 사용)
+  # 기존 joker_mysql 컨테이너를 사용하거나 없으면 생성
   mysql:
     image: mysql:8.0
     container_name: joker_mysql
