@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # MySQL Database
+  # Shared MySQL Database
   mysql:
     image: mysql:8.0
     container_name: joker_mysql
@@ -23,12 +23,12 @@ services:
       timeout: 5s
       retries: 5
 
-  # Backend API Server
-  api:
+  # Auth Service (Port 6000)
+  auth-service:
     build:
-      context: .
+      context: ./services/auth-service
       dockerfile: Dockerfile
-    container_name: joker_api
+    container_name: joker_auth_api
     environment:
       DB_HOST: mysql
       DB_PORT: 3306
@@ -45,6 +45,54 @@ services:
     networks:
       - joker_network
     restart: unless-stopped
+
+  # Game Service (Port 6001) - Placeholder
+  # Uncomment when ready to use
+  # game-service:
+  #   build:
+  #     context: ./services/game-service
+  #     dockerfile: Dockerfile
+  #   container_name: joker_game_api
+  #   environment:
+  #     DB_HOST: mysql
+  #     DB_PORT: 3306
+  #     DB_USER: joker_user
+  #     DB_PASSWORD: joker_password
+  #     DB_NAME: backend_dev
+  #     LOG_LEVEL: info
+  #     PORT: 6001
+  #   ports:
+  #     - "6001:6001"
+  #   depends_on:
+  #     mysql:
+  #       condition: service_healthy
+  #   networks:
+  #     - joker_network
+  #   restart: unless-stopped
+
+  # Payment Service (Port 6002) - Placeholder
+  # Uncomment when ready to use
+  # payment-service:
+  #   build:
+  #     context: ./services/payment-service
+  #     dockerfile: Dockerfile
+  #   container_name: joker_payment_api
+  #   environment:
+  #     DB_HOST: mysql
+  #     DB_PORT: 3306
+  #     DB_USER: joker_user
+  #     DB_PASSWORD: joker_password
+  #     DB_NAME: backend_dev
+  #     LOG_LEVEL: info
+  #     PORT: 6002
+  #   ports:
+  #     - "6002:6002"
+  #   depends_on:
+  #     mysql:
+  #       condition: service_healthy
+  #   networks:
+  #     - joker_network
+  #   restart: unless-stopped
 
 volumes:
   mysql_data:

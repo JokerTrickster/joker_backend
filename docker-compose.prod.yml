@@ -1,14 +1,16 @@
 version: '3.8'
 
+# Production docker-compose template
+# Used by deployment scripts for individual services
+# This file is a reference - actual deployments use docker run commands
+
 services:
-  # MySQL Database (공유 - 외부 컨테이너 사용)
-  # 기존 joker_mysql 컨테이너를 사용하거나 없으면 생성
+  # MySQL Database (공유 - 외부 컨테이너 재사용)
   mysql:
     image: mysql:8.0
     container_name: joker_mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
-      # 초기 데이터베이스는 init.sql에서 생성
     ports:
       - "3306:3306"
     volumes:
@@ -23,18 +25,19 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # Backend API Server
+  # Generic API service template
+  # Each service deployment uses this as build reference
   api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ${SERVICE_NAME:-joker-backend}_api
+    container_name: ${SERVICE_NAME:-joker-service}_api
     environment:
       DB_HOST: ${DB_HOST:-mysql}
       DB_PORT: 3306
       DB_USER: ${DB_USER:-joker_user}
       DB_PASSWORD: ${DB_PASSWORD:-joker_password}
-      DB_NAME: ${DB_NAME:-joker_backend}
+      DB_NAME: ${DB_NAME:-backend_dev}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       PORT: ${PORT:-6000}
       ENV: ${ENV:-production}

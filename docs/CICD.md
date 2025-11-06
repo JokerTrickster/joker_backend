@@ -2,32 +2,38 @@
 
 ## 개요
 
-이 프로젝트는 GitHub Actions와 Self-hosted Runner를 사용하여 자동 빌드 및 배포를 수행합니다.
+이 프로젝트는 GitHub Actions와 Self-hosted Runner를 사용하여 **경로 기반 자동 배포**를 수행합니다.
 
 ## 아키텍처
 
 ```
-GitHub Repository (push) → GitHub Actions → Self-hosted Runner → Docker Build → Deploy
+GitHub Repository (push)
+  → GitHub Actions (경로 감지)
+    → Self-hosted Runner
+      → 변경된 서비스만 Docker Build & Deploy
 ```
 
+- **모노레포 구조**: 모든 서비스가 하나의 레포지토리에 존재
+- **경로 기반 배포**: 변경된 서비스만 자동 배포
 - **빌드 서버 = 배포 서버**: 동일한 서버에서 빌드와 배포 수행
 - **서비스별 독립 컨테이너**: 각 서비스는 고유한 포트로 실행
-- **Docker Compose 기반**: 서비스 오케스트레이션
+- **공유 리소스**: MySQL과 데이터베이스는 모든 서비스가 공유
 
 ## 서비스 포트 구조
 
 각 서비스는 독립된 포트에서 실행되며, **MySQL(3306)과 데이터베이스(backend_dev)를 공유**합니다:
 
-| 서비스 | API 포트 | 설명 |
-|--------|----------|------|
-| 인증 서비스 (joker-backend) | 6000 | 기본 백엔드 |
-| 게임 서버 | 6001 | 추가 예정 |
-| 결제 서비스 | 6002 | 추가 예정 |
+| 서비스 | 경로 | API 포트 | 상태 | 설명 |
+|--------|------|----------|------|------|
+| Auth Service | `services/auth-service/` | 6000 | ✅ 운영중 | 사용자 인증 및 권한 관리 |
+| Game Service | `services/game-service/` | 6001 | 📋 예정 | 게임 로직 및 매칭 |
+| Payment Service | `services/payment-service/` | 6002 | 📋 예정 | 결제 처리 |
 
 **주요 특징:**
 - **공유 MySQL**: 모든 서비스가 3306 포트의 MySQL 인스턴스 공유
 - **공유 데이터베이스**: 모든 서비스가 `backend_dev` 데이터베이스 사용
 - **독립 API 포트**: 각 서비스는 고유한 포트에서 실행
+- **경로 기반 트리거**: 변경된 서비스만 재배포하여 효율적인 CI/CD
 
 ## Self-hosted Runner 설정
 
@@ -83,9 +89,20 @@ Repository → Settings → Secrets and variables → Actions → New repository
 
 ### 자동 배포 트리거
 
-- `main` 브랜치에 push
-- `develop` 브랜치에 push
-- 수동 실행 (workflow_dispatch)
+**경로 기반 자동 감지:**
+- `services/auth-service/` 변경 → Auth Service만 배포
+- `services/game-service/` 변경 → Game Service만 배포
+- `services/payment-service/` 변경 → Payment Service만 배포
+- `shared/` 변경 → **모든 서비스** 재배포 (공통 코드 변경)
+- `scripts/` 또는 `.github/workflows/` 변경 → 영향받는 서비스 배포
+
+**브랜치:**
+- `main` 브랜치에 push → 프로덕션 배포
+- `develop` 브랜치에 push → 스테이징 배포
+
+**수동 실행:**
+- GitHub Actions UI에서 workflow_dispatch
+- 특정 서비스 선택 배포 가능 (auth-service, game-service, payment-service, all)
 
 ### 배포 프로세스
 
@@ -114,17 +131,21 @@ Repository → Settings → Secrets and variables → Actions → New repository
 
 ## 수동 배포
 
-### 스크립트 사용
+### 통합 배포 스크립트 사용
 
 ```bash
-# 기본 서비스 배포 (포트 6000)
-./scripts/deploy.sh
+# Auth Service 배포
+./scripts/deploy-service.sh auth-service 6000
 
-# 특정 서비스 배포
-./scripts/deploy.sh game-server 6001
+# Game Service 배포
+./scripts/deploy-service.sh game-service 6001
+
+# Payment Service 배포
+./scripts/deploy-service.sh payment-service 6002
 
 # 매개변수: [서비스명] [API포트]
 # 모든 서비스가 backend_dev 데이터베이스 사용
+# 서비스명은 services/ 디렉토리 이름과 일치해야 함
 ```
 
 ### Docker Compose 직접 사용

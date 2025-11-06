@@ -1,51 +1,61 @@
-# Joker Backend
+# Joker Backend - Multi-Service Platform
 
-통합 백엔드 서비스 플랫폼 - Go, Echo, MySQL 기반의 클린 아키텍처
+통합 백엔드 서비스 플랫폼 - Go, Echo, MySQL 기반의 마이크로서비스 아키텍처
 
 ## 기술 스택
 
 - **언어**: Go 1.23+
 - **프레임워크**: Echo v4
-- **데이터베이스**: MySQL 8.0
-- **아키텍처**: Clean Architecture
+- **데이터베이스**: MySQL 8.0 (공유)
+- **아키텍처**: Clean Architecture + Microservices
 - **컨테이너**: Docker & Docker Compose
+- **CI/CD**: GitHub Actions (경로 기반 자동 배포)
 
 ## 프로젝트 구조
 
 ```
 joker_backend/
-├── cmd/
-│   └── server/          # 애플리케이션 엔트리 포인트
-│       └── main.go
-├── config/              # 설정 관리
-│   └── config.go
-├── internal/            # 비즈니스 로직 (Clean Architecture)
-│   ├── handler/         # HTTP 핸들러 (Presentation Layer)
-│   ├── service/         # 비즈니스 로직 (Use Case Layer)
-│   ├── repository/      # 데이터 접근 (Data Layer)
-│   ├── model/           # 도메인 모델
-│   └── middleware/      # 커스텀 미들웨어
-├── pkg/                 # 공용 패키지
-│   ├── database/        # 데이터베이스 연결
-│   ├── logger/          # 로깅 유틸리티
-│   └── response/        # 표준 응답 포맷
-├── scripts/             # 데이터베이스 초기화 스크립트
-├── docker-compose.yml   # 다중 서비스 오케스트레이션
-├── Dockerfile           # 컨테이너 이미지 정의
-└── Makefile             # 빌드 자동화
-
+├── services/                # 마이크로서비스들
+│   ├── auth-service/        # 인증 서비스 (포트 6000)
+│   │   ├── cmd/
+│   │   ├── internal/
+│   │   ├── pkg/
+│   │   ├── config/
+│   │   ├── Dockerfile
+│   │   └── go.mod
+│   ├── game-service/        # 게임 서비스 (포트 6001) [예정]
+│   └── payment-service/     # 결제 서비스 (포트 6002) [예정]
+│
+├── shared/                  # 공통 코드
+│   ├── models/             # 공통 모델
+│   ├── utils/              # 유틸리티
+│   └── middleware/         # 공통 미들웨어
+│
+├── scripts/                # 배포 스크립트
+│   ├── deploy-service.sh   # 통합 배포 스크립트
+│   ├── cleanup.sh
+│   └── init.sql
+│
+├── .github/
+│   └── workflows/
+│       └── deploy.yml      # 경로 기반 자동 배포
+│
+├── docker-compose.yml      # 로컬 개발용
+├── docker-compose.prod.yml # 프로덕션 템플릿
+└── README.md
 ```
 
-## 클린 아키텍처 레이어
+## 서비스 포트 구조
 
-```
-Handler (Presentation) → Service (Use Case) → Repository (Data) → Database
-```
+| 서비스 | 포트 | 상태 | 설명 |
+|--------|------|------|------|
+| Auth Service | 6000 | ✅ 운영중 | 사용자 인증 및 권한 관리 |
+| Game Service | 6001 | 📋 예정 | 게임 로직 및 매칭 |
+| Payment Service | 6002 | 📋 예정 | 결제 처리 |
 
-- **Handler**: HTTP 요청/응답 처리, 입력 검증
-- **Service**: 비즈니스 로직 구현, 트랜잭션 관리
-- **Repository**: 데이터 영속성, SQL 쿼리 실행
-- **Model**: 도메인 엔티티 정의
+**공통 리소스:**
+- MySQL: 포트 3306 (모든 서비스 공유)
+- Database: `backend_dev` (모든 서비스 공유)
 
 ## 빠른 시작
 
@@ -55,72 +65,94 @@ Handler (Presentation) → Service (Use Case) → Repository (Data) → Database
 - Docker & Docker Compose
 - Make (선택사항)
 
-### 로컬 개발 (Docker Compose)
+### 로컬 개발
 
 ```bash
-# 1. 환경 변수 설정
+# 1. 저장소 클론
+git clone https://github.com/JokerTrickster/joker_backend.git
+cd joker_backend
+
+# 2. 환경 변수 설정
 cp .env.example .env
 
-# 2. Docker Compose로 모든 서비스 시작
-make docker-up
-# 또는
+# 3. 모든 서비스 시작 (Docker Compose)
 docker-compose up -d
 
-# 3. 로그 확인
-make docker-logs
+# 4. 로그 확인
+docker-compose logs -f auth-service
 
-# 4. 서비스 중지
-make docker-down
+# 5. 서비스 중지
+docker-compose down
 ```
 
-### 로컬 개발 (Go 직접 실행)
+### 개별 서비스 개발
 
 ```bash
-# 1. 의존성 설치
+# Auth Service 개발
+cd services/auth-service
 go mod tidy
+go run ./cmd/server/main.go
 
-# 2. MySQL 시작 (Docker)
-docker-compose up -d mysql
-
-# 3. 환경 변수 설정
+# 환경 변수 설정 필요
 export DB_HOST=localhost
 export DB_PORT=3306
 export DB_USER=joker_user
 export DB_PASSWORD=joker_password
-export DB_NAME=joker_backend
-
-# 4. 애플리케이션 실행
-make run
-# 또는
-go run ./cmd/server/main.go
+export DB_NAME=backend_dev
+export PORT=6000
 ```
 
-### 빌드
+## CI/CD - 자동 배포
+
+### 경로 기반 배포
+
+변경된 서비스만 자동으로 배포됩니다:
 
 ```bash
-# 바이너리 빌드
-make build
+# Auth Service 수정 후 push
+git add services/auth-service/
+git commit -m "Update auth service"
+git push origin main
+# → Auth Service만 자동 배포 (포트 6000)
 
-# 실행
-./bin/server
+# Shared 코드 수정 후 push
+git add shared/
+git commit -m "Update shared utilities"
+git push origin main
+# → 모든 서비스 자동 재배포
+```
+
+### 수동 배포
+
+GitHub Actions에서 수동으로 특정 서비스 배포:
+
+1. GitHub Repository → Actions 탭
+2. "Deploy Services" 워크플로우 선택
+3. "Run workflow" 클릭
+4. 배포할 서비스 선택 (auth-service, game-service, payment-service, all)
+
+### 배포 스크립트 직접 사용
+
+```bash
+# 서버에서 직접 배포
+./scripts/deploy-service.sh auth-service 6000
+./scripts/deploy-service.sh game-service 6001
+./scripts/deploy-service.sh payment-service 6002
 ```
 
 ## API 엔드포인트
 
-### Health Check
+### Auth Service (포트 6000)
 
 ```bash
-GET /health
-```
+# Health Check
+GET http://localhost:6000/health
 
-### Users API (v1)
-
-```bash
 # 사용자 조회
-GET /api/v1/users/:id
+GET http://localhost:6000/api/v1/users/:id
 
 # 사용자 생성
-POST /api/v1/users
+POST http://localhost:6000/api/v1/users
 Content-Type: application/json
 
 {
@@ -131,7 +163,7 @@ Content-Type: application/json
 
 ### 응답 형식
 
-**성공 응답**:
+**성공 응답:**
 ```json
 {
   "success": true,
@@ -140,7 +172,7 @@ Content-Type: application/json
 }
 ```
 
-**에러 응답**:
+**에러 응답:**
 ```json
 {
   "success": false,
@@ -151,80 +183,127 @@ Content-Type: application/json
 }
 ```
 
-## Make 명령어
+## 새 서비스 추가하기
+
+### 1. 서비스 디렉토리 생성
 
 ```bash
-make help           # 사용 가능한 명령어 보기
-make build          # Go 애플리케이션 빌드
-make run            # 로컬에서 애플리케이션 실행
-make test           # 테스트 실행
-make clean          # 빌드 아티팩트 삭제
-make docker-up      # Docker Compose 서비스 시작
-make docker-down    # Docker Compose 서비스 중지
-make docker-logs    # Docker 로그 확인
-make docker-rebuild # Docker 서비스 재빌드
-make tidy           # Go 모듈 정리
-make fmt            # Go 코드 포맷팅
+mkdir -p services/your-service
+cd services/your-service
+```
+
+### 2. Go 모듈 초기화
+
+```bash
+go mod init joker_backend/services/your-service
+```
+
+### 3. 서비스 코드 작성
+
+Auth Service 구조를 참고하여 작성:
+- `cmd/server/main.go` - 엔트리 포인트
+- `internal/` - 비즈니스 로직
+- `config/` - 설정 관리
+- `Dockerfile` - 컨테이너 이미지
+
+### 4. docker-compose.yml에 추가
+
+```yaml
+your-service:
+  build:
+    context: ./services/your-service
+    dockerfile: Dockerfile
+  container_name: joker_your_api
+  environment:
+    DB_HOST: mysql
+    DB_NAME: backend_dev
+    PORT: 6003  # 새 포트 할당
+  ports:
+    - "6003:6003"
+  depends_on:
+    - mysql
+  networks:
+    - joker_network
+```
+
+### 5. GitHub Actions 업데이트
+
+`.github/workflows/deploy.yml`에 새 서비스 job 추가
+
+### 6. 배포 테스트
+
+```bash
+# 로컬 테스트
+docker-compose up -d your-service
+
+# 프로덕션 배포
+git add services/your-service/
+git commit -m "Add your-service"
+git push origin main
 ```
 
 ## 개발 가이드
 
-### 새로운 API 추가하기
+### Clean Architecture 레이어
 
-1. **Model 정의** (`internal/model/`)
-2. **Repository 구현** (`internal/repository/`)
-3. **Service 로직 작성** (`internal/service/`)
-4. **Handler 생성** (`internal/handler/`)
-5. **Routes 등록** (`internal/handler/routes.go`)
+```
+Handler (Presentation) → Service (Use Case) → Repository (Data) → Database
+```
 
-### 환경 변수
+- **Handler**: HTTP 요청/응답 처리, 입력 검증
+- **Service**: 비즈니스 로직 구현, 트랜잭션 관리
+- **Repository**: 데이터 영속성, SQL 쿼리 실행
+- **Model**: 도메인 엔티티 정의
+
+### 공통 코드 사용
+
+```go
+// shared 패키지 import
+import (
+    "joker_backend/shared/models"
+    "joker_backend/shared/utils"
+)
+
+// 사용 예시
+type User struct {
+    models.BaseModel
+    Name  string `json:"name"`
+    Email string `json:"email"`
+}
+
+dbHost := utils.GetEnv("DB_HOST", "localhost")
+```
+
+## 환경 변수
 
 | 변수 | 설명 | 기본값 |
 |------|------|--------|
 | `DB_HOST` | MySQL 호스트 | localhost |
 | `DB_PORT` | MySQL 포트 | 3306 |
-| `DB_USER` | MySQL 사용자 | root |
+| `DB_USER` | MySQL 사용자 | joker_user |
 | `DB_PASSWORD` | MySQL 비밀번호 | - |
-| `DB_NAME` | 데이터베이스 이름 | joker_backend |
-| `PORT` | API 서버 포트 | 8080 |
+| `DB_NAME` | 데이터베이스 이름 | backend_dev |
+| `PORT` | API 서버 포트 | 6000 (서비스별 다름) |
 | `LOG_LEVEL` | 로그 레벨 | info |
 
-## CI/CD
-
-이 프로젝트는 GitHub Actions와 Self-hosted Runner를 사용한 자동 배포를 지원합니다.
-
-### 배포 방법
+## 모니터링
 
 ```bash
-# 자동 배포: main 브랜치에 push
-git push origin main
+# 전체 서비스 상태
+docker ps --filter "name=joker"
 
-# 수동 배포: 배포 스크립트 사용
-./scripts/deploy.sh [service-name] [port]
+# 특정 서비스 로그
+docker logs -f auth-service_api
 
-# 예시
-./scripts/deploy.sh joker-backend 6000
-
-# 디스크 공간 정리 (필요시)
-./scripts/cleanup.sh
+# 헬스체크
+curl http://localhost:6000/health  # Auth Service
+curl http://localhost:6001/health  # Game Service
+curl http://localhost:6002/health  # Payment Service
 ```
 
-자세한 내용은 [CI/CD 가이드](docs/CICD.md)를 참고하세요.
+## 트러블슈팅
 
-## 다중 서비스 지원
-
-각 서비스는 독립된 포트에서 실행되며, **MySQL(3306)과 데이터베이스(backend_dev)를 공유**합니다:
-
-- 인증 서비스: API 포트 6000
-- 게임 서버: API 포트 6001 (추가 예정)
-- 결제 서비스: API 포트 6002 (추가 예정)
-
-**주요 특징:**
-- 공유 MySQL 인스턴스 (포트 3306)
-- 공유 데이터베이스 (backend_dev)
-- 서비스별 독립 API 포트
-
-새 서비스 추가 방법은 [CI/CD 가이드](docs/CICD.md)를 참고하세요.
+상세한 트러블슈팅 가이드는 [CI/CD 문서](docs/CICD.md)를 참고하세요.
 
 ## 라이센스
 

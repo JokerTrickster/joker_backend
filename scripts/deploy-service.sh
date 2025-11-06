@@ -1,13 +1,20 @@
 #!/bin/bash
 
-# Deployment script for Joker Backend services
-# Usage: ./scripts/deploy.sh [service-name] [port]
+# Multi-service deployment script
+# Usage: ./scripts/deploy-service.sh <service-name> <port>
+# Example: ./scripts/deploy-service.sh auth-service 6000
 
 set -e
 
-SERVICE_NAME=${1:-joker-backend}
-SERVICE_PORT=${2:-6000}
-DB_NAME=${3:-backend_dev}  # 모든 서비스가 동일한 DB 사용
+SERVICE_NAME=$1
+SERVICE_PORT=$2
+SERVICE_DIR="services/${SERVICE_NAME}"
+
+if [ -z "$SERVICE_NAME" ] || [ -z "$SERVICE_PORT" ]; then
+  echo "Usage: $0 <service-name> <port>"
+  echo "Example: $0 auth-service 6000"
+  exit 1
+fi
 
 # Use HOME directory for deployment
 DEPLOY_DIR="${HOME}/services/${SERVICE_NAME}"
@@ -26,14 +33,22 @@ df -h | grep -E '(Filesystem|/$|/home)'
 # Create deployment directory
 mkdir -p "${DEPLOY_DIR}"
 
-# Copy project files
-echo "📦 Copying project files..."
+# Copy service code
+echo "📦 Copying ${SERVICE_NAME} files..."
 rsync -av --exclude='.git' --exclude='bin' --exclude='.claude*' \
   --exclude='node_modules' --exclude='.env' \
-  "${PROJECT_ROOT}/" "${DEPLOY_DIR}/"
+  "${PROJECT_ROOT}/${SERVICE_DIR}/" "${DEPLOY_DIR}/"
+
+# Copy shared code
+echo "📦 Copying shared code..."
+rsync -av --exclude='.git' \
+  "${PROJECT_ROOT}/shared/" "${DEPLOY_DIR}/shared/"
 
 # Check and use existing MySQL
 MYSQL_EXISTS=false
+MYSQL_CONTAINER_NAME="mysql"
+MYSQL_NETWORK="joker_network"
+
 if sudo lsof -Pi :3306 -sTCP:LISTEN -t >/dev/null 2>&1; then
   echo "✅ MySQL is already running on port 3306"
 
@@ -52,86 +67,64 @@ if sudo lsof -Pi :3306 -sTCP:LISTEN -t >/dev/null 2>&1; then
   else
     echo "⚠️  Port 3306 is in use but not by a Docker container"
     echo "    Assuming external MySQL is available"
-    MYSQL_CONTAINER_NAME="mysql"
     MYSQL_EXISTS=true
   fi
 else
-  echo "🆕 No MySQL found on port 3306, creating new container..."
-  cd "${DEPLOY_DIR}"
-  docker-compose -f docker-compose.prod.yml up -d mysql
-
-  # Wait for MySQL to be ready
-  for i in {1..10}; do
-    if docker ps --filter "name=joker_mysql" --filter "status=running" | grep -q joker_mysql; then
-      echo "MySQL container started"
-      break
-    fi
-    echo "Waiting for MySQL container... ($i/10)"
-    sleep 2
-  done
-
-  MYSQL_CONTAINER_NAME="joker_mysql"
-  MYSQL_NETWORK="joker_network"
-  MYSQL_EXISTS=false
+  echo "⚠️  No MySQL found on port 3306"
+  echo "    Please ensure MySQL is running or update docker-compose to include it"
 fi
 
-# Create .env file if not exists
-if [ ! -f "${DEPLOY_DIR}/.env" ]; then
-  echo "📝 Creating .env file..."
-  cat > "${DEPLOY_DIR}/.env" << EOF
+# Create .env file
+echo "📝 Creating .env file..."
+cat > "${DEPLOY_DIR}/.env" << EOF
 SERVICE_NAME=${SERVICE_NAME}
 PORT=${SERVICE_PORT}
 DB_HOST=${MYSQL_CONTAINER_NAME}
 DB_PORT=3306
-DB_USER=joker_user
+DB_USER=${DB_USER:-joker_user}
 DB_PASSWORD=${DB_PASSWORD:-change_me}
-DB_NAME=${DB_NAME}
-MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-change_me}
+DB_NAME=backend_dev
 LOG_LEVEL=info
 ENV=production
 EOF
-fi
 
-# Stop existing API container
-echo "🛑 Stopping existing API container..."
+# Stop existing container
+echo "🛑 Stopping existing ${SERVICE_NAME} container..."
 cd "${DEPLOY_DIR}"
 docker stop ${SERVICE_NAME}_api 2>/dev/null || true
 docker rm ${SERVICE_NAME}_api 2>/dev/null || true
 
-# Build and start API container
-echo "🔨 Building API container..."
-docker-compose -f docker-compose.prod.yml build api
+# Build Docker image
+echo "🔨 Building ${SERVICE_NAME} Docker image..."
+docker build -t ${SERVICE_NAME}:latest .
 
-# Get the image name that was just built
-IMAGE_NAME=$(docker-compose -f docker-compose.prod.yml images -q api | head -1)
-if [ -z "$IMAGE_NAME" ]; then
-  IMAGE_NAME="joker-backend-api"
-fi
-echo "📦 Using image: $IMAGE_NAME"
-
-# Start API container and connect to MySQL network
+# Start container and connect to MySQL network
+echo "🚀 Starting ${SERVICE_NAME} container..."
 if [ "$MYSQL_EXISTS" == "true" ]; then
-  echo "🔗 Connecting API to MySQL network: $MYSQL_NETWORK"
+  echo "🔗 Connecting to MySQL network: $MYSQL_NETWORK"
   docker run -d \
     --name ${SERVICE_NAME}_api \
     --network $MYSQL_NETWORK \
     --env-file .env \
     -p ${SERVICE_PORT}:${SERVICE_PORT} \
     --restart unless-stopped \
-    $IMAGE_NAME
+    ${SERVICE_NAME}:latest
 else
-  # Use docker-compose if we created our own MySQL
-  echo "🚀 Starting API with docker-compose..."
-  docker-compose -f docker-compose.prod.yml up -d --no-deps api
+  docker run -d \
+    --name ${SERVICE_NAME}_api \
+    --env-file .env \
+    -p ${SERVICE_PORT}:${SERVICE_PORT} \
+    --restart unless-stopped \
+    ${SERVICE_NAME}:latest
 fi
 
-# Wait for services
-echo "⏳ Waiting for services to be ready..."
+# Wait for service
+echo "⏳ Waiting for service to be ready..."
 sleep 10
 
-# Check MySQL health directly using docker exec
+# Check MySQL health
 for i in {1..30}; do
-  if docker exec ${MYSQL_CONTAINER_NAME} mysqladmin ping -h localhost --silent; then
+  if docker exec ${MYSQL_CONTAINER_NAME} mysqladmin ping -h localhost --silent 2>/dev/null; then
     echo "✅ MySQL is healthy"
     break
   fi
@@ -151,7 +144,7 @@ done
 
 # Verify deployment
 echo "🔍 Verifying deployment..."
-docker-compose -f docker-compose.prod.yml ps
+docker ps --filter "name=${SERVICE_NAME}_api"
 
 # Test health endpoint
 if curl -f http://localhost:${SERVICE_PORT}/health > /dev/null 2>&1; then
@@ -162,6 +155,6 @@ if curl -f http://localhost:${SERVICE_PORT}/health > /dev/null 2>&1; then
   exit 0
 else
   echo "❌ Deployment failed - Health check failed"
-  docker-compose -f docker-compose.prod.yml logs api
+  docker logs ${SERVICE_NAME}_api
   exit 1
 fi

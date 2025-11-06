@@ -1,210 +1,184 @@
-name: Build and Deploy
+name: Deploy Services
 
 on:
   push:
     branches:
       - main
       - develop
+    paths:
+      - 'services/**'
+      - 'shared/**'
+      - 'scripts/**'
+      - '.github/workflows/**'
   workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to deploy (auth-service, game-service, payment-service, or all)'
+        required: true
+        default: 'all'
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-deploy:
+  detect-changes:
+    runs-on: self-hosted
+    outputs:
+      auth: ${{ steps.filter.outputs.auth }}
+      game: ${{ steps.filter.outputs.game }}
+      payment: ${{ steps.filter.outputs.payment }}
+      deploy_all: ${{ steps.check.outputs.deploy_all }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check manual trigger
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.service }}" == "all" ]; then
+              echo "deploy_all=true" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "deploy_all=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Detect changed services
+        id: filter
+        run: |
+          # Check for changes in auth-service
+          if git diff --name-only HEAD^ HEAD | grep -E '^(services/auth-service/|shared/)'; then
+            echo "auth=true" >> $GITHUB_OUTPUT
+          else
+            echo "auth=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Check for changes in game-service
+          if git diff --name-only HEAD^ HEAD | grep -E '^(services/game-service/|shared/)'; then
+            echo "game=true" >> $GITHUB_OUTPUT
+          else
+            echo "game=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Check for changes in payment-service
+          if git diff --name-only HEAD^ HEAD | grep -E '^(services/payment-service/|shared/)'; then
+            echo "payment=true" >> $GITHUB_OUTPUT
+          else
+            echo "payment=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Manual dispatch overrides
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            SERVICE="${{ github.event.inputs.service }}"
+            if [ "$SERVICE" == "auth-service" ] || [ "$SERVICE" == "all" ]; then
+              echo "auth=true" >> $GITHUB_OUTPUT
+            fi
+            if [ "$SERVICE" == "game-service" ] || [ "$SERVICE" == "all" ]; then
+              echo "game=true" >> $GITHUB_OUTPUT
+            fi
+            if [ "$SERVICE" == "payment-service" ] || [ "$SERVICE" == "all" ]; then
+              echo "payment=true" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+  deploy-auth-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.auth == 'true'
     runs-on: self-hosted
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Clean up disk space before build
+      - name: Clean up disk space
         run: |
           echo "🧹 Cleaning up disk space..."
-          # Remove unused Docker resources
           docker system prune -af --volumes || true
-
-          # Check disk space
           echo "💾 Disk space after cleanup:"
           df -h
 
-      - name: Set up environment variables
+      - name: Deploy Auth Service
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
-          echo "SERVICE_NAME=joker-backend" >> $GITHUB_ENV
-          echo "SERVICE_PORT=6000" >> $GITHUB_ENV
-          echo "DEPLOY_PATH=$HOME/services/joker-backend" >> $GITHUB_ENV
+          chmod +x scripts/deploy-service.sh
+          ./scripts/deploy-service.sh auth-service 6000
 
-      - name: Create deployment directory
-        run: |
-          mkdir -p ${{ env.DEPLOY_PATH }}
-          mkdir -p ${{ env.DEPLOY_PATH }}/logs
-
-      - name: Copy project files
-        run: |
-          rsync -av --exclude='.git' --exclude='bin' --exclude='.claude*' \
-            --exclude='node_modules' --exclude='.env' \
-            ./ ${{ env.DEPLOY_PATH }}/
-
-      - name: Check and use existing MySQL
-        run: |
-          # Check if port 3306 is already in use
-          if sudo lsof -Pi :3306 -sTCP:LISTEN -t >/dev/null 2>&1; then
-            echo "✅ MySQL is already running on port 3306"
-
-            # Find the container using port 3306
-            MYSQL_CONTAINER=$(docker ps --filter "publish=3306" --format "{{.Names}}" | head -1)
-
-            if [ -n "$MYSQL_CONTAINER" ]; then
-              echo "📦 Using existing MySQL container: $MYSQL_CONTAINER"
-
-              # Get the network of the existing MySQL container
-              MYSQL_NETWORK=$(docker inspect $MYSQL_CONTAINER --format '{{range $key, $value := .NetworkSettings.Networks}}{{$key}}{{end}}')
-              echo "🌐 MySQL is using network: $MYSQL_NETWORK"
-
-              echo "MYSQL_CONTAINER_NAME=$MYSQL_CONTAINER" >> $GITHUB_ENV
-              echo "MYSQL_NETWORK=$MYSQL_NETWORK" >> $GITHUB_ENV
-              echo "MYSQL_EXISTS=true" >> $GITHUB_ENV
-            else
-              echo "⚠️  Port 3306 is in use but not by a Docker container"
-              echo "    Assuming external MySQL is available"
-              echo "MYSQL_EXISTS=true" >> $GITHUB_ENV
-            fi
-          else
-            echo "🆕 No MySQL found on port 3306, creating new container..."
-            cd ${{ env.DEPLOY_PATH }}
-            docker-compose -f docker-compose.prod.yml up -d mysql
-
-            # Wait for MySQL to be ready
-            for i in {1..10}; do
-              if docker ps --filter "name=joker_mysql" --filter "status=running" | grep -q joker_mysql; then
-                echo "MySQL container started"
-                break
-              fi
-              echo "Waiting for MySQL container... ($i/10)"
-              sleep 2
-            done
-
-            echo "MYSQL_CONTAINER_NAME=joker_mysql" >> $GITHUB_ENV
-            echo "MYSQL_NETWORK=joker_network" >> $GITHUB_ENV
-            echo "MYSQL_EXISTS=false" >> $GITHUB_ENV
-          fi
-
-      - name: Create production .env file
-        run: |
-          cat > ${{ env.DEPLOY_PATH }}/.env << EOF
-          # Service Configuration
-          SERVICE_NAME=${{ env.SERVICE_NAME }}
-          PORT=${{ env.SERVICE_PORT }}
-
-          # Database Configuration (공유 MySQL on port 3306)
-          DB_HOST=${{ env.MYSQL_CONTAINER_NAME }}
-          DB_PORT=3306
-          DB_USER=${{ secrets.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_NAME=${{ secrets.DB_NAME }}
-          MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
-
-          # Application Configuration
-          LOG_LEVEL=info
-          ENV=production
-          EOF
-
-      - name: Stop existing API container
-        run: |
-          # Stop only the API container, not MySQL
-          docker stop ${{ env.SERVICE_NAME }}_api 2>/dev/null || true
-          docker rm ${{ env.SERVICE_NAME }}_api 2>/dev/null || true
-
-      - name: Build and start API container
-        run: |
-          cd ${{ env.DEPLOY_PATH }}
-
-          # Build the API image first
-          docker-compose -f docker-compose.prod.yml build api
-
-          # Stop and remove old API container if exists
-          docker stop ${{ env.SERVICE_NAME }}_api 2>/dev/null || true
-          docker rm ${{ env.SERVICE_NAME }}_api 2>/dev/null || true
-
-          # Get the image name that was just built
-          IMAGE_NAME=$(docker-compose -f docker-compose.prod.yml images -q api | head -1)
-          if [ -z "$IMAGE_NAME" ]; then
-            IMAGE_NAME="joker-backend-api"
-          fi
-          echo "📦 Using image: $IMAGE_NAME"
-
-          # Start API container and connect to MySQL network
-          if [ "${{ env.MYSQL_EXISTS }}" == "true" ]; then
-            echo "🔗 Connecting API to MySQL network: ${{ env.MYSQL_NETWORK }}"
-            docker run -d \
-              --name ${{ env.SERVICE_NAME }}_api \
-              --network ${{ env.MYSQL_NETWORK }} \
-              --env-file .env \
-              -p ${{ env.SERVICE_PORT }}:${{ env.SERVICE_PORT }} \
-              --restart unless-stopped \
-              $IMAGE_NAME
-          else
-            # Use docker-compose if we created our own MySQL
-            docker-compose -f docker-compose.prod.yml up -d --no-deps api
-          fi
-
-      - name: Wait for services to be healthy
-        run: |
-          cd ${{ env.DEPLOY_PATH }}
-          echo "Waiting for services to be ready..."
-          sleep 10
-
-          # Check MySQL health directly using docker exec
-          for i in {1..30}; do
-            if docker exec ${{ env.MYSQL_CONTAINER_NAME }} mysqladmin ping -h localhost --silent; then
-              echo "✅ MySQL is healthy"
-              break
-            fi
-            echo "Waiting for MySQL... ($i/30)"
-            sleep 2
-          done
-
-          # Check API health
-          for i in {1..30}; do
-            if curl -f http://localhost:${{ env.SERVICE_PORT }}/health > /dev/null 2>&1; then
-              echo "✅ API is healthy"
-              break
-            fi
-            echo "Waiting for API... ($i/30)"
-            sleep 2
-          done
-
-      - name: Verify deployment
-        run: |
-          # Check if containers are running
-          cd ${{ env.DEPLOY_PATH }}
-          docker-compose -f docker-compose.prod.yml ps
-
-          # Test health endpoint
-          echo "Testing health endpoint..."
-          RESPONSE=$(curl -f http://localhost:${{ env.SERVICE_PORT }}/health)
-          echo "Response: $RESPONSE"
-
-          echo "✅ Deployment successful!"
-          echo "📊 Service: ${{ env.SERVICE_NAME }}"
-          echo "🌐 Port: ${{ env.SERVICE_PORT }}"
-          echo "🔗 Health: http://localhost:${{ env.SERVICE_PORT }}/health"
-
-      - name: Cleanup old images and containers
-        run: |
-          echo "🧹 Cleaning up old resources..."
-          docker image prune -af
-          docker container prune -f
-
-          echo "💾 Final disk space:"
-          df -h
-
-      - name: Send deployment notification
+      - name: Deployment notification
         if: always()
         run: |
           if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Deployment successful for ${{ env.SERVICE_NAME }} on port ${{ env.SERVICE_PORT }}"
+            echo "✅ Auth Service deployment successful on port 6000"
           else
-            echo "❌ Deployment failed for ${{ env.SERVICE_NAME }}"
+            echo "❌ Auth Service deployment failed"
+          fi
+
+  deploy-game-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.game == 'true'
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Clean up disk space
+        run: |
+          echo "🧹 Cleaning up disk space..."
+          docker system prune -af --volumes || true
+          echo "💾 Disk space after cleanup:"
+          df -h
+
+      - name: Deploy Game Service
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          chmod +x scripts/deploy-service.sh
+          ./scripts/deploy-service.sh game-service 6001
+
+      - name: Deployment notification
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Game Service deployment successful on port 6001"
+          else
+            echo "❌ Game Service deployment failed"
+          fi
+
+  deploy-payment-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.payment == 'true'
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Clean up disk space
+        run: |
+          echo "🧹 Cleaning up disk space..."
+          docker system prune -af --volumes || true
+          echo "💾 Disk space after cleanup:"
+          df -h
+
+      - name: Deploy Payment Service
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          chmod +x scripts/deploy-service.sh
+          ./scripts/deploy-service.sh payment-service 6002
+
+      - name: Deployment notification
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Payment Service deployment successful on port 6002"
+          else
+            echo "❌ Payment Service deployment failed"
           fi
