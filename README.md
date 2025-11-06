@@ -200,10 +200,13 @@ make fmt            # Go 코드 포맷팅
 git push origin main
 
 # 수동 배포: 배포 스크립트 사용
-./scripts/deploy.sh [service-name] [port]
+./scripts/deploy.sh [service-name] [port] [db-name]
 
 # 예시
-./scripts/deploy.sh joker-backend 6000
+./scripts/deploy.sh joker-backend 6000 joker_backend
+
+# 디스크 공간 정리 (필요시)
+./scripts/cleanup.sh
 ```
 
 자세한 내용은 [CI/CD 가이드](docs/CICD.md)를 참고하세요.

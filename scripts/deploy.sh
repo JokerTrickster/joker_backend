@@ -16,6 +16,13 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 echo "🚀 Deploying ${SERVICE_NAME} on port ${SERVICE_PORT}..."
 
+# Clean up disk space before build
+echo "🧹 Cleaning up disk space..."
+docker system prune -af --volumes || true
+
+echo "💾 Disk space available:"
+df -h | grep -E '(Filesystem|/$|/home)'
+
 # Create deployment directory
 mkdir -p "${DEPLOY_DIR}"
 

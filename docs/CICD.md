@@ -90,17 +90,20 @@ Repository → Settings → Secrets and variables → Actions → New repository
 ### 배포 프로세스
 
 1. **체크아웃**: 코드 가져오기
-2. **환경 설정**: 환경 변수 및 디렉토리 생성 (`$HOME/services/[service-name]`)
-3. **파일 복사**: 프로젝트 파일을 배포 디렉토리로 복사
-4. **환경 파일 생성**: `.env` 파일 생성
-5. **컨테이너 중지**: 기존 컨테이너 중지
-6. **빌드 및 시작**: 새 컨테이너 빌드 및 시작
-7. **헬스체크**: 서비스 상태 확인
-8. **검증**: 배포 성공 확인
-9. **정리**: 오래된 이미지 삭제
+2. **디스크 정리**: 빌드 전 Docker 리소스 정리 (디스크 공간 확보)
+3. **환경 설정**: 환경 변수 및 디렉토리 생성 (`$HOME/services/[service-name]`)
+4. **파일 복사**: 프로젝트 파일을 배포 디렉토리로 복사
+5. **환경 파일 생성**: `.env` 파일 생성
+6. **컨테이너 중지**: 기존 컨테이너 중지
+7. **빌드 및 시작**: 새 컨테이너 빌드 및 시작
+8. **헬스체크**: 서비스 상태 확인
+9. **검증**: 배포 성공 확인
+10. **정리**: 오래된 이미지 및 컨테이너 삭제
 
 **배포 경로**: `$HOME/services/[service-name]`
 예: `~/services/joker-backend`, `~/services/game-server`
+
+**디스크 공간 관리**: 각 배포마다 자동으로 사용하지 않는 Docker 리소스를 정리하여 "no space left on device" 에러를 방지합니다.
 
 ## 수동 배포
 
@@ -254,13 +257,22 @@ docker-compose -f docker-compose.prod.yml up -d
 ### 디스크 공간 확보
 
 ```bash
-# 사용하지 않는 Docker 리소스 정리
-docker system prune -a --volumes
+# 자동 정리 스크립트 사용 (권장)
+./scripts/cleanup.sh
+
+# 수동 정리
+docker system prune -af --volumes
 
 # 특정 이미지만 삭제
 docker images | grep joker
 docker rmi <IMAGE_ID>
+
+# 디스크 사용량 확인
+df -h
+docker system df
 ```
+
+**참고**: 배포 시 자동으로 정리가 수행되지만, 디스크 공간이 부족할 경우 수동으로 실행할 수 있습니다.
 
 ## 보안 고려사항
 
