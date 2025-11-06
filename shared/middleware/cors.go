@@ -10,7 +10,7 @@ import (
 )
 
 // CORS returns a configured CORS middleware with environment-based origin control
-func CORS(allowedOrigins string) echo.MiddlewareFunc {
+func CORS(allowedOrigins string, env string) echo.MiddlewareFunc {
 	// Parse comma-separated origins
 	var origins []string
 	if allowedOrigins != "" {
@@ -21,19 +21,35 @@ func CORS(allowedOrigins string) echo.MiddlewareFunc {
 		}
 	}
 
-	// Security check: Never allow wildcard in production
-	for _, origin := range origins {
-		if origin == "*" {
-			logger.Fatal("CORS wildcard (*) is not allowed. Configure CORS_ALLOWED_ORIGINS environment variable")
+	// Development mode: allow wildcard if explicitly set
+	isDevelopment := env == "development" || env == "dev" || env == ""
+
+	if isDevelopment {
+		// In development, allow wildcard if configured
+		if len(origins) == 1 && origins[0] == "*" {
+			logger.Warn("⚠️  CORS wildcard (*) enabled in development mode - NOT FOR PRODUCTION!")
+		} else if len(origins) == 0 {
+			// Default to wildcard in development
+			origins = []string{"*"}
+			logger.Warn("⚠️  CORS not configured, defaulting to wildcard (*) in development mode")
+		}
+	} else {
+		// Production mode: strict checks
+		for _, origin := range origins {
+			if origin == "*" {
+				logger.Fatal("CORS wildcard (*) is not allowed in production. Configure CORS_ALLOWED_ORIGINS with specific domains")
+			}
+		}
+
+		if len(origins) == 0 {
+			logger.Fatal("CORS_ALLOWED_ORIGINS must be configured in production. Example: https://example.com,https://app.example.com")
 		}
 	}
 
-	// If no origins configured, fail secure
-	if len(origins) == 0 {
-		logger.Fatal("CORS_ALLOWED_ORIGINS must be configured. Example: https://example.com,https://app.example.com")
-	}
-
-	logger.Info("CORS configured", zap.Strings("allowed_origins", origins))
+	logger.Info("CORS configured",
+		zap.Strings("allowed_origins", origins),
+		zap.String("environment", env),
+	)
 
 	return middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: origins,
