@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/luxrobo/joker_backend/pkg/logger"
-	"github.com/luxrobo/joker_backend/pkg/response"
+	"github.com/luxrobo/joker_backend/shared/logger"
+	"github.com/luxrobo/joker_backend/shared/response"
 	"go.uber.org/zap"
 )
 

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/luxrobo/joker_backend/pkg/logger"
+	"github.com/luxrobo/joker_backend/shared/logger"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 )

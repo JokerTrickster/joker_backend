@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/luxrobo/joker_backend/config"
-	"github.com/luxrobo/joker_backend/internal/handler"
-	"github.com/luxrobo/joker_backend/pkg/database"
-	customErrors "github.com/luxrobo/joker_backend/pkg/errors"
-	"github.com/luxrobo/joker_backend/pkg/logger"
-	customMiddleware "github.com/luxrobo/joker_backend/pkg/middleware"
+	"github.com/luxrobo/joker_backend/services/auth-service/internal/handler"
+	"github.com/luxrobo/joker_backend/shared/config"
+	"github.com/luxrobo/joker_backend/shared/database"
+	customErrors "github.com/luxrobo/joker_backend/shared/errors"
+	"github.com/luxrobo/joker_backend/shared/logger"
+	customMiddleware "github.com/luxrobo/joker_backend/shared/middleware"
 	"go.uber.org/zap"
 )
 

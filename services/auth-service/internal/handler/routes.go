@@ -2,7 +2,7 @@ package handler
 
 import (
 	"github.com/labstack/echo/v4"
-	"github.com/luxrobo/joker_backend/pkg/database"
+	"github.com/luxrobo/joker_backend/shared/database"
 )
 
 func RegisterRoutes(g *echo.Group, db *database.DB) {

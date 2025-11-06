@@ -5,12 +5,12 @@ import (
 	"strconv"
 
 	"github.com/labstack/echo/v4"
-	"github.com/luxrobo/joker_backend/internal/model"
-	"github.com/luxrobo/joker_backend/internal/service"
-	"github.com/luxrobo/joker_backend/pkg/database"
-	customErrors "github.com/luxrobo/joker_backend/pkg/errors"
-	"github.com/luxrobo/joker_backend/pkg/logger"
-	"github.com/luxrobo/joker_backend/pkg/response"
+	"github.com/luxrobo/joker_backend/services/auth-service/internal/model"
+	"github.com/luxrobo/joker_backend/services/auth-service/internal/service"
+	"github.com/luxrobo/joker_backend/shared/database"
+	customErrors "github.com/luxrobo/joker_backend/shared/errors"
+	"github.com/luxrobo/joker_backend/shared/logger"
+	"github.com/luxrobo/joker_backend/shared/response"
 	"go.uber.org/zap"
 )
 

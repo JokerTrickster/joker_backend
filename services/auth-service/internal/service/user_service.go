@@ -1,9 +1,9 @@
 package service
 
 import (
-	"github.com/luxrobo/joker_backend/internal/model"
-	"github.com/luxrobo/joker_backend/internal/repository"
-	"github.com/luxrobo/joker_backend/pkg/database"
+	"github.com/luxrobo/joker_backend/services/auth-service/internal/model"
+	"github.com/luxrobo/joker_backend/services/auth-service/internal/repository"
+	"github.com/luxrobo/joker_backend/shared/database"
 )
 
 type UserService struct {

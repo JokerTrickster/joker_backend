@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/luxrobo/joker_backend/config"
+	"github.com/luxrobo/joker_backend/shared/config"
 )
 
 type DB struct {
