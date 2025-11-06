@@ -46,26 +46,6 @@ jobs:
             --exclude='node_modules' --exclude='.env' \
             ./ ${{ env.DEPLOY_PATH }}/
 
-      - name: Create production .env file
-        run: |
-          cat > ${{ env.DEPLOY_PATH }}/.env << EOF
-          # Service Configuration
-          SERVICE_NAME=${{ env.SERVICE_NAME }}
-          PORT=${{ env.SERVICE_PORT }}
-
-          # Database Configuration (공유 MySQL, 서비스별 다른 DB)
-          DB_HOST=mysql
-          DB_PORT=3306
-          DB_USER=${{ secrets.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_NAME=${{ secrets.DB_NAME }}
-          MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
-
-          # Application Configuration
-          LOG_LEVEL=info
-          ENV=production
-          EOF
-
       - name: Check and use existing MySQL
         run: |
           # Check if port 3306 is already in use
@@ -77,15 +57,51 @@ jobs:
 
             if [ -n "$MYSQL_CONTAINER" ]; then
               echo "📦 Using existing MySQL container: $MYSQL_CONTAINER"
+              echo "MYSQL_CONTAINER_NAME=$MYSQL_CONTAINER" >> $GITHUB_ENV
+              echo "MYSQL_EXISTS=true" >> $GITHUB_ENV
             else
               echo "⚠️  Port 3306 is in use but not by a Docker container"
               echo "    Assuming external MySQL is available"
+              echo "MYSQL_EXISTS=true" >> $GITHUB_ENV
             fi
           else
             echo "🆕 No MySQL found on port 3306, creating new container..."
             cd ${{ env.DEPLOY_PATH }}
             docker-compose -f docker-compose.prod.yml up -d mysql
+
+            # Wait for MySQL to be ready
+            for i in {1..10}; do
+              if docker ps --filter "name=joker_mysql" --filter "status=running" | grep -q joker_mysql; then
+                echo "MySQL container started"
+                break
+              fi
+              echo "Waiting for MySQL container... ($i/10)"
+              sleep 2
+            done
+
+            echo "MYSQL_CONTAINER_NAME=joker_mysql" >> $GITHUB_ENV
+            echo "MYSQL_EXISTS=false" >> $GITHUB_ENV
           fi
+
+      - name: Create production .env file
+        run: |
+          cat > ${{ env.DEPLOY_PATH }}/.env << EOF
+          # Service Configuration
+          SERVICE_NAME=${{ env.SERVICE_NAME }}
+          PORT=${{ env.SERVICE_PORT }}
+
+          # Database Configuration (공유 MySQL on port 3306)
+          DB_HOST=${{ env.MYSQL_CONTAINER_NAME }}
+          DB_PORT=3306
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
+
+          # Application Configuration
+          LOG_LEVEL=info
+          ENV=production
+          EOF
 
       - name: Stop existing API container
         run: |
@@ -96,7 +112,8 @@ jobs:
       - name: Build and start API container
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          docker-compose -f docker-compose.prod.yml up -d --build api
+          # Use --no-deps to prevent starting mysql service
+          docker-compose -f docker-compose.prod.yml up -d --no-deps --build api
 
       - name: Wait for services to be healthy
         run: |
@@ -104,9 +121,9 @@ jobs:
           echo "Waiting for services to be ready..."
           sleep 10
 
-          # Check MySQL health
+          # Check MySQL health directly using docker exec
           for i in {1..30}; do
-            if docker-compose -f docker-compose.prod.yml ps mysql | grep -q "healthy"; then
+            if docker exec ${{ env.MYSQL_CONTAINER_NAME }} mysqladmin ping -h localhost --silent; then
               echo "✅ MySQL is healthy"
               break
             fi

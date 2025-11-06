@@ -32,13 +32,46 @@ rsync -av --exclude='.git' --exclude='bin' --exclude='.claude*' \
   --exclude='node_modules' --exclude='.env' \
   "${PROJECT_ROOT}/" "${DEPLOY_DIR}/"
 
+# Check and use existing MySQL
+if sudo lsof -Pi :3306 -sTCP:LISTEN -t >/dev/null 2>&1; then
+  echo "✅ MySQL is already running on port 3306"
+
+  # Find the container using port 3306
+  MYSQL_CONTAINER=$(docker ps --filter "publish=3306" --format "{{.Names}}" | head -1)
+
+  if [ -n "$MYSQL_CONTAINER" ]; then
+    echo "📦 Using existing MySQL container: $MYSQL_CONTAINER"
+    MYSQL_CONTAINER_NAME="$MYSQL_CONTAINER"
+  else
+    echo "⚠️  Port 3306 is in use but not by a Docker container"
+    echo "    Assuming external MySQL is available"
+    MYSQL_CONTAINER_NAME="mysql"
+  fi
+else
+  echo "🆕 No MySQL found on port 3306, creating new container..."
+  cd "${DEPLOY_DIR}"
+  docker-compose -f docker-compose.prod.yml up -d mysql
+
+  # Wait for MySQL to be ready
+  for i in {1..10}; do
+    if docker ps --filter "name=joker_mysql" --filter "status=running" | grep -q joker_mysql; then
+      echo "MySQL container started"
+      break
+    fi
+    echo "Waiting for MySQL container... ($i/10)"
+    sleep 2
+  done
+
+  MYSQL_CONTAINER_NAME="joker_mysql"
+fi
+
 # Create .env file if not exists
 if [ ! -f "${DEPLOY_DIR}/.env" ]; then
   echo "📝 Creating .env file..."
   cat > "${DEPLOY_DIR}/.env" << EOF
 SERVICE_NAME=${SERVICE_NAME}
 PORT=${SERVICE_PORT}
-DB_HOST=mysql
+DB_HOST=${MYSQL_CONTAINER_NAME}
 DB_PORT=3306
 DB_USER=joker_user
 DB_PASSWORD=${DB_PASSWORD:-change_me}
@@ -49,42 +82,23 @@ ENV=production
 EOF
 fi
 
-# Check and use existing MySQL
-if sudo lsof -Pi :3306 -sTCP:LISTEN -t >/dev/null 2>&1; then
-  echo "✅ MySQL is already running on port 3306"
-
-  # Find the container using port 3306
-  MYSQL_CONTAINER=$(docker ps --filter "publish=3306" --format "{{.Names}}" | head -1)
-
-  if [ -n "$MYSQL_CONTAINER" ]; then
-    echo "📦 Using existing MySQL container: $MYSQL_CONTAINER"
-  else
-    echo "⚠️  Port 3306 is in use but not by a Docker container"
-    echo "    Assuming external MySQL is available"
-  fi
-else
-  echo "🆕 No MySQL found on port 3306, creating new container..."
-  cd "${DEPLOY_DIR}"
-  docker-compose -f docker-compose.prod.yml up -d mysql
-fi
-
 # Stop existing API container
 echo "🛑 Stopping existing API container..."
 cd "${DEPLOY_DIR}"
 docker stop ${SERVICE_NAME}_api 2>/dev/null || true
 docker rm ${SERVICE_NAME}_api 2>/dev/null || true
 
-# Build and start API container
+# Build and start API container (with --no-deps to skip mysql)
 echo "🔨 Building and starting API container..."
-docker-compose -f docker-compose.prod.yml up -d --build api
+docker-compose -f docker-compose.prod.yml up -d --no-deps --build api
 
 # Wait for services
 echo "⏳ Waiting for services to be ready..."
 sleep 10
 
-# Check MySQL health
+# Check MySQL health directly using docker exec
 for i in {1..30}; do
-  if docker-compose -f docker-compose.prod.yml ps mysql | grep -q "healthy"; then
+  if docker exec ${MYSQL_CONTAINER_NAME} mysqladmin ping -h localhost --silent; then
     echo "✅ MySQL is healthy"
     break
   fi

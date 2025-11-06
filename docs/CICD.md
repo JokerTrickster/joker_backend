@@ -108,8 +108,9 @@ Repository → Settings → Secrets and variables → Actions → New repository
 **MySQL 컨테이너 재사용**:
 - 3306 포트를 사용 중인 MySQL이 있으면 재사용 (컨테이너 이름 무관)
 - 없으면 새로 `joker_mysql` 컨테이너 생성
-- 각 배포 시 API 컨테이너만 재빌드하여 빠른 배포
+- 각 배포 시 API 컨테이너만 재빌드하여 빠른 배포 (`--no-deps` 플래그 사용)
 - 기존 MySQL의 `backend_dev` 데이터베이스 접근
+- API 컨테이너는 자동으로 감지된 MySQL 컨테이너 이름으로 연결 (DB_HOST)
 
 ## 수동 배포
 
