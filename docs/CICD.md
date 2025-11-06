@@ -90,7 +90,7 @@ Repository → Settings → Secrets and variables → Actions → New repository
 ### 배포 프로세스
 
 1. **체크아웃**: 코드 가져오기
-2. **환경 설정**: 환경 변수 및 디렉토리 생성
+2. **환경 설정**: 환경 변수 및 디렉토리 생성 (`$HOME/services/[service-name]`)
 3. **파일 복사**: 프로젝트 파일을 배포 디렉토리로 복사
 4. **환경 파일 생성**: `.env` 파일 생성
 5. **컨테이너 중지**: 기존 컨테이너 중지
@@ -98,6 +98,9 @@ Repository → Settings → Secrets and variables → Actions → New repository
 7. **헬스체크**: 서비스 상태 확인
 8. **검증**: 배포 성공 확인
 9. **정리**: 오래된 이미지 삭제
+
+**배포 경로**: `$HOME/services/[service-name]`
+예: `~/services/joker-backend`, `~/services/game-server`
 
 ## 수동 배포
 

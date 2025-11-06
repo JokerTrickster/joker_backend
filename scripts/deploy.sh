@@ -9,7 +9,8 @@ SERVICE_NAME=${1:-joker-backend}
 SERVICE_PORT=${2:-6000}
 DB_NAME=${3:-${SERVICE_NAME//-/_}}  # 서비스 이름에서 하이픈을 언더스코어로 변경
 
-DEPLOY_DIR="/home/runner/services/${SERVICE_NAME}"
+# Use HOME directory for deployment
+DEPLOY_DIR="${HOME}/services/${SERVICE_NAME}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 

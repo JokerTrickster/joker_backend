@@ -23,7 +23,7 @@ jobs:
         run: |
           echo "SERVICE_NAME=joker-backend" >> $GITHUB_ENV
           echo "SERVICE_PORT=6000" >> $GITHUB_ENV
-          echo "DEPLOY_PATH=/home/runner/services/joker-backend" >> $GITHUB_ENV
+          echo "DEPLOY_PATH=$HOME/services/joker-backend" >> $GITHUB_ENV
 
       - name: Create deployment directory
         run: |
