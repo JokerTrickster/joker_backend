@@ -1,17 +1,15 @@
 version: '3.8'
 
 services:
-  # MySQL Database (공유)
+  # MySQL Database (공유 - 모든 서비스가 다른 DB 사용)
   mysql:
     image: mysql:8.0
-    container_name: ${SERVICE_NAME:-joker-backend}_mysql
+    container_name: joker_mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
-      MYSQL_DATABASE: ${DB_NAME:-joker_backend}
-      MYSQL_USER: ${DB_USER:-joker_user}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-joker_password}
+      # 초기 데이터베이스는 init.sql에서 생성
     ports:
-      - "${DB_PORT:-3309}:3306"
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql

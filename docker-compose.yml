@@ -11,7 +11,7 @@ services:
       MYSQL_USER: joker_user
       MYSQL_PASSWORD: joker_password
     ports:
-      - "3309:3306"
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql

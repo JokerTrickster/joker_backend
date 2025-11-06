@@ -23,7 +23,6 @@ jobs:
         run: |
           echo "SERVICE_NAME=joker-backend" >> $GITHUB_ENV
           echo "SERVICE_PORT=6000" >> $GITHUB_ENV
-          echo "DB_PORT=3309" >> $GITHUB_ENV
           echo "DEPLOY_PATH=/home/runner/services/joker-backend" >> $GITHUB_ENV
 
       - name: Create deployment directory
@@ -43,10 +42,10 @@ jobs:
           # Service Configuration
           SERVICE_NAME=${{ env.SERVICE_NAME }}
           PORT=${{ env.SERVICE_PORT }}
-          DB_PORT=${{ env.DB_PORT }}
 
-          # Database Configuration
+          # Database Configuration (공유 MySQL, 서비스별 다른 DB)
           DB_HOST=mysql
+          DB_PORT=3306
           DB_USER=${{ secrets.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           DB_NAME=${{ secrets.DB_NAME }}

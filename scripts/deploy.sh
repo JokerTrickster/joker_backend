@@ -7,7 +7,7 @@ set -e
 
 SERVICE_NAME=${1:-joker-backend}
 SERVICE_PORT=${2:-6000}
-DB_PORT=$((SERVICE_PORT + 3309 - 6000))
+DB_NAME=${3:-${SERVICE_NAME//-/_}}  # 서비스 이름에서 하이픈을 언더스코어로 변경
 
 DEPLOY_DIR="/home/runner/services/${SERVICE_NAME}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -30,11 +30,11 @@ if [ ! -f "${DEPLOY_DIR}/.env" ]; then
   cat > "${DEPLOY_DIR}/.env" << EOF
 SERVICE_NAME=${SERVICE_NAME}
 PORT=${SERVICE_PORT}
-DB_PORT=${DB_PORT}
 DB_HOST=mysql
+DB_PORT=3306
 DB_USER=joker_user
 DB_PASSWORD=${DB_PASSWORD:-change_me}
-DB_NAME=${SERVICE_NAME//-/_}
+DB_NAME=${DB_NAME}
 MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-change_me}
 LOG_LEVEL=info
 ENV=production
