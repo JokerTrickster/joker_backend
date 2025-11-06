@@ -90,7 +90,8 @@ DB_USER=${DB_USER:-joker_user}
 DB_PASSWORD=${DB_PASSWORD:-change_me}
 DB_NAME=backend_dev
 LOG_LEVEL=info
-ENV=production
+ENV=${ENV:-production}
+CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-}
 MIGRATIONS_PATH=./migrations
 EOF
 

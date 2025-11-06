@@ -49,38 +49,56 @@ jobs:
       - name: Detect changed services
         id: filter
         run: |
-          # Check for changes in auth-service
-          if git diff --name-only HEAD^ HEAD | grep -E '^(services/auth-service/|shared/)'; then
-            echo "auth=true" >> $GITHUB_OUTPUT
+          # Check for changes in auth-service (only if directory exists)
+          if [ -d "services/auth-service" ]; then
+            if git diff --name-only HEAD^ HEAD | grep -E '^(services/auth-service/|shared/)'; then
+              echo "auth=true" >> $GITHUB_OUTPUT
+            else
+              echo "auth=false" >> $GITHUB_OUTPUT
+            fi
           else
             echo "auth=false" >> $GITHUB_OUTPUT
           fi
 
-          # Check for changes in game-service
-          if git diff --name-only HEAD^ HEAD | grep -E '^(services/game-service/|shared/)'; then
-            echo "game=true" >> $GITHUB_OUTPUT
+          # Check for changes in game-service (only if directory exists)
+          if [ -d "services/game-service" ]; then
+            if git diff --name-only HEAD^ HEAD | grep -E '^(services/game-service/|shared/)'; then
+              echo "game=true" >> $GITHUB_OUTPUT
+            else
+              echo "game=false" >> $GITHUB_OUTPUT
+            fi
           else
             echo "game=false" >> $GITHUB_OUTPUT
           fi
 
-          # Check for changes in payment-service
-          if git diff --name-only HEAD^ HEAD | grep -E '^(services/payment-service/|shared/)'; then
-            echo "payment=true" >> $GITHUB_OUTPUT
+          # Check for changes in payment-service (only if directory exists)
+          if [ -d "services/payment-service" ]; then
+            if git diff --name-only HEAD^ HEAD | grep -E '^(services/payment-service/|shared/)'; then
+              echo "payment=true" >> $GITHUB_OUTPUT
+            else
+              echo "payment=false" >> $GITHUB_OUTPUT
+            fi
           else
             echo "payment=false" >> $GITHUB_OUTPUT
           fi
 
-          # Manual dispatch overrides
+          # Manual dispatch overrides (only for existing services)
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             SERVICE="${{ github.event.inputs.service }}"
             if [ "$SERVICE" == "auth-service" ] || [ "$SERVICE" == "all" ]; then
-              echo "auth=true" >> $GITHUB_OUTPUT
+              if [ -d "services/auth-service" ]; then
+                echo "auth=true" >> $GITHUB_OUTPUT
+              fi
             fi
             if [ "$SERVICE" == "game-service" ] || [ "$SERVICE" == "all" ]; then
-              echo "game=true" >> $GITHUB_OUTPUT
+              if [ -d "services/game-service" ]; then
+                echo "game=true" >> $GITHUB_OUTPUT
+              fi
             fi
             if [ "$SERVICE" == "payment-service" ] || [ "$SERVICE" == "all" ]; then
-              echo "payment=true" >> $GITHUB_OUTPUT
+              if [ -d "services/payment-service" ]; then
+                echo "payment=true" >> $GITHUB_OUTPUT
+              fi
             fi
           fi
 
@@ -106,12 +124,13 @@ jobs:
           TEST_DB_USER: ${{ secrets.DB_USER }}
           TEST_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           TEST_DB_NAME: backend_dev_test
+          CORS_ALLOWED_ORIGINS: http://localhost:3000
         run: |
           cd services/auth-service
           echo "📦 Downloading dependencies..."
           go mod download
           echo "🧪 Running E2E tests..."
-          make test-e2e
+          go test -v ./tests/e2e/...
 
       - name: Clean up disk space
         run: |
@@ -124,6 +143,8 @@ jobs:
         env:
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+          ENV: production
         run: |
           chmod +x scripts/deploy-service.sh
           ./scripts/deploy-service.sh auth-service 6000
