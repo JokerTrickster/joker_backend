@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
@@ -28,7 +28,7 @@ RUN apk --no-cache add ca-certificates
 COPY --from=builder /app/main .
 
 # Expose port
-EXPOSE 8080
+EXPOSE 6000
 
 # Run the application
 CMD ["./main"]

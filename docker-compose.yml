@@ -11,7 +11,7 @@ services:
       MYSQL_USER: joker_user
       MYSQL_PASSWORD: joker_password
     ports:
-      - "3306:3306"
+      - "3309:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -36,9 +36,9 @@ services:
       DB_PASSWORD: joker_password
       DB_NAME: joker_backend
       LOG_LEVEL: info
-      PORT: 8080
+      PORT: 6000
     ports:
-      - "8080:8080"
+      - "6000:6000"
     depends_on:
       mysql:
         condition: service_healthy
