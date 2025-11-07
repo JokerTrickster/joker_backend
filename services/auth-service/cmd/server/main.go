@@ -1,11 +1,16 @@
 package main
 
 import (
+	"context"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/luxrobo/joker_backend/services/auth-service/internal/handler"
 	"github.com/luxrobo/joker_backend/shared/config"
 	"github.com/luxrobo/joker_backend/shared/database"
@@ -73,10 +78,13 @@ func main() {
 
 	// Rate limiting (10 requests per second, burst of 20)
 	rateLimiter := customMiddleware.NewRateLimiter(10, 20)
+	defer rateLimiter.Close() // Ensure cleanup on shutdown
 	e.Use(rateLimiter.Middleware())
 
-	// Request timeout (30 seconds)
-	e.Use(customMiddleware.Timeout(30 * time.Second))
+	// Request timeout (30 seconds) - use Echo's built-in timeout middleware
+	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
+		Timeout: 30 * time.Second,
+	}))
 
 	// Health check endpoint
 	e.GET("/health", func(c echo.Context) error {
@@ -91,7 +99,7 @@ func main() {
 	v1 := e.Group("/api/v1")
 	handler.RegisterRoutes(v1, db)
 
-	// Start server
+	// Start server with graceful shutdown
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -102,7 +110,27 @@ func main() {
 		zap.String("address", ":"+port),
 	)
 
-	if err := e.Start(":" + port); err != nil {
-		logger.Fatal("Failed to start server", zap.Error(err))
+	// Start server in goroutine
+	go func() {
+		if err := e.Start(":" + port); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("Failed to start server", zap.Error(err))
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shutdown the server
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
+
+	logger.Info("Shutting down server...")
+
+	// Give outstanding requests 10 seconds to complete
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := e.Shutdown(ctx); err != nil {
+		logger.Error("Server forced to shutdown", zap.Error(err))
 	}
+
+	logger.Info("Server exited gracefully")
 }

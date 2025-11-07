@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -254,7 +255,7 @@ func TestUserAPI_ConcurrentCreation(t *testing.T) {
 
 	numRequests := 10
 	done := make(chan bool, numRequests)
-	successCount := 0
+	var successCount int32 // Use atomic type to prevent race condition
 
 	for i := 0; i < numRequests; i++ {
 		go func(index int) {
@@ -266,7 +267,7 @@ func TestUserAPI_ConcurrentCreation(t *testing.T) {
 			testServer.ServeHTTP(rec, req)
 
 			if rec.Code == http.StatusCreated {
-				successCount++
+				atomic.AddInt32(&successCount, 1) // Atomic increment
 			}
 
 			done <- true

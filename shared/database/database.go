@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/luxrobo/joker_backend/shared/config"
@@ -31,8 +32,10 @@ func Connect(cfg config.DatabaseConfig) (*DB, error) {
 	}
 
 	// Connection pool settings
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
+	db.SetMaxOpenConns(25)                           // Maximum open connections
+	db.SetMaxIdleConns(5)                            // Maximum idle connections
+	db.SetConnMaxLifetime(time.Hour)                 // Maximum connection lifetime (1 hour)
+	db.SetConnMaxIdleTime(5 * time.Minute)           // Maximum idle time before closing (5 minutes)
 
 	return &DB{db}, nil
 }

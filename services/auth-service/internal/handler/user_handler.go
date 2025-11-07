@@ -11,6 +11,7 @@ import (
 	customErrors "github.com/luxrobo/joker_backend/shared/errors"
 	"github.com/luxrobo/joker_backend/shared/logger"
 	"github.com/luxrobo/joker_backend/shared/response"
+	"github.com/luxrobo/joker_backend/shared/utils"
 	"go.uber.org/zap"
 )
 
@@ -56,8 +57,14 @@ func (h *UserHandler) CreateUser(c echo.Context) error {
 		return customErrors.BadRequest("Invalid request data")
 	}
 
-	if req.Email == "" || req.Name == "" {
-		return customErrors.ValidationError("Email and name are required")
+	// Validate name
+	if err := utils.ValidateName(req.Name); err != nil {
+		return customErrors.ValidationError(err.Error())
+	}
+
+	// Validate email
+	if err := utils.ValidateEmail(req.Email); err != nil {
+		return customErrors.ValidationError(err.Error())
 	}
 
 	user, err := h.service.CreateUser(c.Request().Context(), &req)
