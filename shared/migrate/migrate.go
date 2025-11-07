@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"main/shared/logger"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/luxrobo/joker_backend/shared/logger"
 	"go.uber.org/zap"
 )
 

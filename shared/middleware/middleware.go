@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/luxrobo/joker_backend/shared/logger"
+	"main/shared/logger"
 	"go.uber.org/zap"
 )
 

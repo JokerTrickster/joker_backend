@@ -6,7 +6,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/luxrobo/joker_backend/shared/config"
+	"main/shared/config"
 )
 
 type DB struct {

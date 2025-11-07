@@ -9,15 +9,16 @@ import (
 	"syscall"
 	"time"
 
+	"main/internal/handler"
+	"main/shared/config"
+	"main/shared/database"
+	customErrors "main/shared/errors"
+	"main/shared/logger"
+	customMiddleware "main/shared/middleware"
+	"main/shared/migrate"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/luxrobo/joker_backend/services/auth-service/internal/handler"
-	"github.com/luxrobo/joker_backend/shared/config"
-	"github.com/luxrobo/joker_backend/shared/database"
-	customErrors "github.com/luxrobo/joker_backend/shared/errors"
-	"github.com/luxrobo/joker_backend/shared/logger"
-	customMiddleware "github.com/luxrobo/joker_backend/shared/middleware"
-	"github.com/luxrobo/joker_backend/shared/migrate"
 	"go.uber.org/zap"
 )
 
@@ -89,8 +90,8 @@ func main() {
 	// Health check endpoint
 	e.GET("/health", func(c echo.Context) error {
 		return c.JSON(200, map[string]interface{}{
-			"success": true,
-			"message": "Joker Backend is running",
+			"success":   true,
+			"message":   "Joker Backend is running",
 			"timestamp": time.Now().Unix(),
 		})
 	})

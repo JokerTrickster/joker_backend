@@ -1,4 +1,4 @@
-module github.com/luxrobo/joker_backend/services/auth-service
+module main
 
 go 1.24.0
 
@@ -6,8 +6,9 @@ toolchain go1.24.1
 
 require (
 	github.com/labstack/echo/v4 v4.13.4
-	github.com/luxrobo/joker_backend/shared v0.0.0
 	go.uber.org/zap v1.27.0
+	gorm.io/gorm v1.31.1
+	main/shared v0.0.0
 )
 
 require (
@@ -16,6 +17,8 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.19.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -31,4 +34,4 @@ require (
 )
 
 // Use local shared module
-replace github.com/luxrobo/joker_backend/shared => ../../shared
+replace main/shared => ../../shared

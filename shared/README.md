@@ -22,12 +22,12 @@
 
 ```go
 import (
-    "github.com/luxrobo/joker_backend/shared/config"
-    "github.com/luxrobo/joker_backend/shared/database"
-    "github.com/luxrobo/joker_backend/shared/logger"
-    "github.com/luxrobo/joker_backend/shared/errors"
-    "github.com/luxrobo/joker_backend/shared/middleware"
-    "github.com/luxrobo/joker_backend/shared/response"
+    "main/shared/config"
+    "main/shared/database"
+    "main/shared/logger"
+    "main/shared/errors"
+    "main/shared/middleware"
+    "main/shared/response"
 )
 ```
 

@@ -1,4 +1,4 @@
-module github.com/luxrobo/joker_backend/shared
+module main/shared
 
 go 1.24.0
 
