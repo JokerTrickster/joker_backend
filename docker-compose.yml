@@ -23,25 +23,25 @@ services:
       timeout: 5s
       retries: 5
 
-  # Auth Service (Port 6000)
+  # Auth Service (Port 8080)
   auth-service:
     build:
-      context: ./services/auth-service
+      context: ./services/authService
       dockerfile: Dockerfile
-    container_name: joker_auth_api
+    container_name: joker_auth_service
     environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: ${MYSQL_USER:-joker_user}
-      DB_PASSWORD: ${MYSQL_PASSWORD:-joker_password}
-      DB_NAME: ${MYSQL_DATABASE:-backend_dev}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: ${MYSQL_USER:-joker_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-joker_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-backend_dev}
       LOG_LEVEL: ${LOG_LEVEL:-info}
-      PORT: 6000
-      MIGRATIONS_PATH: ./migrations
+      PORT: 8080
       ENV: ${ENV:-production}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-*}
+      IS_LOCAL: "true"
     ports:
-      - "6000:6000"
+      - "8080:8080"
     depends_on:
       mysql:
         condition: service_healthy
@@ -49,29 +49,31 @@ services:
       - joker_network
     restart: unless-stopped
 
-  # Game Service (Port 6001) - Placeholder
-  # Uncomment when ready to use
-  # game-service:
-  #   build:
-  #     context: ./services/game-service
-  #     dockerfile: Dockerfile
-  #   container_name: joker_game_api
-  #   environment:
-  #     DB_HOST: mysql
-  #     DB_PORT: 3306
-  #     DB_USER: joker_user
-  #     DB_PASSWORD: joker_password
-  #     DB_NAME: backend_dev
-  #     LOG_LEVEL: info
-  #     PORT: 6001
-  #   ports:
-  #     - "6001:6001"
-  #   depends_on:
-  #     mysql:
-  #       condition: service_healthy
-  #   networks:
-  #     - joker_network
-  #   restart: unless-stopped
+  # Game Service (Port 8081)
+  game-service:
+    build:
+      context: ./services/gameService
+      dockerfile: Dockerfile
+    container_name: joker_game_service
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: ${MYSQL_USER:-joker_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-joker_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-backend_dev}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PORT: 8081
+      ENV: ${ENV:-production}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-*}
+      IS_LOCAL: "true"
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - joker_network
+    restart: unless-stopped
 
   # Payment Service (Port 6002) - Placeholder
   # Uncomment when ready to use

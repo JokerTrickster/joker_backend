@@ -5,7 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"main/shared/logger"
+	"github.com/JokerTrickster/joker_backend/shared/logger"
 	"go.uber.org/zap"
 )
 

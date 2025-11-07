@@ -3,9 +3,9 @@ package errors
 import (
 	"net/http"
 
+	"github.com/JokerTrickster/joker_backend/shared/logger"
+
 	"github.com/labstack/echo/v4"
-	"main/shared/logger"
-	"main/shared/response"
 	"go.uber.org/zap"
 )
 
@@ -68,18 +68,12 @@ func CustomErrorHandler(err error, c echo.Context) {
 	}
 
 	// Send JSON response
-	if !c.Response().Committed {
-		if c.Request().Method == http.MethodHead {
-			err = c.NoContent(code)
-		} else {
-			err = c.JSON(code, response.Error(errCode, message))
-		}
-		if err != nil {
-			logger.Error("Failed to send error response",
-				zap.Error(err),
-			)
-		}
-	}
+	c.JSON(code, map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":    errCode,
+			"message": message,
+		},
+	})
 }
 
 // mapHTTPStatusToCode maps HTTP status codes to error codes

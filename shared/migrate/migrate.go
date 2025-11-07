@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"main/shared/logger"
+	"github.com/JokerTrickster/joker_backend/shared/logger"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"

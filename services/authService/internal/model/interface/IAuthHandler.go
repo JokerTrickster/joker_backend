@@ -1,7 +1,0 @@
-package _interface
-
-import "github.com/labstack/echo/v4"
-
-type ISigninAuthHandler interface{
-	Signin(c echo.Context)error
-}
