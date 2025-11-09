@@ -10,32 +10,32 @@ import (
 	"time"
 )
 
-type SigninAuthUseCase struct {
-	Repository     _interface.ISigninAuthRepository
+type RefreshTokenUseCase struct {
 	ContextTimeout time.Duration
 }
 
-func NewSigninAuthUseCase(repo _interface.ISigninAuthRepository, timeout time.Duration) _interface.ISigninAuthUseCase {
-	return &SigninAuthUseCase{Repository: repo, ContextTimeout: timeout}
+func NewRefreshTokenUseCase(timeout time.Duration) _interface.IRefreshTokenUseCase {
+	return &RefreshTokenUseCase{ContextTimeout: timeout}
 }
 
-func (d *SigninAuthUseCase) Signin(c context.Context, req *request.ReqSignIn) (response.ResSignIn, error) {
+func (d *RefreshTokenUseCase) RefreshToken(c context.Context, req *request.ReqRefreshToken) (response.ResRefreshToken, error) {
 	ctx, cancel := context.WithTimeout(c, d.ContextTimeout)
 	defer cancel()
+	_ = ctx
 
-	// 유저 정보로 조회
-	userID, email, err := d.Repository.FindUserByEmail(ctx, req.Email, req.Password, req.ServiceType)
+	// 리프레시 토큰 검증
+	userID, email, err := jwt.VerifyRefreshToken(req.RefreshToken)
 	if err != nil {
-		return response.ResSignIn{}, err
+		return response.ResRefreshToken{}, fmt.Errorf("invalid or expired refresh token: %w", err)
 	}
 
-	// JWT 토큰 발급
+	// 새로운 액세스 토큰과 리프레시 토큰 발급
 	accessToken, _, refreshToken, _, err := jwt.GenerateToken(email, userID)
 	if err != nil {
-		return response.ResSignIn{}, fmt.Errorf("failed to generate tokens: %w", err)
+		return response.ResRefreshToken{}, fmt.Errorf("failed to generate tokens: %w", err)
 	}
 
-	res := response.ResSignIn{
+	res := response.ResRefreshToken{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}

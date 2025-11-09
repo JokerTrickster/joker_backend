@@ -7,6 +7,7 @@ import (
 	"github.com/JokerTrickster/joker_backend/shared/config"
 	"github.com/JokerTrickster/joker_backend/shared/db/mysql"
 	"github.com/JokerTrickster/joker_backend/shared/errors"
+	"github.com/JokerTrickster/joker_backend/shared/jwt"
 	"github.com/JokerTrickster/joker_backend/shared/logger"
 	"github.com/JokerTrickster/joker_backend/shared/middleware"
 	"github.com/JokerTrickster/joker_backend/shared/utils"
@@ -56,18 +57,27 @@ func Init(cfg *InitConfig) (*echo.Echo, error) {
 	AppConfig = appConfig
 	logger.Info("Configuration loaded successfully")
 
-	// 4. AWS initialization (optional)
-	// Uncomment when AWS services are needed
-	if err := _aws.InitAws(); err != nil {
-		return nil, fmt.Errorf("failed to initialize AWS: %w", err)
+	// 4. AWS initialization (skip in local mode)
+	if !appConfig.IsLocal {
+		if err := _aws.InitAws(); err != nil {
+			return nil, fmt.Errorf("failed to initialize AWS: %w", err)
+		}
+		logger.Info("AWS services initialized successfully")
+	} else {
+		logger.Info("Skipping AWS initialization (IS_LOCAL=true)")
 	}
-	logger.Info("AWS services initialized successfully")
 
 	// 3. Database initialization (MySQL)
 	if err := initDatabase(); err != nil {
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 	logger.Info("Database initialized successfully")
+
+	// 4. JWT initialization
+	if err := jwt.InitJwt(); err != nil {
+		return nil, fmt.Errorf("failed to initialize JWT: %w", err)
+	}
+	logger.Info("JWT initialized successfully")
 
 	// 5. Echo server initialization
 	e := initEchoServer(appConfig)

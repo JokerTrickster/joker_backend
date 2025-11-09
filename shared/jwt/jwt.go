@@ -145,3 +145,31 @@ func ParseToken(tokenString string) (uint, string, error) {
 	userID := claims.UserID
 	return userID, email, nil
 }
+
+func VerifyRefreshToken(tokenString string) (uint, string, error) {
+	// Parse the refresh token
+	token, err := jwt.ParseWithClaims(tokenString, &JwtCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return RefreshTokenSecretKey, nil
+	})
+	if err != nil {
+		return 0, "", ErrorMsg(context.TODO(), ErrBadToken, Trace(), fmt.Sprintf("failed to parse refresh token - %v", err.Error()), ErrFromClient)
+	}
+
+	// Check token validity
+	if !token.Valid {
+		return 0, "", ErrorMsg(context.TODO(), ErrBadToken, Trace(), "refresh token is invalid or expired", ErrFromClient)
+	}
+
+	// Extract claims
+	claims, ok := token.Claims.(*JwtCustomClaims)
+	if !ok {
+		return 0, "", ErrorMsg(context.TODO(), ErrBadToken, Trace(), fmt.Sprintf("failed to extract claims - %v", token), ErrFromClient)
+	}
+
+	// Check expiration time
+	if time.Now().Unix() > claims.ExpiresAt {
+		return 0, "", ErrorMsg(context.TODO(), ErrBadToken, Trace(), "refresh token is expired", ErrFromClient)
+	}
+
+	return claims.UserID, claims.Email, nil
+}

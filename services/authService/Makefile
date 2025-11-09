@@ -4,10 +4,10 @@ help: ## Display this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 build: ## Build the Go application
-	go build -o bin/server ./cmd/server
+	go build -o bin/server ./cmd/main.go
 
 run: ## Run the application locally
-	go run ./cmd/server/main.go
+	go run ./cmd/main.go
 
 test: ## Run all tests
 	go test -v ./...

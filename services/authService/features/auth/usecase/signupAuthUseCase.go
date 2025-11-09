@@ -6,6 +6,7 @@ import (
 	_interface "github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/request"
 	"github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/response"
+	"github.com/JokerTrickster/joker_backend/shared/jwt"
 	"time"
 )
 
@@ -21,7 +22,23 @@ func NewSignupAuthUseCase(repo _interface.ISignupAuthRepository, timeout time.Du
 func (d *SignupAuthUseCase) Signup(c context.Context, req *request.ReqSignUp) (response.ResSignUp, error) {
 	ctx, cancel := context.WithTimeout(c, d.ContextTimeout)
 	defer cancel()
-	fmt.Println(ctx)
 
-	return response.ResSignUp{}, nil
+	// 유저 생성
+	userID, err := d.Repository.CreateUser(ctx, req.Name, req.Email, req.Password, req.ServiceType)
+	if err != nil {
+		return response.ResSignUp{}, err
+	}
+
+	// JWT 토큰 발급
+	accessToken, _, refreshToken, _, err := jwt.GenerateToken(req.Email, userID)
+	if err != nil {
+		return response.ResSignUp{}, fmt.Errorf("failed to generate tokens: %w", err)
+	}
+
+	res := response.ResSignUp{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}
+
+	return res, nil
 }

@@ -12,4 +12,5 @@ import (
 func NewAuthHandler(c *echo.Echo) {
 	NewSigninAuthHandler(c, usecase.NewSigninAuthUseCase(repository.NewSigninAuthRepository(mysql.GormMysqlDB), mysql.DBTimeOut))
 	NewSignupAuthHandler(c, usecase.NewSignupAuthUseCase(repository.NewSignupAuthRepository(mysql.GormMysqlDB), mysql.DBTimeOut))
+	NewRefreshTokenHandler(c, usecase.NewRefreshTokenUseCase(mysql.DBTimeOut))
 }

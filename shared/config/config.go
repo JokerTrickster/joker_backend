@@ -11,6 +11,7 @@ type Config struct {
 	CORS     CORSConfig
 	LogLevel string
 	Env      string
+	IsLocal  bool
 }
 
 type CORSConfig struct {
@@ -50,6 +51,7 @@ func Load() (*Config, error) {
 		},
 		LogLevel: getEnv("LOG_LEVEL", "info"),
 		Env:      env,
+		IsLocal:  getEnv("IS_LOCAL", "false") == "true",
 	}
 
 	return cfg, nil

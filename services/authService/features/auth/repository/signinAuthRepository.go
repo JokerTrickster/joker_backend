@@ -14,7 +14,7 @@ func NewSigninAuthRepository(gormDB *gorm.DB) _interface.ISigninAuthRepository {
 	return &SigninAuthRepository{GormDB: gormDB}
 }
 
-func (d *SigninAuthRepository) FindUserByEmail(c context.Context, email string, password string, serviceType string) error {
+func (d *SigninAuthRepository) FindUserByEmail(c context.Context, email string, password string, serviceType string) (uint, string, error) {
 	user := &mysql.Users{}
 	// 유저 정보로 조회
 	result := d.GormDB.WithContext(c).
@@ -23,12 +23,12 @@ func (d *SigninAuthRepository) FindUserByEmail(c context.Context, email string, 
 	// 에러 처리
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		// 유저 없음
-		return fmt.Errorf("user not found")
+		return 0, "", fmt.Errorf("user not found")
 	}
 
 	if result.Error != nil {
 		// DB 조회 중 다른 에러 발생
-		return result.Error
+		return 0, "", result.Error
 	}
-	return nil
+	return uint(user.ID), user.Email, nil
 }

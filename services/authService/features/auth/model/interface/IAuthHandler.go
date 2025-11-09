@@ -9,3 +9,7 @@ type ISigninAuthHandler interface {
 type ISignupAuthHandler interface {
 	Signup(c echo.Context) error
 }
+
+type IRefreshTokenHandler interface {
+	RefreshToken(c echo.Context) error
+}

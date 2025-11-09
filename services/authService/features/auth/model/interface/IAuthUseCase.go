@@ -13,3 +13,7 @@ type ISigninAuthUseCase interface {
 type ISignupAuthUseCase interface {
 	Signup(c context.Context, req *request.ReqSignUp) (response.ResSignUp, error)
 }
+
+type IRefreshTokenUseCase interface {
+	RefreshToken(c context.Context, req *request.ReqRefreshToken) (response.ResRefreshToken, error)
+}
