@@ -1,0 +1,45 @@
+# Build stage
+FROM golang:1.24-alpine AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache git
+
+# Copy shared module first (required for go mod download)
+# Note: deploy script copies shared to service directory
+COPY shared /app/shared
+
+# Copy migrations
+# Note: deploy script copies migrations to service directory
+COPY migrations /app/migrations
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/server
+
+# Runtime stage
+FROM alpine:latest
+
+WORKDIR /root/
+
+# Install ca-certificates for HTTPS
+RUN apk --no-cache add ca-certificates
+
+# Copy binary from builder
+COPY --from=builder /app/main .
+
+# Copy migrations from builder
+COPY --from=builder /app/migrations ./migrations
+
+# Expose port
+EXPOSE 6000
+
+# Run the application
+CMD ["./main"]

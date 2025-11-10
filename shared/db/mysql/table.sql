@@ -19,3 +19,19 @@ CREATE TABLE users (
     password VARCHAR(255),
     provider VARCHAR(50),
 );
+<-- 
+   weather service table
+-->
+
+create table user_alarms (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    user_id INT,
+    alarm_time TIME NOT NULL,
+    region varchar(255) not null,
+    is_enabled boolean default true,
+    last_sent datetime default null,
+    foreign key (user_id) references users(id)
+);

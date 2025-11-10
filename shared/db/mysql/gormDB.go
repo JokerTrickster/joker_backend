@@ -19,3 +19,12 @@ type Users struct {
 	Password string `json:"password" gorm:"column:password"`
 	Provider string `json:"provider" gorm:"column:provider"`
 }
+
+type UserAlarms struct {
+	gorm.Model
+	UserID    uint   `json:"userID" gorm:"column:user_id"`
+	IsEnabled bool   `json:"isEnabled" gorm:"column:is_enabled"`
+	Region    string `json:"region" gorm:"column:region"`
+	LastSent  int64  `json:"lastSent" gorm:"column:last_sent"`
+	AlarmTime int64  `json:"alarmTime" gorm:"column:alarm_time"`
+}
