@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/JokerTrickster/joker_backend/shared/logger"
+	"github.com/JokerTrickster/joker_backend/shared/jwt"
 	"go.uber.org/zap"
 )
 
@@ -136,6 +138,62 @@ func Timeout(duration time.Duration) echo.MiddlewareFunc {
 				)
 				return echo.NewHTTPError(408, "Request timeout")
 			}
+		}
+	}
+}
+
+// JWTAuth validates JWT token and extracts user information
+func JWTAuth() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Get token from Authorization header
+			authHeader := c.Request().Header.Get("Authorization")
+			if authHeader == "" {
+				logger.Warn("Missing authorization header",
+					zap.String("request_id", c.Response().Header().Get(echo.HeaderXRequestID)),
+					zap.String("uri", c.Request().RequestURI),
+				)
+				return echo.NewHTTPError(401, "Missing authorization header")
+			}
+
+			// Extract token from "Bearer <token>"
+			parts := strings.Split(authHeader, " ")
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				logger.Warn("Invalid authorization format",
+					zap.String("request_id", c.Response().Header().Get(echo.HeaderXRequestID)),
+					zap.String("uri", c.Request().RequestURI),
+				)
+				return echo.NewHTTPError(401, "Invalid authorization format")
+			}
+
+			tokenString := parts[1]
+
+			// Verify token
+			if err := jwt.VerifyToken(tokenString); err != nil {
+				logger.Warn("Invalid or expired token",
+					zap.String("request_id", c.Response().Header().Get(echo.HeaderXRequestID)),
+					zap.String("uri", c.Request().RequestURI),
+					zap.Error(err),
+				)
+				return echo.NewHTTPError(401, "Invalid or expired token")
+			}
+
+			// Parse token to get user info
+			userID, email, err := jwt.ParseToken(tokenString)
+			if err != nil {
+				logger.Error("Failed to parse token",
+					zap.String("request_id", c.Response().Header().Get(echo.HeaderXRequestID)),
+					zap.String("uri", c.Request().RequestURI),
+					zap.Error(err),
+				)
+				return echo.NewHTTPError(401, "Failed to parse token")
+			}
+
+			// Set user info in context
+			c.Set("userID", userID)
+			c.Set("email", email)
+
+			return next(c)
 		}
 	}
 }

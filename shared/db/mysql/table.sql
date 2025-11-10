@@ -23,6 +23,18 @@ CREATE TABLE users (
    weather service table
 -->
 
+create table weather_service_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    user_id INT NOT NULL,
+    fcm_token VARCHAR(500) NOT NULL,
+    device_id VARCHAR(255),
+    unique key uk_user_device (user_id, device_id),
+    foreign key (user_id) references users(id)
+);
+
 create table user_alarms (
     id INT AUTO_INCREMENT PRIMARY KEY,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
