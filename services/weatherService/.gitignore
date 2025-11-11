@@ -1,0 +1,6 @@
+
+# Test binaries and coverage
+integration.test
+scheduler
+coverage.out
+*.test
