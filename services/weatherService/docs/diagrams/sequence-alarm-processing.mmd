@@ -1,0 +1,74 @@
+```mermaid
+sequenceDiagram
+    participant T as Ticker
+    participant S as Scheduler
+    participant R as Repository
+    participant C as Cache
+    participant Cr as Crawler
+    participant N as Notifier
+    participant M as Metrics
+
+    Note over T,S: Every 1 minute
+    T->>S: Tick (09:00:00)
+    S->>S: targetTime = 09:01:00
+
+    Note over S,R: Step 1: Get Alarms
+    S->>R: GetAlarmsToNotify(09:01:00)
+    R->>R: SELECT * FROM weather_alarms<br/>WHERE alarm_time='09:01'<br/>AND is_enabled=true<br/>AND (last_sent IS NULL OR DATE(last_sent) != CURDATE())
+    R-->>S: []UserAlarm (3 alarms)
+    S->>M: Record alarms_found=3
+
+    loop For Each Alarm
+        Note over S,C: Step 2: Get Weather Data
+        S->>C: Get("서울")
+
+        alt Cache Hit
+            C-->>S: WeatherData{temp:15.5, ...}
+            S->>M: Increment cache_hits
+        else Cache Miss
+            C-->>S: nil
+            S->>M: Increment cache_misses
+
+            S->>Cr: Fetch("서울")
+            Cr->>Cr: HTTP GET + Parse HTML
+            Cr-->>S: WeatherData{temp:15.5, ...}
+
+            S->>C: Set("서울", data)
+            C-->>S: OK
+        end
+
+        Note over S,R: Step 3: Get FCM Tokens
+        S->>R: GetFCMTokens(userID=100)
+        R->>R: SELECT fcm_token<br/>FROM weather_service_tokens<br/>WHERE user_id=100
+        R-->>S: []string{"token1", "token2"}
+
+        Note over S,N: Step 4: Send Notification
+        S->>N: SendWeatherNotification(tokens, data, "서울")
+        N->>N: Split into batches (500/batch)
+
+        loop For Each Batch
+            N->>N: Format FCM message
+            N->>N: FCM.SendMulticast(message)
+
+            alt Success
+                N->>M: Increment fcm_sent
+            else Failure
+                N->>N: Retry once
+                N->>M: Increment fcm_failed
+            end
+        end
+
+        N-->>S: nil (success)
+
+        Note over S,R: Step 5: Update Last Sent
+        S->>R: UpdateLastSent(alarmID=1, time=NOW())
+        R->>R: UPDATE weather_alarms<br/>SET last_sent=NOW()<br/>WHERE id=1
+        R-->>S: OK
+
+        S->>M: Increment alarms_processed
+    end
+
+    Note over S,M: Record Metrics
+    S->>M: Record processing_duration_seconds
+    S->>S: Log "Completed alarm processing"
+```

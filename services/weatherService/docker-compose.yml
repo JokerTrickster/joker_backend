@@ -1,0 +1,160 @@
+version: '3.8'
+
+services:
+  weather-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION:-1.0.0}
+    container_name: weather-scheduler
+    restart: unless-stopped
+
+    environment:
+      # Environment
+      ENV: ${ENV:-production}
+
+      # Database
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-joker}
+
+      # Redis
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      WEATHER_CACHE_TTL: ${WEATHER_CACHE_TTL:-30m}
+
+      # Scheduler
+      SCHEDULER_INTERVAL: ${SCHEDULER_INTERVAL:-1m}
+
+      # FCM
+      FCM_CREDENTIALS_PATH: /app/config/fcm-credentials.json
+
+      # Crawler
+      CRAWLER_TIMEOUT: ${CRAWLER_TIMEOUT:-10s}
+      CRAWLER_RETRY_COUNT: ${CRAWLER_RETRY_COUNT:-3}
+
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_OUTPUT: ${LOG_OUTPUT:-stdout}
+
+      # Metrics
+      METRICS_PORT: ${METRICS_PORT:-9090}
+
+    volumes:
+      # Mount FCM credentials
+      - ${FCM_CREDENTIALS_PATH:-./fcm-credentials.json}:/app/config/fcm-credentials.json:ro
+      # Mount logs directory (optional)
+      - ./logs:/var/log/weather
+
+    ports:
+      - "${METRICS_PORT:-9090}:9090"
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - weather-network
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  mysql:
+    image: mysql:8.0
+    container_name: weather-mysql
+    restart: unless-stopped
+
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-joker}
+
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ../../shared/db/mysql/table.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+
+    ports:
+      - "${DB_PORT:-3306}:3306"
+
+    networks:
+      - weather-network
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  redis:
+    image: redis:7-alpine
+    container_name: weather-redis
+    restart: unless-stopped
+
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass "${REDIS_PASSWORD:-}"
+
+    volumes:
+      - redis-data:/data
+
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+    networks:
+      - weather-network
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+networks:
+  weather-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local
+  redis-data:
+    driver: local

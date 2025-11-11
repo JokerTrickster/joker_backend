@@ -1,45 +1,67 @@
+# =============================================================================
+# Multi-stage build for Weather Service Scheduler
+# Final image size target: < 50MB
+# =============================================================================
+
 # Build stage
 FROM golang:1.24-alpine AS builder
 
-WORKDIR /app
+WORKDIR /build
 
 # Install build dependencies
-RUN apk add --no-cache git
+RUN apk add --no-cache git ca-certificates tzdata
 
-# Copy shared module first (required for go mod download)
-# Note: deploy script copies shared to service directory
-COPY shared /app/shared
-
-# Copy migrations
-# Note: deploy script copies migrations to service directory
-COPY migrations /app/migrations
-
-# Copy go mod files
+# Copy go mod files first for better caching
 COPY go.mod go.sum ./
-RUN go mod download
 
-# Copy source code
+# Copy source code (includes go.mod replace directive)
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/server
+# Note: Build requires shared module at ../../shared
+# For Docker build, run from project root or copy shared to build context
 
-# Runtime stage
+# Build the scheduler application with optimizations
+# -ldflags="-w -s" removes debug info and symbol table
+# -trimpath removes file system paths
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -a -installsuffix cgo \
+    -ldflags="-w -s -X main.version=${VERSION:-dev}" \
+    -trimpath \
+    -o scheduler ./cmd/scheduler
+
+# Verify binary size
+RUN ls -lh scheduler
+
+# =============================================================================
+# Runtime stage - minimal Alpine image
+# =============================================================================
 FROM alpine:latest
 
-WORKDIR /root/
+# Add non-root user for security
+RUN addgroup -g 1000 weather && \
+    adduser -D -u 1000 -G weather weather
 
-# Install ca-certificates for HTTPS
-RUN apk --no-cache add ca-certificates
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apk --no-cache add ca-certificates tzdata && \
+    rm -rf /var/cache/apk/*
 
 # Copy binary from builder
-COPY --from=builder /app/main .
+COPY --from=builder /build/scheduler .
 
-# Copy migrations from builder
-COPY --from=builder /app/migrations ./migrations
+# Change ownership to non-root user
+RUN chown -R weather:weather /app
 
-# Expose port
-EXPOSE 6000
+# Switch to non-root user
+USER weather
 
-# Run the application
-CMD ["./main"]
+# Expose metrics port
+EXPOSE 9090
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:9090/health || exit 1
+
+# Run the scheduler
+CMD ["./scheduler"]

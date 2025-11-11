@@ -1,0 +1,280 @@
+{
+  "dashboard": {
+    "title": "Weather Data Collector Monitoring",
+    "tags": ["weather", "scheduler", "monitoring"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Crawler Performance",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(weather_crawl_duration_seconds_sum[5m]) / rate(weather_crawl_duration_seconds_count[5m])",
+            "legendFormat": "{{region}} - avg duration",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(weather_crawl_requests_total{status=\"success\"}[5m])",
+            "legendFormat": "{{region}} - success rate",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"label": "Duration (s)", "show": true},
+          {"show": true}
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Cache Hit Rate",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(weather_cache_hits_total[5m]) / (rate(weather_cache_hits_total[5m]) + rate(weather_cache_misses_total[5m]))",
+            "legendFormat": "Hit Rate",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"label": "Hit Rate (%)", "format": "percentunit", "show": true},
+          {"show": false}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "FCM Delivery Rate",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(fcm_notifications_sent_total{status=\"success\"}[5m])",
+            "legendFormat": "Success",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(fcm_notifications_sent_total{status=\"failure\"}[5m])",
+            "legendFormat": "Failure",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"label": "Rate", "show": true},
+          {"show": true}
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Scheduler Throughput",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(scheduler_alarms_processed_total[1m]) * 60",
+            "legendFormat": "{{status}} - per minute",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"label": "Alarms/min", "show": true},
+          {"show": true}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Error Rate",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(weather_crawl_errors_total[5m])",
+            "legendFormat": "Crawler - {{error_type}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(fcm_errors_total[5m])",
+            "legendFormat": "FCM - {{error_type}}",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(weather_cache_errors_total[5m])",
+            "legendFormat": "Cache - {{operation}}",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"label": "Errors/sec", "show": true},
+          {"show": true}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "System Metrics",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "go_goroutines",
+            "legendFormat": "Goroutines",
+            "refId": "A"
+          },
+          {
+            "expr": "go_memstats_alloc_bytes / 1024 / 1024",
+            "legendFormat": "Memory Allocated (MB)",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(go_gc_duration_seconds_sum[5m])",
+            "legendFormat": "GC Duration",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"label": "Value", "show": true},
+          {"show": true}
+        ]
+      },
+      {
+        "id": 7,
+        "title": "FCM Batch Size Distribution",
+        "type": "histogram",
+        "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(fcm_batch_size_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(fcm_batch_size_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(fcm_batch_size_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Scheduler Processing Time",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 24, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(scheduler_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(scheduler_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(scheduler_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"label": "Duration (s)", "show": true},
+          {"show": true}
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Consecutive Failures",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 32, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "scheduler_consecutive_failures",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "textMode": "value_and_name"
+        },
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {"value": 0, "color": "green"},
+            {"value": 3, "color": "yellow"},
+            {"value": 5, "color": "red"}
+          ]
+        }
+      },
+      {
+        "id": 10,
+        "title": "Error Rate (per minute)",
+        "type": "stat",
+        "gridPos": {"x": 6, "y": 32, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "scheduler_error_rate",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "textMode": "value_and_name"
+        },
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {"value": 0, "color": "green"},
+            {"value": 5, "color": "yellow"},
+            {"value": 10, "color": "red"}
+          ]
+        }
+      },
+      {
+        "id": 11,
+        "title": "Scheduler Ticks",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 32, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "rate(scheduler_ticks_total[5m]) * 60",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "textMode": "value"
+        }
+      },
+      {
+        "id": 12,
+        "title": "Total Alarms Processed",
+        "type": "stat",
+        "gridPos": {"x": 18, "y": 32, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(scheduler_alarms_processed_total)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "textMode": "value"
+        }
+      }
+    ]
+  }
+}

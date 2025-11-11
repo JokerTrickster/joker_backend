@@ -1,0 +1,175 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather-scheduler
+  namespace: joker-backend
+  labels:
+    app: weather-scheduler
+    version: v1
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  selector:
+    matchLabels:
+      app: weather-scheduler
+
+  template:
+    metadata:
+      labels:
+        app: weather-scheduler
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+
+    spec:
+      # Security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      # Service account
+      serviceAccountName: weather-scheduler
+
+      # Init containers for database readiness
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z mysql.joker-backend.svc.cluster.local 3306; do
+                echo "Waiting for MySQL..."
+                sleep 2
+              done
+              echo "MySQL is ready"
+
+        - name: wait-for-redis
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z redis.joker-backend.svc.cluster.local 6379; do
+                echo "Waiting for Redis..."
+                sleep 2
+              done
+              echo "Redis is ready"
+
+      containers:
+        - name: scheduler
+          image: weather-scheduler:latest
+          imagePullPolicy: Always
+
+          # Environment from ConfigMap and Secret
+          envFrom:
+            - configMapRef:
+                name: weather-scheduler-config
+            - secretRef:
+                name: weather-scheduler-secret
+
+          ports:
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+
+          # Volume mounts
+          volumeMounts:
+            - name: fcm-credentials
+              mountPath: /app/config
+              readOnly: true
+
+          # Resource limits
+          resources:
+            requests:
+              cpu: 500m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+
+          # Readiness probe
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+
+          # Startup probe (for slow starts)
+          startupProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 12
+
+          # Security context
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+
+      # Volumes
+      volumes:
+        - name: fcm-credentials
+          secret:
+            secretName: fcm-credentials
+            items:
+              - key: fcm-credentials.json
+                path: fcm-credentials.json
+
+      # Affinity and tolerations
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - weather-scheduler
+                topologyKey: kubernetes.io/hostname
+
+      # Termination grace period
+      terminationGracePeriodSeconds: 30
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: weather-scheduler
+  namespace: joker-backend
+  labels:
+    app: weather-scheduler

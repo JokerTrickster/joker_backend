@@ -1,0 +1,82 @@
+```mermaid
+graph TD
+    subgraph "Scheduler Service"
+        Main[main.go<br/>Entry Point]
+        Config[Configuration<br/>Env Variables]
+
+        WS[WeatherSchedulerService<br/>- Start&#40;&#41;<br/>- Stop&#40;&#41;<br/>- processAlarms&#40;&#41;]
+
+        subgraph "Interfaces"
+            IRepo[ISchedulerWeatherRepository]
+            ICache[IWeatherCache]
+            ICrawler[IWeatherCrawler]
+            INotifier[IFCMNotifier]
+        end
+
+        Main --> Config
+        Main --> WS
+        WS --> IRepo
+        WS --> ICache
+        WS --> ICrawler
+        WS --> INotifier
+    end
+
+    subgraph "Repository Layer"
+        RepoImpl[SchedulerWeatherRepository<br/>- GetAlarmsToNotify&#40;&#41;<br/>- UpdateLastSent&#40;&#41;<br/>- GetFCMTokens&#40;&#41;]
+        GORM[GORM ORM]
+
+        IRepo -.implements.- RepoImpl
+        RepoImpl --> GORM
+    end
+
+    subgraph "Cache Layer"
+        CacheImpl[WeatherCache<br/>- Get&#40;&#41;<br/>- Set&#40;&#41;<br/>- Delete&#40;&#41;]
+        RedisClient[go-redis Client]
+
+        ICache -.implements.- CacheImpl
+        CacheImpl --> RedisClient
+    end
+
+    subgraph "Crawler Layer"
+        CrawlerImpl[NaverWeatherCrawler<br/>- Fetch&#40;&#41;<br/>- parseWeatherData&#40;&#41;]
+        HTTPClient[HTTP Client]
+        GoQuery[goquery Parser]
+
+        ICrawler -.implements.- CrawlerImpl
+        CrawlerImpl --> HTTPClient
+        CrawlerImpl --> GoQuery
+    end
+
+    subgraph "Notifier Layer"
+        NotifierImpl[FCMNotifier<br/>- SendWeatherNotification&#40;&#41;<br/>- formatMessage&#40;&#41;]
+        FirebaseSDK[Firebase SDK]
+
+        INotifier -.implements.- NotifierImpl
+        NotifierImpl --> FirebaseSDK
+    end
+
+    subgraph "Infrastructure"
+        Health[HealthChecker<br/>- Handler&#40;&#41;]
+        Metrics[Prometheus Metrics<br/>- Counters<br/>- Histograms]
+        Logger[Zap Logger<br/>- Structured Logging]
+
+        Main --> Health
+        Main --> Metrics
+        Main --> Logger
+    end
+
+    GORM --> MySQL[(MySQL)]
+    RedisClient --> Redis[(Redis)]
+    HTTPClient --> Naver[Naver API]
+    FirebaseSDK --> FCM[Firebase]
+
+    classDef interface fill:#e3f2fd,stroke:#1976d2,color:#000
+    classDef impl fill:#c8e6c9,stroke:#388e3c,color:#000
+    classDef infra fill:#fff9c4,stroke:#f57f17,color:#000
+    classDef external fill:#ffccbc,stroke:#d84315,color:#000
+
+    class IRepo,ICache,ICrawler,INotifier interface
+    class RepoImpl,CacheImpl,CrawlerImpl,NotifierImpl impl
+    class Health,Metrics,Logger infra
+    class MySQL,Redis,Naver,FCM external
+```

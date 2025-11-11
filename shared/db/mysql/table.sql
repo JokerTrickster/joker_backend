@@ -45,5 +45,7 @@ create table user_alarms (
     region varchar(255) not null,
     is_enabled boolean default true,
     last_sent datetime default null,
-    foreign key (user_id) references users(id)
+    foreign key (user_id) references users(id),
+    index idx_alarm_time (alarm_time, is_enabled, deleted_at),
+    index idx_last_sent (last_sent)
 );
