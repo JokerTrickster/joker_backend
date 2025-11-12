@@ -2,6 +2,7 @@ package _interface
 
 import (
 	"context"
+
 	"github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/request"
 	"github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/response"
 )
@@ -16,4 +17,11 @@ type ISignupAuthUseCase interface {
 
 type IRefreshTokenUseCase interface {
 	RefreshToken(c context.Context, req *request.ReqRefreshToken) (response.ResRefreshToken, error)
+}
+
+type ILogoutAuthUseCase interface {
+	Logout(c context.Context, userID uint) error
+}
+type ICheckEmailAuthUseCase interface {
+	CheckEmail(ctx context.Context, req *request.ReqCheckEmail) (*response.ResCheckEmail, error)
 }

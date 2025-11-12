@@ -3,19 +3,21 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"time"
+
 	_interface "github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/request"
 	"github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/response"
 	"github.com/JokerTrickster/joker_backend/shared/jwt"
-	"time"
 )
 
 type RefreshTokenUseCase struct {
+	Repository     _interface.IRefreshTokenAuthRepository
 	ContextTimeout time.Duration
 }
 
-func NewRefreshTokenUseCase(timeout time.Duration) _interface.IRefreshTokenUseCase {
-	return &RefreshTokenUseCase{ContextTimeout: timeout}
+func NewRefreshTokenUseCase(repo _interface.IRefreshTokenAuthRepository, timeout time.Duration) _interface.IRefreshTokenUseCase {
+	return &RefreshTokenUseCase{Repository: repo, ContextTimeout: timeout}
 }
 
 func (d *RefreshTokenUseCase) RefreshToken(c context.Context, req *request.ReqRefreshToken) (response.ResRefreshToken, error) {
@@ -34,7 +36,18 @@ func (d *RefreshTokenUseCase) RefreshToken(c context.Context, req *request.ReqRe
 	if err != nil {
 		return response.ResRefreshToken{}, fmt.Errorf("failed to generate tokens: %w", err)
 	}
+	// db에 기존 리프레시 토큰 삭제
+	err = d.Repository.FindOneByUserIDAndDeleteToken(ctx, userID)
+	if err != nil {
+		return response.ResRefreshToken{}, fmt.Errorf("failed to delete old refresh token: %w", err)
+	}
 
+	// db에 리프레시 토큰 저장
+	tokenDTO := createTokenDTO(userID, accessToken, refreshToken)
+	err = d.Repository.FindUserIDByRefreshToken(ctx, tokenDTO)
+	if err != nil {
+		return response.ResRefreshToken{}, fmt.Errorf("failed to store refresh token: %w", err)
+	}
 	res := response.ResRefreshToken{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,

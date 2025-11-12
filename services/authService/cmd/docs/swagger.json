@@ -12,27 +12,55 @@
     "host": "localhost:6000",
     "basePath": "/",
     "paths": {
-        "/v0.1/auth/signin": {
+        "/v0.1/auth/check-email": {
             "post": {
-                "description": "■ errCode with 400\nPARAM_BAD : 파라미터 오류\nUSER_NOT_EXIST : 유저가 존재하지 않음\nUSER_ALREADY_EXISTED : 유저가 이미 존재\nUSER_GOOGLE_ALREADY_EXISTED : 구글 계정이 이미 존재\nPASSWORD_NOT_MATCH : 비밀번호가 일치하지 않음\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\nINTERNAL_DB : DB 처리 실패",
+                "description": "회원가입 전 이메일이 이미 등록되어 있는지 확인합니다.\n\n■ errCode with 400\nPARAM_BAD : 파라미터 오류\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\nINTERNAL_DB : DB 처리 실패",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "auth"
                 ],
-                "summary": "로그인",
+                "summary": "이메일 중복 체크",
                 "parameters": [
                     {
-                        "description": "이메일, 비밀번호, 서비스 타입",
+                        "description": "이메일과 제공자 타입",
                         "name": "json",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/request.ReqSignIn"
+                            "$ref": "#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqCheckEmail"
                         }
                     }
                 ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResCheckEmail"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/v0.1/auth/logout": {
+            "post": {
+                "description": "■ errCode with 400\nPARAM_BAD : 파라미터 오류\nTOKEN_INVALID : 토큰이 유효하지 않음\nTOKEN_EXPIRED : 토큰이 만료됨\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "로그 아웃",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -50,10 +78,157 @@
                     }
                 }
             }
+        },
+        "/v0.1/auth/refresh": {
+            "post": {
+                "description": "■ errCode with 400\nPARAM_BAD : 파라미터 오류\nTOKEN_INVALID : 토큰이 유효하지 않음\nTOKEN_EXPIRED : 토큰이 만료됨\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "토큰 재발급",
+                "parameters": [
+                    {
+                        "description": "리프레시 토큰",
+                        "name": "json",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqRefreshToken"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResRefreshToken"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/v0.1/auth/signin": {
+            "post": {
+                "description": "■ errCode with 400\nPARAM_BAD : 파라미터 오류\nUSER_NOT_EXIST : 유저가 존재하지 않음\nUSER_ALREADY_EXISTED : 유저가 이미 존재\nUSER_GOOGLE_ALREADY_EXISTED : 구글 계정이 이미 존재\nPASSWORD_NOT_MATCH : 비밀번호가 일치하지 않음\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\nINTERNAL_DB : DB 처리 실패",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "로그인",
+                "parameters": [
+                    {
+                        "description": "이메일, 비밀번호, 서비스 타입",
+                        "name": "json",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqSignIn"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResSignIn"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/v0.1/auth/signup": {
+            "post": {
+                "description": "■ errCode with 400\nPARAM_BAD : 파라미터 오류\nUSER_NOT_EXIST : 유저가 존재하지 않음\nUSER_ALREADY_EXISTED : 유저가 이미 존재\nUSER_GOOGLE_ALREADY_EXISTED : 구글 계정이 이미 존재\nPASSWORD_NOT_MATCH : 비밀번호가 일치하지 않음\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\nINTERNAL_DB : DB 처리 실패",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "회원 가입",
+                "parameters": [
+                    {
+                        "description": "이메일, 비밀번호, 서비스 타입",
+                        "name": "json",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqSignUp"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResSignUp"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {}
+                    }
+                }
+            }
         }
     },
     "definitions": {
-        "request.ReqSignIn": {
+        "github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqCheckEmail": {
+            "type": "object",
+            "required": [
+                "email",
+                "provider"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string",
+                    "enum": [
+                        "email",
+                        "google"
+                    ]
+                }
+            }
+        },
+        "github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqRefreshToken": {
+            "type": "object",
+            "required": [
+                "refreshToken"
+            ],
+            "properties": {
+                "refreshToken": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqSignIn": {
             "type": "object",
             "required": [
                 "email",
@@ -73,6 +248,81 @@
                     "enum": [
                         "game"
                     ]
+                }
+            }
+        },
+        "github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqSignUp": {
+            "type": "object",
+            "required": [
+                "email",
+                "name",
+                "password",
+                "serviceType"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "serviceType": {
+                    "type": "string",
+                    "enum": [
+                        "game"
+                    ]
+                }
+            }
+        },
+        "github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResCheckEmail": {
+            "type": "object",
+            "properties": {
+                "available": {
+                    "description": "exists의 반대값 (사용 가능 여부)",
+                    "type": "boolean"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "exists": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResRefreshToken": {
+            "type": "object",
+            "properties": {
+                "accessToken": {
+                    "type": "string"
+                },
+                "refreshToken": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResSignIn": {
+            "type": "object",
+            "properties": {
+                "accessToken": {
+                    "type": "string"
+                },
+                "refreshToken": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResSignUp": {
+            "type": "object",
+            "properties": {
+                "accessToken": {
+                    "type": "string"
+                },
+                "refreshToken": {
+                    "type": "string"
                 }
             }
         }
