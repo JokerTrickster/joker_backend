@@ -9,10 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type CheckEmailAuthRepository struct {
-	GormDB *gorm.DB
-}
-
 func NewCheckEmailAuthRepository(gormDB *gorm.DB) _interface.ICheckEmailAuthRepository {
 	return &CheckEmailAuthRepository{GormDB: gormDB}
 }

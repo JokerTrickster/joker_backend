@@ -1,6 +1,26 @@
 basePath: /
 definitions:
-  request.ReqSignIn:
+  github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqCheckEmail:
+    properties:
+      email:
+        type: string
+      provider:
+        enum:
+        - email
+        - google
+        type: string
+    required:
+    - email
+    - provider
+    type: object
+  github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqRefreshToken:
+    properties:
+      refreshToken:
+        type: string
+    required:
+    - refreshToken
+    type: object
+  github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqSignIn:
     properties:
       email:
         type: string
@@ -16,6 +36,56 @@ definitions:
     - password
     - serviceType
     type: object
+  github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqSignUp:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      serviceType:
+        enum:
+        - game
+        type: string
+    required:
+    - email
+    - name
+    - password
+    - serviceType
+    type: object
+  github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResCheckEmail:
+    properties:
+      available:
+        description: exists의 반대값 (사용 가능 여부)
+        type: boolean
+      email:
+        type: string
+      exists:
+        type: boolean
+    type: object
+  github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResRefreshToken:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+    type: object
+  github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResSignIn:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+    type: object
+  github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResSignUp:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+    type: object
 host: localhost:6000
 info:
   contact: {}
@@ -23,6 +93,99 @@ info:
   title: Joker Backend API
   version: "1.0"
 paths:
+  /v0.1/auth/check-email:
+    post:
+      description: |-
+        회원가입 전 이메일이 이미 등록되어 있는지 확인합니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+        INTERNAL_DB : DB 처리 실패
+      parameters:
+      - description: 이메일과 제공자 타입
+        in: body
+        name: json
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqCheckEmail'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResCheckEmail'
+        "400":
+          description: Bad Request
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: 이메일 중복 체크
+      tags:
+      - auth
+  /v0.1/auth/logout:
+    post:
+      description: |-
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+        TOKEN_INVALID : 토큰이 유효하지 않음
+        TOKEN_EXPIRED : 토큰이 만료됨
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: boolean
+        "400":
+          description: Bad Request
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: 로그 아웃
+      tags:
+      - auth
+  /v0.1/auth/refresh:
+    post:
+      description: |-
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+        TOKEN_INVALID : 토큰이 유효하지 않음
+        TOKEN_EXPIRED : 토큰이 만료됨
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+      parameters:
+      - description: 리프레시 토큰
+        in: body
+        name: json
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqRefreshToken'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResRefreshToken'
+        "400":
+          description: Bad Request
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: 토큰 재발급
+      tags:
+      - auth
   /v0.1/auth/signin:
     post:
       description: |-
@@ -42,14 +205,14 @@ paths:
         name: json
         required: true
         schema:
-          $ref: '#/definitions/request.ReqSignIn'
+          $ref: '#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqSignIn'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            type: boolean
+            $ref: '#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResSignIn'
         "400":
           description: Bad Request
           schema: {}
@@ -57,6 +220,42 @@ paths:
           description: Internal Server Error
           schema: {}
       summary: 로그인
+      tags:
+      - auth
+  /v0.1/auth/signup:
+    post:
+      description: |-
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+        USER_NOT_EXIST : 유저가 존재하지 않음
+        USER_ALREADY_EXISTED : 유저가 이미 존재
+        USER_GOOGLE_ALREADY_EXISTED : 구글 계정이 이미 존재
+        PASSWORD_NOT_MATCH : 비밀번호가 일치하지 않음
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+        INTERNAL_DB : DB 처리 실패
+      parameters:
+      - description: 이메일, 비밀번호, 서비스 타입
+        in: body
+        name: json
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqSignUp'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResSignUp'
+        "400":
+          description: Bad Request
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: 회원 가입
       tags:
       - auth
 schemes:

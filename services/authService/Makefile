@@ -48,3 +48,6 @@ fmt: ## Format Go code
 
 lint: ## Run linter
 	golangci-lint run
+
+swagger-init: ## Initialize/regenerate Swagger documentation
+	../../scripts/swagger-init.sh authService

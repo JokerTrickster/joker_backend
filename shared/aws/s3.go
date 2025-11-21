@@ -165,7 +165,6 @@ func ImageDelete(ctx context.Context, fileName string, imgType ImgType) error {
 
 	return nil
 }
-
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
 func FileNameGenerateRandom() string {
@@ -175,4 +174,52 @@ func FileNameGenerateRandom() string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+// GeneratePresignedUploadURL generates a presigned URL for uploading to S3
+func GeneratePresignedUploadURL(ctx context.Context, bucket, key, contentType string, expiration time.Duration) (string, error) {
+	presignClient := s3.NewPresignClient(awsClientS3)
+	
+	presignParams := &s3.PutObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		ContentType: aws.String(contentType),
+	}
+	
+	presignResult, err := presignClient.PresignPutObject(ctx, presignParams, s3.WithPresignExpires(expiration))
+	if err != nil {
+		return "", fmt.Errorf("failed to generate presigned upload URL: %w", err)
+	}
+	
+	return html.UnescapeString(presignResult.URL), nil
+}
+
+// GeneratePresignedDownloadURL generates a presigned URL for downloading from S3
+func GeneratePresignedDownloadURL(ctx context.Context, bucket, key string, expiration time.Duration) (string, error) {
+	presignClient := s3.NewPresignClient(awsClientS3)
+	
+	presignParams := &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	}
+	
+	presignResult, err := presignClient.PresignGetObject(ctx, presignParams, s3.WithPresignExpires(expiration))
+	if err != nil {
+		return "", fmt.Errorf("failed to generate presigned download URL: %w", err)
+	}
+	
+	return html.UnescapeString(presignResult.URL), nil
+}
+
+// DeleteObject deletes an object from S3
+func DeleteObject(ctx context.Context, bucket, key string) error {
+	_, err := awsClientS3.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete object from S3 - bucket: %s, key: %s: %w", bucket, key, err)
+	}
+	
+	return nil
 }

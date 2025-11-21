@@ -6,6 +6,7 @@ import (
 
 	_interface "github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/request"
+	_ "github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/response"
 	"github.com/labstack/echo/v4"
 )
 
