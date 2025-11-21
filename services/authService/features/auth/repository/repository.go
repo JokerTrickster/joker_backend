@@ -21,3 +21,7 @@ type CheckEmailAuthRepository struct {
 type RefreshTokenAuthRepository struct {
 	GormDB *gorm.DB
 }
+
+type GoogleSigninAuthRepository struct {
+	GormDB *gorm.DB
+}

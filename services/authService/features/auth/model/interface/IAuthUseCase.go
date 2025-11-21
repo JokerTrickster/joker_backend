@@ -25,3 +25,7 @@ type ILogoutAuthUseCase interface {
 type ICheckEmailAuthUseCase interface {
 	CheckEmail(ctx context.Context, req *request.ReqCheckEmail) (*response.ResCheckEmail, error)
 }
+
+type IGoogleSigninAuthUseCase interface {
+	GoogleSignin(ctx context.Context) (response.ResGoogleSignin, error)
+}
