@@ -53,13 +53,15 @@ func main() {
 	// Get database connection
 	database := mysql.GormMysqlDB
 	if database == nil {
-		logger.Fatal("Database connection is nil")
+		logger.Fatal("Database connection is nil - check DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME environment variables")
 	}
 
 	// Auto-migrate database
-	if err := mysql.GormMysqlDB.AutoMigrate(&entity.CloudFile{}, &entity.Tag{}); err != nil {
-		logger.GetLogger().Fatal("Failed to migrate database", zap.Error(err))
+	logger.Info("Starting database migration...")
+	if err := database.AutoMigrate(&entity.CloudFile{}, &entity.Tag{}); err != nil {
+		logger.Fatal("Failed to migrate database", zap.Error(err))
 	}
+	logger.Info("Database migration completed successfully")
 
 	// Register routes
 	api := e.Group("/api/v1")
