@@ -142,14 +142,22 @@ for i in {1..30}; do
 done
 
 # Check API health
+HEALTH_CHECK_PASSED=false
 for i in {1..30}; do
   if curl -f http://localhost:${SERVICE_PORT}/health > /dev/null 2>&1; then
     echo "✅ API is healthy"
+    HEALTH_CHECK_PASSED=true
     break
   fi
   echo "Waiting for API... ($i/30)"
   sleep 2
 done
+
+# If health check failed, show container logs
+if [ "$HEALTH_CHECK_PASSED" = false ]; then
+  echo "⚠️  Health check failed, showing container logs:"
+  docker logs ${SERVICE_NAME_LOWER}_api --tail 50
+fi
 
 # Verify deployment
 echo "🔍 Verifying deployment..."
