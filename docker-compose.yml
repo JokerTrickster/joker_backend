@@ -11,7 +11,7 @@ services:
       MYSQL_USER: ${MYSQL_USER:-joker_user}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-joker_password}
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -40,6 +40,7 @@ services:
       ENV: ${ENV:-production}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-*}
       IS_LOCAL: "true"
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     ports:
       - "8080:8080"
     depends_on:

@@ -28,5 +28,5 @@ type IRefreshTokenAuthRepository interface {
 }
 
 type IGoogleSigninAuthRepository interface{
-	
+	FindOrCreateUserByGoogleEmail(ctx context.Context, email string, name string) (uint, error)
 }

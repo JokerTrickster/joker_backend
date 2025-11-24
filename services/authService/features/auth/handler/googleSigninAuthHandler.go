@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	_interface "github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/interface"
+	"github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/request"
 	_ "github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/response"
 	"github.com/labstack/echo/v4"
 )
@@ -35,6 +36,7 @@ func NewGoogleSigninAuthHandler(c *echo.Echo, useCase _interface.IGoogleSigninAu
 // @Description ■ errCode with 500
 // @Description INTERNAL_SERVER : 내부 로직 처리 실패
 // @Description INTERNAL_DB : DB 처리 실패
+// @Param json body request.ReqGoogleSignin true "구글 ID 토큰"
 // @Produce json
 // @Success 200 {object} response.ResGoogleSignin
 // @Failure 400 {object} error
@@ -42,8 +44,15 @@ func NewGoogleSigninAuthHandler(c *echo.Echo, useCase _interface.IGoogleSigninAu
 // @Tags auth
 func (d *GoogleSigninAuthHandler) GoogleSignin(c echo.Context) error {
 	ctx := context.Background()
+	req := &request.ReqGoogleSignin{}
+	if err := c.Bind(req); err != nil {
+		return err
+	}
+	if err := c.Validate(req); err != nil {
+		return err
+	}
 
-	res, err := d.UseCase.GoogleSignin(ctx)
+	res, err := d.UseCase.GoogleSignin(ctx, req.IdToken)
 	if err != nil {
 		return err
 	}

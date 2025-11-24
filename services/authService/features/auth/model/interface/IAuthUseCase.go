@@ -27,5 +27,5 @@ type ICheckEmailAuthUseCase interface {
 }
 
 type IGoogleSigninAuthUseCase interface {
-	GoogleSignin(ctx context.Context) (response.ResGoogleSignin, error)
+	GoogleSignin(ctx context.Context, idToken string) (response.ResGoogleSignin, error)
 }
