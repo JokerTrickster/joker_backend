@@ -23,6 +23,13 @@ func InitMySQL() error {
 	var connectionString string
 	var err error
 	isLocal := os.Getenv("IS_LOCAL")
+
+	fmt.Printf("IS_LOCAL: %s\n", isLocal)
+	fmt.Printf("MYSQL_HOST: %s\n", os.Getenv("MYSQL_HOST"))
+	fmt.Printf("MYSQL_PORT: %s\n", os.Getenv("MYSQL_PORT"))
+	fmt.Printf("MYSQL_USER: %s\n", os.Getenv("MYSQL_USER"))
+	fmt.Printf("MYSQL_DATABASE: %s\n", os.Getenv("MYSQL_DATABASE"))
+
 	if isLocal == "true" {
 		// MySQL 연결 문자열
 		connectionString = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
@@ -32,7 +39,14 @@ func InitMySQL() error {
 			os.Getenv("MYSQL_PORT"),
 			os.Getenv("MYSQL_DATABASE"),
 		)
+		fmt.Printf("Local MySQL connection string (password hidden): %s:***@tcp(%s:%s)/%s?parseTime=true\n",
+			os.Getenv("MYSQL_USER"),
+			os.Getenv("MYSQL_HOST"),
+			os.Getenv("MYSQL_PORT"),
+			os.Getenv("MYSQL_DATABASE"),
+		)
 	} else {
+		fmt.Println("Using AWS SSM parameters for database connection...")
 		dbInfos, err := _aws.AwsSsmGetParams([]string{"dev_backend_mysql_user", "dev_backend_mysql_password", "dev_backend_mysql_host", "dev_backend_mysql_port", "dev_backend_mysql_db"})
 		if err != nil {
 			return err
@@ -45,7 +59,6 @@ func InitMySQL() error {
 			dbInfos[3], //db
 		)
 	}
-	fmt.Println(connectionString)
 	// MySQL에 연결
 	MysqlDB, err = sql.Open("mysql", connectionString)
 	if err != nil {
@@ -66,7 +79,10 @@ func InitMySQL() error {
 	if err != nil {
 		fmt.Println("Failed to connect to Gorm MySQL!")
 		fmt.Printf("에러 메시지 %s\n", err)
+		return fmt.Errorf("failed to initialize Gorm MySQL: %w", err)
 	}
+
+	fmt.Println("Gorm MySQL connected successfully!")
 
 	// gen 패키지를 사용하여 쿼리를 생성할 때 사용할 DB를 설정
 	// SetDefault(GormMysqlDB)
