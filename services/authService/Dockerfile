@@ -1,21 +1,22 @@
 # Build stage
 FROM golang:1.24-alpine AS builder
 
-WORKDIR /app
-
 # Install build dependencies
 RUN apk add --no-cache git
 
-# Copy shared module first (required for go mod download)
-# Note: deploy script copies shared to service directory
+# Set working directory to match project structure
+WORKDIR /app/services/authService
+
+# Copy shared module to match replace directive path (../../shared)
 COPY shared /app/shared
 
 # Copy migrations
-# Note: deploy script copies migrations to service directory
 COPY migrations /app/migrations
 
 # Copy go mod files
 COPY go.mod go.sum ./
+
+# Download dependencies
 RUN go mod download
 
 # Copy source code
@@ -33,7 +34,7 @@ WORKDIR /root/
 RUN apk --no-cache add ca-certificates
 
 # Copy binary from builder
-COPY --from=builder /app/main .
+COPY --from=builder /app/services/authService/main .
 
 # Copy migrations from builder
 COPY --from=builder /app/migrations ./migrations

@@ -1,23 +1,30 @@
 FROM golang:1.24-alpine AS builder
 
-WORKDIR /app
+# Install build dependencies
+RUN apk add --no-cache git
+
+# Set working directory to match project structure
+WORKDIR /app/services/cloudRepositoryService
+
+# Copy shared module to match replace directive path (../../shared)
+COPY shared /app/shared
 
 # Copy go mod files
 COPY go.mod go.sum ./
-COPY shared/ ./shared/
 
+# Download dependencies
 RUN go mod download
 
 # Copy source code
-COPY services/cloudRepositoryService/ ./services/cloudRepositoryService/
+COPY . .
 
 # Build the application
-WORKDIR /app/services/cloudRepositoryService
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/main.go
 
 # Final stage
 FROM alpine:latest
 
+# Install ca-certificates for HTTPS
 RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
