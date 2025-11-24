@@ -32,6 +32,7 @@ WORKDIR /root/
 # Copy the binary from builder
 COPY --from=builder /app/services/cloudRepositoryService/main .
 
-EXPOSE 8080
+# Port is configured via environment variable
+EXPOSE 18080
 
 CMD ["./main"]

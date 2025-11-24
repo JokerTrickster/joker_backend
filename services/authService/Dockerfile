@@ -23,7 +23,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/main.go
 
 # Runtime stage
 FROM alpine:latest
@@ -39,8 +39,8 @@ COPY --from=builder /app/services/authService/main .
 # Copy migrations from builder
 COPY --from=builder /app/migrations ./migrations
 
-# Expose port
-EXPOSE 6000
+# Port is configured via environment variable
+EXPOSE 18081
 
 # Run the application
 CMD ["./main"]
