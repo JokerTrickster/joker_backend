@@ -16,68 +16,10 @@ import (
 )
 
 var imgMeta = map[ImgType]imgMetaStruct{
-	ImgTypeProfile: {
-		bucket:     func() string { return "board-game-app" },
+	ImgCloudRepository: {
+		bucket:     func() string { return "joker-cloud-repository-dev" },
 		domain:     func() string { return "board-game-app.s3.ap-south-1.amazonaws.com" },
-		path:       "profiles",
-		width:      512,
-		height:     512,
-		expireTime: 24 * time.Hour,
-	},
-	ImgTypeCard: {
-		bucket:     func() string { return "board-game-app" },
-		domain:     func() string { return "board-game-app.s3.ap-south-1.amazonaws.com" },
-		path:       "cards",
-		width:      512,
-		height:     512,
-		expireTime: 10 * time.Hour,
-	},
-	ImgTypeBirdCard: {
-		bucket:     func() string { return "board-game-app" },
-		domain:     func() string { return "board-game-app.s3.ap-south-1.amazonaws.com" },
-		path:       "wingspan/images",
-		width:      512,
-		height:     512,
-		expireTime: 10 * time.Hour,
-	},
-	ImgTypeMission: {
-		bucket:     func() string { return "board-game-app" },
-		domain:     func() string { return "board-game-app.s3.ap-south-1.amazonaws.com" },
-		path:       "wingspan/missions",
-		width:      30,
-		height:     30,
-		expireTime: 10 * time.Hour,
-	},
-	ImgTypeFrogCard: {
-		bucket:     func() string { return "board-game-app" },
-		domain:     func() string { return "board-game-app.s3.ap-south-1.amazonaws.com" },
-		path:       "frog/images",
-		width:      45,
-		height:     45,
-		expireTime: 10 * time.Hour,
-	},
-	ImgTypeFindIt: {
-		bucket:     func() string { return "board-game-app" },
-		domain:     func() string { return "board-game-app.s3.ap-south-1.amazonaws.com" },
-		path:       "find-it/images",
-		width:      0,
-		height:     0,
-		expireTime: 10 * time.Hour,
-	},
-	ImgTypeBoardGame: {
-		bucket:     func() string { return "board-game-app" },
-		domain:     func() string { return "board-game-app.s3.ap-south-1.amazonaws.com" },
-		path:       "board_game/images",
-		width:      0,
-		height:     0,
-		expireTime: 10 * time.Hour,
-	},
-	ImgTypeSlimeWar: {
-		bucket:     func() string { return "board-game-app" },
-		domain:     func() string { return "board-game-app.s3.ap-south-1.amazonaws.com" },
-		path:       "slime_war/images",
-		width:      0,
-		height:     0,
+		path:       "images",
 		expireTime: 10 * time.Hour,
 	},
 }
@@ -165,6 +107,7 @@ func ImageDelete(ctx context.Context, fileName string, imgType ImgType) error {
 
 	return nil
 }
+
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
 func FileNameGenerateRandom() string {
@@ -179,35 +122,35 @@ func FileNameGenerateRandom() string {
 // GeneratePresignedUploadURL generates a presigned URL for uploading to S3
 func GeneratePresignedUploadURL(ctx context.Context, bucket, key, contentType string, expiration time.Duration) (string, error) {
 	presignClient := s3.NewPresignClient(awsClientS3)
-	
+
 	presignParams := &s3.PutObjectInput{
 		Bucket:      aws.String(bucket),
 		Key:         aws.String(key),
 		ContentType: aws.String(contentType),
 	}
-	
+
 	presignResult, err := presignClient.PresignPutObject(ctx, presignParams, s3.WithPresignExpires(expiration))
 	if err != nil {
 		return "", fmt.Errorf("failed to generate presigned upload URL: %w", err)
 	}
-	
+
 	return html.UnescapeString(presignResult.URL), nil
 }
 
 // GeneratePresignedDownloadURL generates a presigned URL for downloading from S3
 func GeneratePresignedDownloadURL(ctx context.Context, bucket, key string, expiration time.Duration) (string, error) {
 	presignClient := s3.NewPresignClient(awsClientS3)
-	
+
 	presignParams := &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	}
-	
+
 	presignResult, err := presignClient.PresignGetObject(ctx, presignParams, s3.WithPresignExpires(expiration))
 	if err != nil {
 		return "", fmt.Errorf("failed to generate presigned download URL: %w", err)
 	}
-	
+
 	return html.UnescapeString(presignResult.URL), nil
 }
 
@@ -220,6 +163,6 @@ func DeleteObject(ctx context.Context, bucket, key string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete object from S3 - bucket: %s, key: %s: %w", bucket, key, err)
 	}
-	
+
 	return nil
 }

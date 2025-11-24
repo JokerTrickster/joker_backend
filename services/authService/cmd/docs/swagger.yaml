@@ -1,6 +1,6 @@
 basePath: /
 definitions:
-  github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqCheckEmail:
+  request.ReqCheckEmail:
     properties:
       email:
         type: string
@@ -13,14 +13,21 @@ definitions:
     - email
     - provider
     type: object
-  github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqRefreshToken:
+  request.ReqGoogleSignin:
+    properties:
+      idToken:
+        type: string
+    required:
+    - idToken
+    type: object
+  request.ReqRefreshToken:
     properties:
       refreshToken:
         type: string
     required:
     - refreshToken
     type: object
-  github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqSignIn:
+  request.ReqSignIn:
     properties:
       email:
         type: string
@@ -36,7 +43,7 @@ definitions:
     - password
     - serviceType
     type: object
-  github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqSignUp:
+  request.ReqSignUp:
     properties:
       email:
         type: string
@@ -55,7 +62,7 @@ definitions:
     - password
     - serviceType
     type: object
-  github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResCheckEmail:
+  response.ResCheckEmail:
     properties:
       available:
         description: exists의 반대값 (사용 가능 여부)
@@ -65,28 +72,35 @@ definitions:
       exists:
         type: boolean
     type: object
-  github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResRefreshToken:
+  response.ResGoogleSignin:
     properties:
       accessToken:
         type: string
       refreshToken:
         type: string
     type: object
-  github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResSignIn:
+  response.ResRefreshToken:
     properties:
       accessToken:
         type: string
       refreshToken:
         type: string
     type: object
-  github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResSignUp:
+  response.ResSignIn:
     properties:
       accessToken:
         type: string
       refreshToken:
         type: string
     type: object
-host: localhost:6000
+  response.ResSignUp:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+    type: object
+host: localhost:18081
 info:
   contact: {}
   description: This is the API documentation for the Joker Backend services.
@@ -110,14 +124,14 @@ paths:
         name: json
         required: true
         schema:
-          $ref: '#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqCheckEmail'
+          $ref: '#/definitions/request.ReqCheckEmail'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResCheckEmail'
+            $ref: '#/definitions/response.ResCheckEmail'
         "400":
           description: Bad Request
           schema: {}
@@ -125,6 +139,42 @@ paths:
           description: Internal Server Error
           schema: {}
       summary: 이메일 중복 체크
+      tags:
+      - auth
+  /v0.1/auth/google/signin:
+    post:
+      description: |-
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+        USER_NOT_EXIST : 유저가 존재하지 않음
+        USER_ALREADY_EXISTED : 유저가 이미 존재
+        USER_GOOGLE_ALREADY_EXISTED : 구글 계정이 이미 존재
+        PASSWORD_NOT_MATCH : 비밀번호가 일치하지 않음
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+        INTERNAL_DB : DB 처리 실패
+      parameters:
+      - description: 구글 ID 토큰
+        in: body
+        name: json
+        required: true
+        schema:
+          $ref: '#/definitions/request.ReqGoogleSignin'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResGoogleSignin'
+        "400":
+          description: Bad Request
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: 구글 로그인
       tags:
       - auth
   /v0.1/auth/logout:
@@ -169,14 +219,14 @@ paths:
         name: json
         required: true
         schema:
-          $ref: '#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqRefreshToken'
+          $ref: '#/definitions/request.ReqRefreshToken'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResRefreshToken'
+            $ref: '#/definitions/response.ResRefreshToken'
         "400":
           description: Bad Request
           schema: {}
@@ -205,14 +255,14 @@ paths:
         name: json
         required: true
         schema:
-          $ref: '#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqSignIn'
+          $ref: '#/definitions/request.ReqSignIn'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResSignIn'
+            $ref: '#/definitions/response.ResSignIn'
         "400":
           description: Bad Request
           schema: {}
@@ -241,14 +291,14 @@ paths:
         name: json
         required: true
         schema:
-          $ref: '#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqSignUp'
+          $ref: '#/definitions/request.ReqSignUp'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResSignUp'
+            $ref: '#/definitions/response.ResSignUp'
         "400":
           description: Bad Request
           schema: {}

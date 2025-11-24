@@ -1,0 +1,323 @@
+basePath: /
+definitions:
+  request.BatchUploadRequestDTO:
+    properties:
+      files:
+        items:
+          $ref: '#/definitions/request.UploadRequestDTO'
+        maxItems: 30
+        minItems: 1
+        type: array
+    required:
+    - files
+    type: object
+  request.UploadRequestDTO:
+    properties:
+      content_type:
+        type: string
+      file_name:
+        type: string
+      file_size:
+        minimum: 1
+        type: integer
+      file_type:
+        enum:
+        - image
+        - video
+        type: string
+    required:
+    - content_type
+    - file_name
+    - file_size
+    - file_type
+    type: object
+  response.BatchUploadResponseDTO:
+    properties:
+      failed_count:
+        type: integer
+      results:
+        items:
+          $ref: '#/definitions/response.UploadResponseDTO'
+        type: array
+      success_count:
+        type: integer
+      total_count:
+        type: integer
+    type: object
+  response.DownloadResponseDTO:
+    properties:
+      download_url:
+        type: string
+      expires_in:
+        description: seconds
+        type: integer
+      file_name:
+        type: string
+    type: object
+  response.FileInfoDTO:
+    properties:
+      content_type:
+        type: string
+      created_at:
+        type: string
+      file_name:
+        type: string
+      file_size:
+        type: integer
+      file_type:
+        type: string
+      id:
+        type: integer
+      tags:
+        items:
+          $ref: '#/definitions/response.TagDTO'
+        type: array
+      updated_at:
+        type: string
+    type: object
+  response.ListFilesResponseDTO:
+    properties:
+      files:
+        items:
+          $ref: '#/definitions/response.FileInfoDTO'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total_count:
+        type: integer
+    type: object
+  response.TagDTO:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  response.UploadResponseDTO:
+    properties:
+      expires_in:
+        description: seconds
+        type: integer
+      file_id:
+        type: integer
+      s3_key:
+        type: string
+      upload_url:
+        type: string
+    type: object
+host: localhost:18080
+info:
+  contact: {}
+  description: API for managing image and video files with S3 presigned URLs
+  title: Cloud Repository Service API
+  version: "1.0"
+paths:
+  /api/v1/files:
+    get:
+      consumes:
+      - application/json
+      description: List all files for the authenticated user with filtering and pagination
+      parameters:
+      - description: File type filter (image or video)
+        in: query
+        name: file_type
+        type: string
+      - description: Search keyword for filename
+        in: query
+        name: keyword
+        type: string
+      - description: Sort order (latest, oldest, name, size)
+        in: query
+        name: sort
+        type: string
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: start_date
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: end_date
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Page size (default: 20, max: 100)'
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ListFilesResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List files
+      tags:
+      - CloudRepository
+  /api/v1/files/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Soft delete a file and remove it from S3
+      parameters:
+      - description: File ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete file
+      tags:
+      - CloudRepository
+  /api/v1/files/{id}/download:
+    get:
+      consumes:
+      - application/json
+      description: Get a presigned URL for downloading a file from S3
+      parameters:
+      - description: File ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.DownloadResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Request presigned download URL
+      tags:
+      - CloudRepository
+  /api/v1/files/upload:
+    post:
+      consumes:
+      - application/json
+      description: Get a presigned URL for uploading a file to S3
+      parameters:
+      - description: Upload request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/request.UploadRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.UploadResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Request presigned upload URL
+      tags:
+      - CloudRepository
+  /api/v1/files/upload/batch:
+    post:
+      consumes:
+      - application/json
+      description: Get presigned URLs for uploading multiple files to S3 (max 30 files)
+      parameters:
+      - description: Batch upload request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/request.BatchUploadRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.BatchUploadResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Request multiple presigned upload URLs
+      tags:
+      - CloudRepository
+schemes:
+- http
+swagger: "2.0"

@@ -1,7 +1,7 @@
 // @title Joker Backend API
 // @version 1.0
 // @description This is the API documentation for the Joker Backend services.
-// @host localhost:6000
+// @host localhost:18081
 // @BasePath /
 // @schemes http
 package main
@@ -9,16 +9,19 @@ package main
 import (
 	"context"
 	"log"
-	authHandler "github.com/JokerTrickster/joker_backend/services/authService/features/auth/handler"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	authHandler "github.com/JokerTrickster/joker_backend/services/authService/features/auth/handler"
+	echoSwagger "github.com/swaggo/echo-swagger"
+
 	"github.com/JokerTrickster/joker_backend/shared"
 	"github.com/JokerTrickster/joker_backend/shared/logger"
 
+	_ "github.com/JokerTrickster/joker_backend/services/authService/cmd/docs"
 	"go.uber.org/zap"
 )
 
@@ -40,6 +43,9 @@ func main() {
 
 	// Register API routes
 	authHandler.NewAuthHandler(e)
+
+	// Swagger
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	// Start server with graceful shutdown
 	port := os.Getenv("PORT")

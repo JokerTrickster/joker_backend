@@ -32,7 +32,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqCheckEmail"
+                            "$ref": "#/definitions/request.ReqCheckEmail"
                         }
                     }
                 ],
@@ -40,7 +40,46 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResCheckEmail"
+                            "$ref": "#/definitions/response.ResCheckEmail"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/v0.1/auth/google/signin": {
+            "post": {
+                "description": "■ errCode with 400\nPARAM_BAD : 파라미터 오류\nUSER_NOT_EXIST : 유저가 존재하지 않음\nUSER_ALREADY_EXISTED : 유저가 이미 존재\nUSER_GOOGLE_ALREADY_EXISTED : 구글 계정이 이미 존재\nPASSWORD_NOT_MATCH : 비밀번호가 일치하지 않음\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\nINTERNAL_DB : DB 처리 실패",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "구글 로그인",
+                "parameters": [
+                    {
+                        "description": "구글 ID 토큰",
+                        "name": "json",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.ReqGoogleSignin"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResGoogleSignin"
                         }
                     },
                     "400": {
@@ -99,7 +138,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqRefreshToken"
+                            "$ref": "#/definitions/request.ReqRefreshToken"
                         }
                     }
                 ],
@@ -107,7 +146,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResRefreshToken"
+                            "$ref": "#/definitions/response.ResRefreshToken"
                         }
                     },
                     "400": {
@@ -138,7 +177,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqSignIn"
+                            "$ref": "#/definitions/request.ReqSignIn"
                         }
                     }
                 ],
@@ -146,7 +185,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResSignIn"
+                            "$ref": "#/definitions/response.ResSignIn"
                         }
                     },
                     "400": {
@@ -177,7 +216,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqSignUp"
+                            "$ref": "#/definitions/request.ReqSignUp"
                         }
                     }
                 ],
@@ -185,7 +224,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResSignUp"
+                            "$ref": "#/definitions/response.ResSignUp"
                         }
                     },
                     "400": {
@@ -201,7 +240,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqCheckEmail": {
+        "request.ReqCheckEmail": {
             "type": "object",
             "required": [
                 "email",
@@ -220,7 +259,18 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqRefreshToken": {
+        "request.ReqGoogleSignin": {
+            "type": "object",
+            "required": [
+                "idToken"
+            ],
+            "properties": {
+                "idToken": {
+                    "type": "string"
+                }
+            }
+        },
+        "request.ReqRefreshToken": {
             "type": "object",
             "required": [
                 "refreshToken"
@@ -231,7 +281,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqSignIn": {
+        "request.ReqSignIn": {
             "type": "object",
             "required": [
                 "email",
@@ -254,7 +304,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_request.ReqSignUp": {
+        "request.ReqSignUp": {
             "type": "object",
             "required": [
                 "email",
@@ -281,7 +331,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResCheckEmail": {
+        "response.ResCheckEmail": {
             "type": "object",
             "properties": {
                 "available": {
@@ -296,7 +346,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResRefreshToken": {
+        "response.ResGoogleSignin": {
             "type": "object",
             "properties": {
                 "accessToken": {
@@ -307,7 +357,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResSignIn": {
+        "response.ResRefreshToken": {
             "type": "object",
             "properties": {
                 "accessToken": {
@@ -318,7 +368,18 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_JokerTrickster_joker_backend_services_authService_features_auth_model_response.ResSignUp": {
+        "response.ResSignIn": {
+            "type": "object",
+            "properties": {
+                "accessToken": {
+                    "type": "string"
+                },
+                "refreshToken": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.ResSignUp": {
             "type": "object",
             "properties": {
                 "accessToken": {
@@ -335,7 +396,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:6000",
+	Host:             "localhost:18081",
 	BasePath:         "/",
 	Schemes:          []string{"http"},
 	Title:            "Joker Backend API",

@@ -1,7 +1,7 @@
 // @title Cloud Repository Service API
 // @version 1.0
 // @description API for managing image and video files with S3 presigned URLs
-// @host localhost:8080
+// @host localhost:18080
 // @BasePath /
 // @schemes http
 package main
@@ -15,11 +15,15 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/docs"
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/handler"
-	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model"
+	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/entity"
 	"github.com/JokerTrickster/joker_backend/shared"
 	"github.com/JokerTrickster/joker_backend/shared/db/mysql"
+	"github.com/JokerTrickster/joker_backend/shared/jwt"
 	"github.com/JokerTrickster/joker_backend/shared/logger"
+	"github.com/labstack/echo/v4"
+	echoSwagger "github.com/swaggo/echo-swagger"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -53,13 +57,36 @@ func main() {
 	}
 
 	// Auto-migrate database
-	if err := mysql.GormMysqlDB.AutoMigrate(&model.CloudFile{}, &model.Tag{}); err != nil {
+	if err := mysql.GormMysqlDB.AutoMigrate(&entity.CloudFile{}, &entity.Tag{}); err != nil {
 		logger.GetLogger().Fatal("Failed to migrate database", zap.Error(err))
 	}
 
 	// Register routes
 	api := e.Group("/api/v1")
+
+	// Add JWT middleware for development testing
+	if os.Getenv("IS_LOCAL") == "true" {
+		api.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+			return func(c echo.Context) error {
+				// Extract token from Authorization header
+				authHeader := c.Request().Header.Get("Authorization")
+				if authHeader != "" && len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+					tokenString := authHeader[7:]
+					// Parse token to get userID
+					userID, _, err := jwt.ParseToken(tokenString)
+					if err == nil {
+						c.Set("userID", userID)
+					}
+				}
+				return next(c)
+			}
+		})
+	}
+
 	handler.RegisterRoutes(api, database, bucket)
+
+	// Swagger
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	// Start server
 	port := os.Getenv("PORT")
@@ -99,11 +126,11 @@ func main() {
 
 func migrateDatabase(database *gorm.DB) error {
 	logger.Info("Starting database migration...")
-	
-	if err := database.AutoMigrate(&model.CloudFile{}); err != nil {
+
+	if err := database.AutoMigrate(&entity.CloudFile{}); err != nil {
 		return fmt.Errorf("failed to migrate CloudFile model: %w", err)
 	}
-	
+
 	logger.Info("Database migration completed successfully")
 	return nil
 }

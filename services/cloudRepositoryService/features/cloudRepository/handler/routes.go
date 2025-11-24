@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"time"
+
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/repository"
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/usecase"
 	"github.com/labstack/echo/v4"
@@ -9,18 +11,25 @@ import (
 
 // RegisterRoutes registers all cloud repository routes
 func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string) {
-	// Initialize layers
-	repo := repository.NewCloudRepositoryRepository(db, bucket)
-	uc := usecase.NewCloudRepositoryUsecase(repo)
-	handler := NewCloudRepositoryHandler(uc)
+	// Repositories
+	uploadRepo := repository.NewUploadCloudRepositoryRepository(db, bucket)
+	// batchUploadRepo := repository.NewBatchUploadCloudRepositoryRepository(db, bucket) // Unused as usecase reuses uploadUC
+	downloadRepo := repository.NewDownloadCloudRepositoryRepository(db, bucket)
+	listRepo := repository.NewListCloudRepositoryRepository(db)
+	deleteRepo := repository.NewDeleteCloudRepositoryRepository(db, bucket)
 
-	// Register routes
-	files := e.Group("/files")
-	{
-		files.POST("/upload", handler.RequestUploadURL)           // Request presigned upload URL (single file)
-		files.POST("/upload/batch", handler.RequestBatchUploadURL) // Request presigned upload URLs (batch, max 30)
-		files.GET("", handler.ListFiles)                          // List files
-		files.GET("/:id/download", handler.RequestDownloadURL)    // Request presigned download URL
-		files.DELETE("/:id", handler.DeleteFile)                  // Delete file
-	}
+	// UseCases
+	uploadUC := usecase.NewUploadCloudRepositoryUseCase(uploadRepo, 10*time.Second)
+	batchUploadUC := usecase.NewBatchUploadCloudRepositoryUseCase(uploadUC, 10*time.Second) // Reuses uploadUC logic
+	downloadUC := usecase.NewDownloadCloudRepositoryUseCase(downloadRepo, 10*time.Second)
+	listUC := usecase.NewListCloudRepositoryUseCase(listRepo, 10*time.Second)
+	deleteUC := usecase.NewDeleteCloudRepositoryUseCase(deleteRepo, 10*time.Second)
+
+	// Handlers
+	NewUploadCloudRepositoryHandler(e, uploadUC)
+	NewBatchUploadCloudRepositoryHandler(e, batchUploadUC)
+	NewDownloadCloudRepositoryHandler(e, downloadUC)
+	NewListCloudRepositoryHandler(e, listUC)
+	NewDeleteCloudRepositoryHandler(e, deleteUC)
+
 }
