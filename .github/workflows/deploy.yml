@@ -108,6 +108,7 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           CLOUD_REPOSITORY_BUCKET: ${{ secrets.CLOUD_REPOSITORY_BUCKET }}
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
           ENV: production
         run: |
           chmod +x scripts/deploy-service.sh
