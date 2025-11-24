@@ -8,6 +8,8 @@ set -e
 
 SERVICE_NAME=$1
 SERVICE_PORT=$2
+# Convert service name to lowercase for Docker compatibility
+SERVICE_NAME_LOWER=$(echo "${SERVICE_NAME}" | tr '[:upper:]' '[:lower:]')
 SERVICE_DIR="services/${SERVICE_NAME}"
 
 if [ -z "$SERVICE_NAME" ] || [ -z "$SERVICE_PORT" ]; then
@@ -98,31 +100,31 @@ EOF
 # Stop existing container
 echo "🛑 Stopping existing ${SERVICE_NAME} container..."
 cd "${DEPLOY_DIR}"
-docker stop ${SERVICE_NAME}_api 2>/dev/null || true
-docker rm ${SERVICE_NAME}_api 2>/dev/null || true
+docker stop ${SERVICE_NAME_LOWER}_api 2>/dev/null || true
+docker rm ${SERVICE_NAME_LOWER}_api 2>/dev/null || true
 
 # Build Docker image
 echo "🔨 Building ${SERVICE_NAME} Docker image..."
-docker build -t ${SERVICE_NAME}:latest .
+docker build -t ${SERVICE_NAME_LOWER}:latest .
 
 # Start container and connect to MySQL network
 echo "🚀 Starting ${SERVICE_NAME} container..."
 if [ "$MYSQL_EXISTS" == "true" ]; then
   echo "🔗 Connecting to MySQL network: $MYSQL_NETWORK"
   docker run -d \
-    --name ${SERVICE_NAME}_api \
+    --name ${SERVICE_NAME_LOWER}_api \
     --network $MYSQL_NETWORK \
     --env-file .env \
     -p ${SERVICE_PORT}:${SERVICE_PORT} \
     --restart unless-stopped \
-    ${SERVICE_NAME}:latest
+    ${SERVICE_NAME_LOWER}:latest
 else
   docker run -d \
-    --name ${SERVICE_NAME}_api \
+    --name ${SERVICE_NAME_LOWER}_api \
     --env-file .env \
     -p ${SERVICE_PORT}:${SERVICE_PORT} \
     --restart unless-stopped \
-    ${SERVICE_NAME}:latest
+    ${SERVICE_NAME_LOWER}:latest
 fi
 
 # Wait for service
@@ -151,7 +153,7 @@ done
 
 # Verify deployment
 echo "🔍 Verifying deployment..."
-docker ps --filter "name=${SERVICE_NAME}_api"
+docker ps --filter "name=${SERVICE_NAME_LOWER}_api"
 
 # Test health endpoint
 if curl -f http://localhost:${SERVICE_PORT}/health > /dev/null 2>&1; then
@@ -162,6 +164,6 @@ if curl -f http://localhost:${SERVICE_PORT}/health > /dev/null 2>&1; then
   exit 0
 else
   echo "❌ Deployment failed - Health check failed"
-  docker logs ${SERVICE_NAME}_api
+  docker logs ${SERVICE_NAME_LOWER}_api
   exit 1
 fi
