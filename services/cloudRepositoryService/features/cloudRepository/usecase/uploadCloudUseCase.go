@@ -110,9 +110,12 @@ func (u *UploadCloudRepositoryUseCase) generateS3Key(userID uint, fileType entit
 	// Clean extension
 	ext = strings.ToLower(ext)
 
-	// Generate random filename component
-	randomName := sharedAws.FileNameGenerateRandom()
+	// Get filename without extension
+	baseName := strings.TrimSuffix(fileName, ext)
+	if baseName == "" {
+		baseName = "file"
+	}
 
-	// Format: {fileType}/{userID}/{uuid}_{random}{ext}
-	return fmt.Sprintf("%s/%d/%s_%s%s", fileType, userID, fileID, randomName, ext)
+	// Format: users/{userID}/files/{uuid}-{baseName}{ext}
+	return fmt.Sprintf("users/%d/files/%s-%s%s", userID, fileID, baseName, ext)
 }
