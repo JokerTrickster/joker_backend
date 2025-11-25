@@ -2,20 +2,24 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/entity"
 	_interface "github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/request"
+	sharedAws "github.com/JokerTrickster/joker_backend/shared/aws"
 	"gorm.io/gorm"
 )
 
 type ListCloudRepositoryRepository struct {
-	db *gorm.DB
+	db     *gorm.DB
+	bucket string
 }
 
-func NewListCloudRepositoryRepository(db *gorm.DB) _interface.IListCloudRepositoryRepository {
+func NewListCloudRepositoryRepository(db *gorm.DB, bucket string) _interface.IListCloudRepositoryRepository {
 	return &ListCloudRepositoryRepository{
-		db: db,
+		db:     db,
+		bucket: bucket,
 	}
 }
 
@@ -86,4 +90,9 @@ func (r *ListCloudRepositoryRepository) GetFilesByUserID(ctx context.Context, us
 	}
 
 	return files, total, nil
+}
+
+// GeneratePresignedDownloadURL generates a presigned URL for downloading
+func (r *ListCloudRepositoryRepository) GeneratePresignedDownloadURL(ctx context.Context, s3Key string, expiration time.Duration) (string, error) {
+	return sharedAws.GeneratePresignedDownloadURL(ctx, r.bucket, s3Key, expiration)
 }

@@ -25,6 +25,7 @@ type IDownloadCloudRepositoryRepository interface {
 
 type IListCloudRepositoryRepository interface {
 	GetFilesByUserID(ctx context.Context, userID uint, filter request.ListFilesRequestDTO) ([]entity.CloudFile, int64, error)
+	GeneratePresignedDownloadURL(ctx context.Context, s3Key string, expiration time.Duration) (string, error)
 }
 
 type IDeleteCloudRepositoryRepository interface {

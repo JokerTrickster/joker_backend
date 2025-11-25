@@ -14,6 +14,7 @@ type FileInfoDTO struct {
 	ContentType string   `json:"content_type"`
 	FileSize    int64    `json:"file_size"`
 	Tags        []TagDTO `json:"tags"`
+	DownloadURL string   `json:"download_url"`
 	CreatedAt   string   `json:"created_at"`
 	UpdatedAt   string   `json:"updated_at"`
 }

@@ -15,7 +15,7 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string) {
 	uploadRepo := repository.NewUploadCloudRepositoryRepository(db, bucket)
 	// batchUploadRepo := repository.NewBatchUploadCloudRepositoryRepository(db, bucket) // Unused as usecase reuses uploadUC
 	downloadRepo := repository.NewDownloadCloudRepositoryRepository(db, bucket)
-	listRepo := repository.NewListCloudRepositoryRepository(db)
+	listRepo := repository.NewListCloudRepositoryRepository(db, bucket)
 	deleteRepo := repository.NewDeleteCloudRepositoryRepository(db, bucket)
 
 	// UseCases

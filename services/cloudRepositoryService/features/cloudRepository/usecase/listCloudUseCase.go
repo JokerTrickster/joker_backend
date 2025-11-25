@@ -59,6 +59,13 @@ func (u *ListCloudRepositoryUseCase) ListFiles(c context.Context, userID uint, r
 			}
 		}
 
+		// Generate presigned download URL
+		downloadURL, err := u.Repo.GeneratePresignedDownloadURL(ctx, file.S3Key, 1*time.Hour)
+		if err != nil {
+			// Log error but don't fail the entire request
+			downloadURL = ""
+		}
+
 		fileInfos[i] = response.FileInfoDTO{
 			ID:          file.ID,
 			FileName:    file.FileName,
@@ -66,6 +73,7 @@ func (u *ListCloudRepositoryUseCase) ListFiles(c context.Context, userID uint, r
 			ContentType: file.ContentType,
 			FileSize:    file.FileSize,
 			Tags:        tagDTOs,
+			DownloadURL: downloadURL,
 			CreatedAt:   file.CreatedAt.Format(time.RFC3339),
 			UpdatedAt:   file.UpdatedAt.Format(time.RFC3339),
 		}

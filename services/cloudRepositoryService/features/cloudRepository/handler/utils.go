@@ -8,20 +8,26 @@ import (
 
 // getUserIDFromContext extracts user ID from context (set by JWT middleware)
 func getUserIDFromContext(c echo.Context) (uint, error) {
-	// This is a placeholder - implement based on your JWT middleware
-	// Usually something like:
-	// claims := c.Get("user").(*jwt.Token).Claims.(jwt.MapClaims)
-	// userID := uint(claims["user_id"].(float64))
-
-	// For now, return a dummy value - replace with actual implementation
-	userIDStr := c.Get("userID")
-	if userIDStr == nil {
+	// Get userID from context (set by JWT middleware)
+	userIDValue := c.Get("userID")
+	if userIDValue == nil {
 		return 0, echo.NewHTTPError(http.StatusUnauthorized, "user not found in context")
 	}
 
-	userID, ok := userIDStr.(uint)
+	// The JWT middleware sets userID as uint
+	userID, ok := userIDValue.(uint)
 	if !ok {
-		return 0, echo.NewHTTPError(http.StatusUnauthorized, "invalid user ID type")
+		// Try to handle other numeric types just in case
+		switch v := userIDValue.(type) {
+		case int:
+			return uint(v), nil
+		case int64:
+			return uint(v), nil
+		case float64:
+			return uint(v), nil
+		default:
+			return 0, echo.NewHTTPError(http.StatusUnauthorized, "invalid user ID type")
+		}
 	}
 
 	return userID, nil
