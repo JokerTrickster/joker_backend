@@ -26,3 +26,11 @@ type IListCloudRepositoryUseCase interface {
 type IDeleteCloudRepositoryUseCase interface {
 	DeleteFile(ctx context.Context, userID uint, fileID uint) error
 }
+
+type IUserStatsCloudRepositoryUseCase interface {
+	GetUserStats(ctx context.Context, userID uint) (*response.UserStatsResponseDTO, error)
+}
+
+type IActivityHistoryCloudRepositoryUseCase interface {
+	GetActivityHistory(ctx context.Context, userID uint, req *request.ActivityHistoryRequestDTO) (*response.ActivityHistoryResponseDTO, error)
+}

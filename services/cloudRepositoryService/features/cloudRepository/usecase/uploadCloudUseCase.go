@@ -36,12 +36,14 @@ var (
 
 type UploadCloudRepositoryUseCase struct {
 	Repo           _interface.IUploadCloudRepositoryRepository
+	StatsRepo      _interface.IUserStatsCloudRepositoryRepository
 	ContextTimeout time.Duration
 }
 
-func NewUploadCloudRepositoryUseCase(repo _interface.IUploadCloudRepositoryRepository, timeout time.Duration) _interface.IUploadCloudRepositoryUseCase {
+func NewUploadCloudRepositoryUseCase(repo _interface.IUploadCloudRepositoryRepository, statsRepo _interface.IUserStatsCloudRepositoryRepository, timeout time.Duration) _interface.IUploadCloudRepositoryUseCase {
 	return &UploadCloudRepositoryUseCase{
 		Repo:           repo,
+		StatsRepo:      statsRepo,
 		ContextTimeout: timeout,
 	}
 }
@@ -79,6 +81,16 @@ func (u *UploadCloudRepositoryUseCase) RequestUploadURL(c context.Context, userI
 
 	if err := u.Repo.CreateFile(ctx, file); err != nil {
 		return nil, fmt.Errorf("failed to create file record: %w", err)
+	}
+
+	// Log upload activity
+	if u.StatsRepo != nil {
+		activity := &entity.ActivityLog{
+			UserID:       userID,
+			FileID:       &file.ID,
+			ActivityType: entity.ActivityTypeUpload,
+		}
+		_ = u.StatsRepo.LogActivity(ctx, activity) // Don't fail on logging error
 	}
 
 	// Generate presigned upload URL

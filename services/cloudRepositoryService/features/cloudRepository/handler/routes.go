@@ -17,13 +17,17 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string) {
 	downloadRepo := repository.NewDownloadCloudRepositoryRepository(db, bucket)
 	listRepo := repository.NewListCloudRepositoryRepository(db, bucket)
 	deleteRepo := repository.NewDeleteCloudRepositoryRepository(db, bucket)
+	userStatsRepo := repository.NewUserStatsCloudRepositoryRepository(db)
+	activityHistoryRepo := repository.NewActivityHistoryCloudRepositoryRepository(db)
 
 	// UseCases
-	uploadUC := usecase.NewUploadCloudRepositoryUseCase(uploadRepo, 10*time.Second)
+	uploadUC := usecase.NewUploadCloudRepositoryUseCase(uploadRepo, userStatsRepo, 10*time.Second)
 	batchUploadUC := usecase.NewBatchUploadCloudRepositoryUseCase(uploadUC, 10*time.Second) // Reuses uploadUC logic
-	downloadUC := usecase.NewDownloadCloudRepositoryUseCase(downloadRepo, 10*time.Second)
+	downloadUC := usecase.NewDownloadCloudRepositoryUseCase(downloadRepo, userStatsRepo, 10*time.Second)
 	listUC := usecase.NewListCloudRepositoryUseCase(listRepo, 10*time.Second)
 	deleteUC := usecase.NewDeleteCloudRepositoryUseCase(deleteRepo, 10*time.Second)
+	userStatsUC := usecase.NewUserStatsCloudRepositoryUseCase(userStatsRepo, 10*time.Second)
+	activityHistoryUC := usecase.NewActivityHistoryCloudRepositoryUseCase(activityHistoryRepo, 10*time.Second)
 
 	// Handlers
 	NewUploadCloudRepositoryHandler(e, uploadUC)
@@ -31,5 +35,7 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string) {
 	NewDownloadCloudRepositoryHandler(e, downloadUC)
 	NewListCloudRepositoryHandler(e, listUC)
 	NewDeleteCloudRepositoryHandler(e, deleteUC)
+	NewUserStatsCloudRepositoryHandler(e, userStatsUC)
+	NewActivityHistoryCloudRepositoryHandler(e, activityHistoryUC)
 
 }

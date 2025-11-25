@@ -5,18 +5,21 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/entity"
 	_interface "github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/response"
 )
 
 type DownloadCloudRepositoryUseCase struct {
 	Repo           _interface.IDownloadCloudRepositoryRepository
+	StatsRepo      _interface.IUserStatsCloudRepositoryRepository
 	ContextTimeout time.Duration
 }
 
-func NewDownloadCloudRepositoryUseCase(repo _interface.IDownloadCloudRepositoryRepository, timeout time.Duration) _interface.IDownloadCloudRepositoryUseCase {
+func NewDownloadCloudRepositoryUseCase(repo _interface.IDownloadCloudRepositoryRepository, statsRepo _interface.IUserStatsCloudRepositoryRepository, timeout time.Duration) _interface.IDownloadCloudRepositoryUseCase {
 	return &DownloadCloudRepositoryUseCase{
 		Repo:           repo,
+		StatsRepo:      statsRepo,
 		ContextTimeout: timeout,
 	}
 }
@@ -32,6 +35,16 @@ func (u *DownloadCloudRepositoryUseCase) RequestDownloadURL(ctx context.Context,
 	// Check if user owns the file
 	if file.UserID != userID {
 		return nil, fmt.Errorf("unauthorized access to file")
+	}
+
+	// Log download activity
+	if u.StatsRepo != nil {
+		activity := &entity.ActivityLog{
+			UserID:       userID,
+			FileID:       &fileID,
+			ActivityType: entity.ActivityTypeDownload,
+		}
+		_ = u.StatsRepo.LogActivity(ctx, activity) // Don't fail on logging error
 	}
 
 	// Generate presigned download URL

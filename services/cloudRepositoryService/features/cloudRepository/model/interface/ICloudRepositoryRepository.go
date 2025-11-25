@@ -33,3 +33,16 @@ type IDeleteCloudRepositoryRepository interface {
 	SoftDeleteFile(ctx context.Context, id uint, userID uint) error
 	GetFileByID(ctx context.Context, id uint) (*entity.CloudFile, error)
 }
+
+type IUserStatsCloudRepositoryRepository interface {
+	GetTotalStorageUsed(ctx context.Context, userID uint) (int64, error)
+	GetMonthlyUploadCount(ctx context.Context, userID uint, year int, month int) (int, error)
+	GetMonthlyDownloadCount(ctx context.Context, userID uint, year int, month int) (int, error)
+	GetMonthlyTagsCreatedCount(ctx context.Context, userID uint, year int, month int) (int, error)
+	LogActivity(ctx context.Context, activity *entity.ActivityLog) error
+}
+
+type IActivityHistoryCloudRepositoryRepository interface {
+	GetMonthlyActivity(ctx context.Context, userID uint, year int, month int) ([]entity.ActivityLog, error)
+	GetMonthlyUsedTags(ctx context.Context, userID uint, year int, month int) (map[string][]string, error)
+}
