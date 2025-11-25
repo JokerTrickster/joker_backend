@@ -11,7 +11,6 @@ import (
 	_interface "github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/request"
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/response"
-	sharedAws "github.com/JokerTrickster/joker_backend/shared/aws"
 	"github.com/google/uuid"
 )
 
