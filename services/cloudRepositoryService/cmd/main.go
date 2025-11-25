@@ -47,7 +47,7 @@ func main() {
 	// Get configuration
 	bucket := os.Getenv("CLOUD_REPOSITORY_BUCKET")
 	if bucket == "" {
-		bucket = "cloud-repository-dev"
+		bucket = "joker-cloud-repository-dev"
 	}
 
 	// Get database connection

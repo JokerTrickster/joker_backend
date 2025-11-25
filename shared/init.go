@@ -57,14 +57,17 @@ func Init(cfg *InitConfig) (*echo.Echo, error) {
 	AppConfig = appConfig
 	logger.Info("Configuration loaded successfully")
 
-	// 4. AWS initialization (skip in local mode)
-	if !appConfig.IsLocal {
-		if err := _aws.InitAws(); err != nil {
+	// 4. AWS initialization (always try to initialize)
+	if err := _aws.InitAws(); err != nil {
+		if appConfig.IsLocal {
+			// In local mode, just log warning but continue
+			logger.Warn("AWS initialization failed in local mode - S3 operations may not work", zap.Error(err))
+		} else {
+			// In production, fail if AWS can't be initialized
 			return nil, fmt.Errorf("failed to initialize AWS: %w", err)
 		}
-		logger.Info("AWS services initialized successfully")
 	} else {
-		logger.Info("Skipping AWS initialization (IS_LOCAL=true)")
+		logger.Info("AWS services initialized successfully")
 	}
 
 	// 3. Database initialization (MySQL)

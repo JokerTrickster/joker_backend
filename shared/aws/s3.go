@@ -121,6 +121,9 @@ func FileNameGenerateRandom() string {
 
 // GeneratePresignedUploadURL generates a presigned URL for uploading to S3
 func GeneratePresignedUploadURL(ctx context.Context, bucket, key, contentType string, expiration time.Duration) (string, error) {
+	if awsClientS3 == nil {
+		return "", fmt.Errorf("AWS S3 client not initialized - check AWS configuration or IS_LOCAL setting")
+	}
 	presignClient := s3.NewPresignClient(awsClientS3)
 
 	presignParams := &s3.PutObjectInput{
@@ -139,6 +142,9 @@ func GeneratePresignedUploadURL(ctx context.Context, bucket, key, contentType st
 
 // GeneratePresignedDownloadURL generates a presigned URL for downloading from S3
 func GeneratePresignedDownloadURL(ctx context.Context, bucket, key string, expiration time.Duration) (string, error) {
+	if awsClientS3 == nil {
+		return "", fmt.Errorf("AWS S3 client not initialized - check AWS configuration or IS_LOCAL setting")
+	}
 	presignClient := s3.NewPresignClient(awsClientS3)
 
 	presignParams := &s3.GetObjectInput{
