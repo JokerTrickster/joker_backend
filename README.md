@@ -1,310 +1,440 @@
-# Joker Backend - Multi-Service Platform
+# 🎭 Joker Backend - Cloud Storage Microservices Platform
 
-통합 백엔드 서비스 플랫폼 - Go, Echo, MySQL 기반의 마이크로서비스 아키텍처
+[![Go Version](https://img.shields.io/badge/Go-1.24-blue.svg)](https://go.dev/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Architecture](https://img.shields.io/badge/architecture-microservices-orange.svg)](https://microservices.io/)
 
-## 기술 스택
+## 📋 Overview
 
-- **언어**: Go 1.23+
-- **프레임워크**: Echo v4
-- **데이터베이스**: MySQL 8.0 (공유)
-- **아키텍처**: Clean Architecture + Microservices
-- **컨테이너**: Docker & Docker Compose
-- **CI/CD**: GitHub Actions (경로 기반 자동 배포)
+Joker Backend는 Go 기반의 마이크로서비스 아키텍처로 구축된 클라우드 스토리지 플랫폼입니다. 사용자 인증, 파일 관리, 활동 추적 등의 기능을 제공하며, 높은 확장성과 유지보수성을 목표로 설계되었습니다.
 
-## 프로젝트 구조
+## ✨ Key Features
+
+- **🔐 JWT 기반 인증 시스템** - Access/Refresh 토큰을 활용한 보안 인증
+- **📁 파일 관리** - AWS S3를 활용한 안정적인 파일 저장소
+- **🖼️ 썸네일 지원** - 이미지 파일의 효율적인 렌더링을 위한 썸네일 처리
+- **📊 사용자 통계** - 실시간 스토리지 사용량 및 활동 추적
+- **📅 활동 기록** - 일별 업로드/다운로드 활동 내역 관리
+- **🏷️ 태그 시스템** - 파일 분류 및 검색 최적화
+- **⚡ Rate Limiting** - API 남용 방지 및 서버 보호
+- **🔄 CORS 설정** - 크로스 오리진 요청 처리
+
+## 🛠️ Tech Stack
+
+### Backend
+- **Language**: Go 1.24
+- **Framework**: Echo v4 (High performance web framework)
+- **ORM**: GORM (Object-Relational Mapping)
+- **Database**: MySQL 8.0
+- **Authentication**: JWT (JSON Web Tokens)
+
+### Cloud & Infrastructure
+- **Storage**: AWS S3
+- **AWS SDK**: aws-sdk-go-v2
+- **Environment**: Docker support for containerization
+
+### Architecture Patterns
+- **Clean Architecture** - 계층별 관심사 분리
+- **Repository Pattern** - 데이터 액세스 추상화
+- **Use Case Pattern** - 비즈니스 로직 캡슐화
+- **Dependency Injection** - 느슨한 결합과 테스트 용이성
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     API Gateway                          │
+└──────────┬──────────────────────┬───────────────────────┘
+           │                      │
+    ┌──────▼──────┐        ┌─────▼──────┐
+    │ Auth Service │        │ Cloud Repo │
+    │   (18081)    │        │  Service   │
+    │              │        │  (18080)   │
+    └──────┬──────┘        └─────┬──────┘
+           │                      │
+    ┌──────▼──────────────────────▼──────┐
+    │          MySQL Database            │
+    │            (3307)                  │
+    └────────────────────────────────────┘
+           │                      │
+    ┌──────▼──────┐        ┌─────▼──────┐
+    │  JWT Tokens │        │   AWS S3    │
+    └─────────────┘        └─────────────┘
+```
+
+## 📦 Project Structure
 
 ```
 joker_backend/
-├── services/                # 마이크로서비스들
-│   ├── auth-service/        # 인증 서비스 (포트 6000)
-│   │   ├── cmd/
-│   │   ├── internal/
-│   │   ├── pkg/
-│   │   ├── config/
-│   │   ├── Dockerfile
-│   │   └── go.mod
-│   ├── game-service/        # 게임 서비스 (포트 6001) [예정]
-│   └── payment-service/     # 결제 서비스 (포트 6002) [예정]
+├── services/
+│   ├── authService/                # 인증 서비스
+│   │   ├── cmd/                   # 애플리케이션 진입점
+│   │   ├── features/              # 기능별 모듈
+│   │   │   └── auth/
+│   │   │       ├── handler/       # HTTP 핸들러
+│   │   │       ├── usecase/       # 비즈니스 로직
+│   │   │       ├── repository/    # 데이터 액세스
+│   │   │       └── model/         # 데이터 모델
+│   │   └── .env.example           # 환경변수 예제
+│   │
+│   └── cloudRepositoryService/     # 클라우드 저장소 서비스
+│       ├── cmd/                   # 애플리케이션 진입점
+│       └── features/
+│           └── cloudRepository/
+│               ├── handler/       # HTTP 핸들러
+│               ├── usecase/       # 비즈니스 로직
+│               ├── repository/    # 데이터 액세스
+│               └── model/         # 데이터 모델
 │
-├── shared/                  # 공통 코드
-│   ├── models/             # 공통 모델
-│   ├── utils/              # 유틸리티
-│   └── middleware/         # 공통 미들웨어
+├── shared/                         # 공통 모듈
+│   ├── database/                  # DB 연결 관리
+│   ├── errors/                    # 에러 처리
+│   ├── jwt/                       # JWT 유틸리티
+│   ├── middleware/                # 공통 미들웨어
+│   └── utils/                     # 유틸리티 함수
 │
-├── scripts/                # 배포 스크립트
-│   ├── deploy-service.sh   # 통합 배포 스크립트
-│   ├── cleanup.sh
-│   └── init.sql
-│
-├── .github/
-│   └── workflows/
-│       └── deploy.yml      # 경로 기반 자동 배포
-│
-├── docker-compose.yml      # 로컬 개발용
-├── docker-compose.prod.yml # 프로덕션 템플릿
-└── README.md
+└── README.md                       # 프로젝트 문서
 ```
 
-## 서비스 포트 구조
+## 🚀 Getting Started
 
-| 서비스 | 포트 | 상태 | 설명 |
-|--------|------|------|------|
-| Auth Service | 6000 | ✅ 운영중 | 사용자 인증 및 권한 관리 |
-| Game Service | 6001 | 📋 예정 | 게임 로직 및 매칭 |
-| Payment Service | 6002 | 📋 예정 | 결제 처리 |
+### Prerequisites
 
-**공통 리소스:**
-- MySQL: 포트 3306 (모든 서비스 공유)
-- Database: `backend_dev` (모든 서비스 공유)
+- Go 1.24 이상
+- MySQL 8.0
+- AWS 계정 (S3 사용)
+- Docker (선택사항)
 
-## 빠른 시작
+### Installation
 
-### 사전 요구사항
-
-- Go 1.23 이상
-- Docker & Docker Compose
-- Make (선택사항)
-
-### 로컬 개발
-
+1. **Repository Clone**
 ```bash
-# 1. 저장소 클론
 git clone https://github.com/JokerTrickster/joker_backend.git
 cd joker_backend
-
-# 2. 환경 변수 설정
-cp .env.example .env
-
-# 3. 모든 서비스 시작 (Docker Compose)
-docker-compose up -d
-
-# 4. 로그 확인
-docker-compose logs -f auth-service
-
-# 5. 서비스 중지
-docker-compose down
 ```
 
-### 개별 서비스 개발
-
+2. **Dependencies 설치**
 ```bash
-# Auth Service 개발
-cd services/auth-service
-go mod tidy
-go run ./cmd/server/main.go
-
-# 환경 변수 설정 필요
-export DB_HOST=localhost
-export DB_PORT=3306
-export DB_USER=joker_user
-export DB_PASSWORD=joker_password
-export DB_NAME=backend_dev
-export PORT=6000
+go mod download
 ```
 
-## CI/CD - 자동 배포
+3. **환경 변수 설정**
 
-### 경로 기반 배포
+각 서비스 디렉토리에 `.env` 파일 생성:
 
-변경된 서비스만 자동으로 배포됩니다:
-
-```bash
-# Auth Service 수정 후 push
-git add services/auth-service/
-git commit -m "Update auth service"
-git push origin main
-# → Auth Service만 자동 배포 (포트 6000)
-
-# Shared 코드 수정 후 push
-git add shared/
-git commit -m "Update shared utilities"
-git push origin main
-# → 모든 서비스 자동 재배포
+**services/authService/.env**
+```env
+IS_LOCAL=true
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3307
+MYSQL_USER=root
+MYSQL_PASSWORD=rootpassword
+MYSQL_DATABASE=joker_db
+JWT_SECRET=your-secret-key
+SERVER_PORT=18081
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
 ```
 
-### 수동 배포
-
-GitHub Actions에서 수동으로 특정 서비스 배포:
-
-1. GitHub Repository → Actions 탭
-2. "Deploy Services" 워크플로우 선택
-3. "Run workflow" 클릭
-4. 배포할 서비스 선택 (auth-service, game-service, payment-service, all)
-
-### 배포 스크립트 직접 사용
-
-```bash
-# 서버에서 직접 배포
-./scripts/deploy-service.sh auth-service 6000
-./scripts/deploy-service.sh game-service 6001
-./scripts/deploy-service.sh payment-service 6002
+**services/cloudRepositoryService/.env**
+```env
+IS_LOCAL=true
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3307
+MYSQL_USER=root
+MYSQL_PASSWORD=rootpassword
+MYSQL_DATABASE=joker_db
+JWT_SECRET=your-secret-key
+SERVER_PORT=18080
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+AWS_REGION=ap-south-1
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+S3_BUCKET_NAME=joker-cloud-repository-dev
 ```
 
-## API 엔드포인트
+4. **Database Setup**
+```bash
+# MySQL 시작 (Docker 사용 시)
+docker run --name joker_mysql -p 3307:3306 -e MYSQL_ROOT_PASSWORD=rootpassword -e MYSQL_DATABASE=joker_db -d mysql:8.0
 
-### Auth Service (포트 6000)
+# 테이블은 서비스 시작 시 자동 마이그레이션됨
+```
+
+5. **서비스 실행**
+
+각 서비스를 별도 터미널에서 실행:
 
 ```bash
-# Health Check
-GET http://localhost:6000/health
+# Auth Service 실행
+cd services/authService
+go run cmd/main.go
 
-# 사용자 조회
-GET http://localhost:6000/api/v1/users/:id
+# Cloud Repository Service 실행
+cd services/cloudRepositoryService
+go run cmd/main.go
+```
 
-# 사용자 생성
-POST http://localhost:6000/api/v1/users
-Content-Type: application/json
+## 📚 API Documentation
 
+### Authentication Service (Port: 18081)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/v0.1/auth/signin` | 사용자 로그인 |
+| POST | `/v0.1/auth/signup` | 사용자 회원가입 |
+| POST | `/v0.1/auth/refresh` | 토큰 갱신 |
+| POST | `/v0.1/auth/signout` | 로그아웃 |
+
+### Cloud Repository Service (Port: 18080)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/v1/files/upload` | 파일 업로드 URL 요청 | ✅ |
+| POST | `/api/v1/files/download` | 파일 다운로드 URL 요청 | ✅ |
+| GET | `/api/v1/files` | 파일 목록 조회 | ✅ |
+| DELETE | `/api/v1/files/{id}` | 파일 삭제 | ✅ |
+| GET | `/api/v1/user/stats` | 사용자 통계 조회 | ✅ |
+| GET | `/api/v1/user/activity` | 활동 내역 조회 | ✅ |
+| POST | `/api/v1/tags` | 태그 생성 | ✅ |
+| POST | `/api/v1/files/{id}/tags` | 파일에 태그 추가 | ✅ |
+
+### API 사용 예시
+
+**1. 로그인**
+```bash
+curl -X POST http://localhost:18081/v0.1/auth/signin \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password123"}'
+```
+
+Response:
+```json
 {
-  "name": "홍길동",
-  "email": "hong@example.com"
+  "accessToken": "eyJhbGciOiJI...",
+  "refreshToken": "eyJhbGciOiJ...",
+  "expiresIn": 86400
 }
 ```
 
-### 응답 형식
+**2. 파일 업로드 URL 요청**
+```bash
+curl -X POST http://localhost:18080/api/v1/files/upload \
+  -H "Authorization: Bearer {access_token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "file_name": "image.png",
+    "file_type": "image",
+    "content_type": "image/png",
+    "file_size": 1024
+  }'
+```
 
-**성공 응답:**
+Response:
 ```json
 {
-  "success": true,
-  "data": { ... },
-  "message": "Operation completed successfully"
+  "file_id": 1,
+  "upload_url": "https://s3.amazonaws.com/...",
+  "s3_key": "users/1/files/uuid-image.png",
+  "thumbnail_upload_url": "https://s3.amazonaws.com/...",
+  "thumbnail_key": "users/1/thumbnails/uuid-image_thumb.png",
+  "expires_in": 900
 }
 ```
 
-**에러 응답:**
+**3. 사용자 통계 조회**
+```bash
+curl -X GET http://localhost:18080/api/v1/user/stats \
+  -H "Authorization: Bearer {access_token}"
+```
+
+Response:
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Error description"
+  "storage": {
+    "used": 9190,
+    "total": 16106127360,
+    "percentage": 0.000057
+  },
+  "monthlyStats": {
+    "uploads": 5,
+    "downloads": 12,
+    "tagsCreated": 3
   }
 }
 ```
 
-## 새 서비스 추가하기
-
-### 1. 서비스 디렉토리 생성
-
+**4. 활동 내역 조회**
 ```bash
-mkdir -p services/your-service
-cd services/your-service
+curl -X GET "http://localhost:18080/api/v1/user/activity?month=2025-11" \
+  -H "Authorization: Bearer {access_token}"
 ```
 
-### 2. Go 모듈 초기화
-
-```bash
-go mod init joker_backend/services/your-service
-```
-
-### 3. 서비스 코드 작성
-
-Auth Service 구조를 참고하여 작성:
-- `cmd/server/main.go` - 엔트리 포인트
-- `internal/` - 비즈니스 로직
-- `config/` - 설정 관리
-- `Dockerfile` - 컨테이너 이미지
-
-### 4. docker-compose.yml에 추가
-
-```yaml
-your-service:
-  build:
-    context: ./services/your-service
-    dockerfile: Dockerfile
-  container_name: joker_your_api
-  environment:
-    DB_HOST: mysql
-    DB_NAME: backend_dev
-    PORT: 6003  # 새 포트 할당
-  ports:
-    - "6003:6003"
-  depends_on:
-    - mysql
-  networks:
-    - joker_network
-```
-
-### 5. GitHub Actions 업데이트
-
-`.github/workflows/deploy.yml`에 새 서비스 job 추가
-
-### 6. 배포 테스트
-
-```bash
-# 로컬 테스트
-docker-compose up -d your-service
-
-# 프로덕션 배포
-git add services/your-service/
-git commit -m "Add your-service"
-git push origin main
-```
-
-## 개발 가이드
-
-### Clean Architecture 레이어
-
-```
-Handler (Presentation) → Service (Use Case) → Repository (Data) → Database
-```
-
-- **Handler**: HTTP 요청/응답 처리, 입력 검증
-- **Service**: 비즈니스 로직 구현, 트랜잭션 관리
-- **Repository**: 데이터 영속성, SQL 쿼리 실행
-- **Model**: 도메인 엔티티 정의
-
-### 공통 코드 사용
-
-```go
-// shared 패키지 import
-import (
-    "joker_backend/shared/models"
-    "joker_backend/shared/utils"
-)
-
-// 사용 예시
-type User struct {
-    models.BaseModel
-    Name  string `json:"name"`
-    Email string `json:"email"`
+Response:
+```json
+{
+  "2025-11-26": {
+    "uploads": 3,
+    "downloads": 5,
+    "tags": ["vacation", "family"]
+  }
 }
-
-dbHost := utils.GetEnv("DB_HOST", "localhost")
 ```
 
-## 환경 변수
-
-| 변수 | 설명 | 기본값 |
-|------|------|--------|
-| `DB_HOST` | MySQL 호스트 | localhost |
-| `DB_PORT` | MySQL 포트 | 3306 |
-| `DB_USER` | MySQL 사용자 | joker_user |
-| `DB_PASSWORD` | MySQL 비밀번호 | - |
-| `DB_NAME` | 데이터베이스 이름 | backend_dev |
-| `PORT` | API 서버 포트 | 6000 (서비스별 다름) |
-| `LOG_LEVEL` | 로그 레벨 | info |
-
-## 모니터링
+## 🧪 Testing
 
 ```bash
-# 전체 서비스 상태
-docker ps --filter "name=joker"
+# 단위 테스트 실행
+go test ./...
 
-# 특정 서비스 로그
-docker logs -f auth-service_api
+# 커버리지 확인
+go test -cover ./...
 
-# 헬스체크
-curl http://localhost:6000/health  # Auth Service
-curl http://localhost:6001/health  # Game Service
-curl http://localhost:6002/health  # Payment Service
+# E2E 테스트
+cd services/cloudRepositoryService
+go test -tags=e2e ./...
 ```
 
-## 트러블슈팅
+## 📈 Performance Features
 
-상세한 트러블슈팅 가이드는 [CI/CD 문서](docs/CICD.md)를 참고하세요.
+- **Connection Pooling**: 데이터베이스 연결 최적화
+- **Rate Limiting**: 10 RPS 제한으로 서버 보호
+- **Presigned URLs**: S3 직접 업로드로 서버 부하 감소
+- **Graceful Shutdown**: 안전한 서버 종료 처리
+- **Context Timeout**: 30초 요청 타임아웃 설정
 
-## 라이센스
+## 🔒 Security
 
-MIT
+- JWT 기반 인증 (Access Token: 24시간, Refresh Token: 7일)
+- bcrypt를 활용한 비밀번호 해싱
+- CORS 설정으로 허용된 오리진만 접근
+- Rate Limiting으로 DDoS 공격 방지
+- SQL Injection 방지 (GORM 파라미터 바인딩)
+- 환경 변수를 통한 민감 정보 관리
+
+## 🗂️ Database Schema
+
+### Users Table
+```sql
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL
+);
+```
+
+### Cloud Files Table
+```sql
+CREATE TABLE cloud_files (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    s3_key VARCHAR(512) UNIQUE NOT NULL,
+    thumbnail_key VARCHAR(512),
+    file_type VARCHAR(20) NOT NULL,
+    content_type VARCHAR(100) NOT NULL,
+    file_size BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
+    INDEX idx_user_id (user_id),
+    INDEX idx_file_type (file_type)
+);
+```
+
+### Activity Logs Table
+```sql
+CREATE TABLE activity_logs (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    file_id BIGINT,
+    activity_type VARCHAR(20) NOT NULL,
+    tag_name VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user_activity (user_id, activity_type, created_at)
+);
+```
+
+## 📊 Monitoring & Logging
+
+### Health Check
+```bash
+# Auth Service
+curl http://localhost:18081/health
+
+# Cloud Repository Service
+curl http://localhost:18080/health
+```
+
+### Log Levels
+- **DEBUG**: Detailed debugging information
+- **INFO**: General information
+- **WARN**: Warning messages
+- **ERROR**: Error messages
+- **FATAL**: Fatal errors causing service shutdown
+
+### Metrics
+- Request count and latency
+- Error rates
+- Storage usage per user
+- API endpoint performance
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+### Coding Standards
+
+- Follow Go best practices and idioms
+- Use gofmt for code formatting
+- Write unit tests for new features
+- Maintain >80% code coverage
+- Document exported functions and types
+- Use meaningful variable and function names
+
+## 🚢 Deployment
+
+### Docker Deployment
+```bash
+# Build images
+docker build -t joker-auth:latest ./services/authService
+docker build -t joker-cloud:latest ./services/cloudRepositoryService
+
+# Run with docker-compose
+docker-compose up -d
+```
+
+### Production Considerations
+
+- Use environment-specific configuration
+- Enable TLS/SSL for HTTPS
+- Set up proper logging and monitoring
+- Configure auto-scaling policies
+- Implement backup strategies for database
+- Use secrets management for sensitive data
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 👨‍💻 Author
+
+**JokerTrickster**
+- GitHub: [@JokerTrickster](https://github.com/JokerTrickster)
+
+## 🙏 Acknowledgments
+
+- Echo Framework for the excellent web framework
+- GORM team for the powerful ORM
+- AWS SDK Go team for S3 integration
+- All contributors who helped improve this project
+
+---
+
+⭐ Star this repository if you find it helpful!
