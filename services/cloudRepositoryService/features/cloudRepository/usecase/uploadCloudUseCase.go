@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	DefaultUploadExpiration = 15 * time.Minute
+	DefaultUploadExpiration = 12 * time.Hour
 	MaxFileSize             = 100 * 1024 * 1024 // 100MB
 )
 
