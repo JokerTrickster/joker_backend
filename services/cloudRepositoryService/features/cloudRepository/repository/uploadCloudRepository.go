@@ -29,23 +29,10 @@ func (r *UploadCloudRepositoryRepository) GeneratePresignedUploadURL(ctx context
 
 // CreateFile saves file metadata to database
 func (r *UploadCloudRepositoryRepository) CreateFile(ctx context.Context, file *entity.CloudFile) error {
-	// Save tags separately to avoid duplicate tag creation
-	tags := file.Tags
-	file.Tags = nil
-
-	// Create file record
+	// Create file record (GORM will handle tag associations since they have IDs)
 	if err := r.db.WithContext(ctx).Create(file).Error; err != nil {
 		return err
 	}
 
-	// Associate existing tags with the file (many-to-many)
-	if len(tags) > 0 {
-		if err := r.db.WithContext(ctx).Model(file).Association("Tags").Append(tags); err != nil {
-			return err
-		}
-	}
-
-	// Restore tags to file object
-	file.Tags = tags
 	return nil
 }
