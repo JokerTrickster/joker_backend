@@ -20,6 +20,7 @@ type IBatchUploadCloudRepositoryRepository interface {
 
 type IDownloadCloudRepositoryRepository interface {
 	GeneratePresignedDownloadURL(ctx context.Context, s3Key string, expiration time.Duration) (string, error)
+	GeneratePresignedDownloadURLWithFilename(ctx context.Context, s3Key, filename string, expiration time.Duration) (string, error)
 	GetFileByID(ctx context.Context, id uint) (*entity.CloudFile, error)
 }
 

@@ -82,6 +82,7 @@ func (u *ListCloudRepositoryUseCase) ListFiles(c context.Context, userID uint, r
 			FileType:     string(file.FileType),
 			ContentType:  file.ContentType,
 			FileSize:     file.FileSize,
+			Duration:     file.Duration,
 			Tags:         tagDTOs,
 			DownloadURL:  downloadURL,
 			ThumbnailURL: thumbnailURL,

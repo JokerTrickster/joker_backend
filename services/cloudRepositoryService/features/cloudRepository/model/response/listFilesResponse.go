@@ -13,6 +13,7 @@ type FileInfoDTO struct {
 	FileType     string   `json:"file_type"`
 	ContentType  string   `json:"content_type"`
 	FileSize     int64    `json:"file_size"`
+	Duration     *float64 `json:"duration,omitempty"` // Video duration in seconds
 	Tags         []TagDTO `json:"tags"`
 	DownloadURL  string   `json:"download_url"`
 	ThumbnailURL string   `json:"thumbnail_url,omitempty"`

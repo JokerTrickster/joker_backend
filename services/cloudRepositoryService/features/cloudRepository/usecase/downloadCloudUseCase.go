@@ -47,8 +47,8 @@ func (u *DownloadCloudRepositoryUseCase) RequestDownloadURL(ctx context.Context,
 		_ = u.StatsRepo.LogActivity(ctx, activity) // Don't fail on logging error
 	}
 
-	// Generate presigned download URL
-	downloadURL, err := u.Repo.GeneratePresignedDownloadURL(ctx, file.S3Key, 1*time.Hour)
+	// Generate presigned download URL with Content-Disposition header for forced download
+	downloadURL, err := u.Repo.GeneratePresignedDownloadURLWithFilename(ctx, file.S3Key, file.FileName, 1*time.Hour)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate download URL: %w", err)
 	}

@@ -27,6 +27,11 @@ func (r *DownloadCloudRepositoryRepository) GeneratePresignedDownloadURL(ctx con
 	return sharedAws.GeneratePresignedDownloadURL(ctx, r.bucket, s3Key, expiration)
 }
 
+// GeneratePresignedDownloadURLWithFilename generates a presigned URL for downloading with Content-Disposition header
+func (r *DownloadCloudRepositoryRepository) GeneratePresignedDownloadURLWithFilename(ctx context.Context, s3Key, filename string, expiration time.Duration) (string, error) {
+	return sharedAws.GeneratePresignedDownloadURLWithFilename(ctx, r.bucket, s3Key, filename, expiration)
+}
+
 // GetFileByID retrieves a file by ID
 func (r *DownloadCloudRepositoryRepository) GetFileByID(ctx context.Context, id uint) (*entity.CloudFile, error) {
 	var file entity.CloudFile
