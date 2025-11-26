@@ -2,10 +2,12 @@ package response
 
 // UploadResponseDTO returns presigned upload URL
 type UploadResponseDTO struct {
-	FileID    uint   `json:"file_id"`
-	UploadURL string `json:"upload_url"`
-	S3Key     string `json:"s3_key"`
-	ExpiresIn int    `json:"expires_in"` // seconds
+	FileID           uint   `json:"file_id"`
+	UploadURL        string `json:"upload_url"`
+	S3Key            string `json:"s3_key"`
+	ThumbnailURL     string `json:"thumbnail_upload_url,omitempty"`
+	ThumbnailKey     string `json:"thumbnail_key,omitempty"`
+	ExpiresIn        int    `json:"expires_in"` // seconds
 }
 
 // BatchUploadResponseDTO returns multiple presigned upload URLs

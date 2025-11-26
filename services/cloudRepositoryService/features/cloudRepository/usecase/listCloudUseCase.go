@@ -66,16 +66,27 @@ func (u *ListCloudRepositoryUseCase) ListFiles(c context.Context, userID uint, r
 			downloadURL = ""
 		}
 
+		// Generate presigned thumbnail URL if available
+		thumbnailURL := ""
+		if file.ThumbnailKey != "" {
+			thumbnailURL, err = u.Repo.GeneratePresignedDownloadURL(ctx, file.ThumbnailKey, 1*time.Hour)
+			if err != nil {
+				// Log error but don't fail the entire request
+				thumbnailURL = ""
+			}
+		}
+
 		fileInfos[i] = response.FileInfoDTO{
-			ID:          file.ID,
-			FileName:    file.FileName,
-			FileType:    string(file.FileType),
-			ContentType: file.ContentType,
-			FileSize:    file.FileSize,
-			Tags:        tagDTOs,
-			DownloadURL: downloadURL,
-			CreatedAt:   file.CreatedAt.Format(time.RFC3339),
-			UpdatedAt:   file.UpdatedAt.Format(time.RFC3339),
+			ID:           file.ID,
+			FileName:     file.FileName,
+			FileType:     string(file.FileType),
+			ContentType:  file.ContentType,
+			FileSize:     file.FileSize,
+			Tags:         tagDTOs,
+			DownloadURL:  downloadURL,
+			ThumbnailURL: thumbnailURL,
+			CreatedAt:    file.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:    file.UpdatedAt.Format(time.RFC3339),
 		}
 	}
 

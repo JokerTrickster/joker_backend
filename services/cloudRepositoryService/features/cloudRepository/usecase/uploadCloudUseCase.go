@@ -66,17 +66,24 @@ func (u *UploadCloudRepositoryUseCase) RequestUploadURL(c context.Context, userI
 		return nil, fmt.Errorf("invalid video content type: %s", req.ContentType)
 	}
 
-	// Generate S3 key
+	// Generate S3 keys for original and thumbnail
 	s3Key := u.generateS3Key(userID, fileType, req.FileName)
+	thumbnailKey := ""
+
+	// Only generate thumbnail key for images
+	if fileType == entity.FileTypeImage {
+		thumbnailKey = u.generateThumbnailKey(userID, req.FileName)
+	}
 
 	// Create file record in database
 	file := &entity.CloudFile{
-		UserID:      userID,
-		FileName:    req.FileName,
-		S3Key:       s3Key,
-		FileType:    fileType,
-		ContentType: req.ContentType,
-		FileSize:    req.FileSize,
+		UserID:       userID,
+		FileName:     req.FileName,
+		S3Key:        s3Key,
+		ThumbnailKey: thumbnailKey,
+		FileType:     fileType,
+		ContentType:  req.ContentType,
+		FileSize:     req.FileSize,
 	}
 
 	if err := u.Repo.CreateFile(ctx, file); err != nil {
@@ -93,17 +100,29 @@ func (u *UploadCloudRepositoryUseCase) RequestUploadURL(c context.Context, userI
 		_ = u.StatsRepo.LogActivity(ctx, activity) // Don't fail on logging error
 	}
 
-	// Generate presigned upload URL
+	// Generate presigned upload URL for original
 	uploadURL, err := u.Repo.GeneratePresignedUploadURL(ctx, s3Key, req.ContentType, DefaultUploadExpiration)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate upload URL: %w", err)
 	}
 
+	// Generate presigned upload URL for thumbnail if it's an image
+	thumbnailURL := ""
+	if thumbnailKey != "" {
+		thumbnailURL, err = u.Repo.GeneratePresignedUploadURL(ctx, thumbnailKey, req.ContentType, DefaultUploadExpiration)
+		if err != nil {
+			// Log error but don't fail the entire request
+			thumbnailURL = ""
+		}
+	}
+
 	return &response.UploadResponseDTO{
-		FileID:    file.ID,
-		UploadURL: uploadURL,
-		S3Key:     s3Key,
-		ExpiresIn: int(DefaultUploadExpiration.Seconds()),
+		FileID:       file.ID,
+		UploadURL:    uploadURL,
+		S3Key:        s3Key,
+		ThumbnailURL: thumbnailURL,
+		ThumbnailKey: thumbnailKey,
+		ExpiresIn:    int(DefaultUploadExpiration.Seconds()),
 	}, nil
 }
 
@@ -129,4 +148,28 @@ func (u *UploadCloudRepositoryUseCase) generateS3Key(userID uint, fileType entit
 
 	// Format: users/{userID}/files/{uuid}-{baseName}{ext}
 	return fmt.Sprintf("users/%d/files/%s-%s%s", userID, fileID, baseName, ext)
+}
+
+// generateThumbnailKey generates a unique S3 key for a thumbnail
+func (u *UploadCloudRepositoryUseCase) generateThumbnailKey(userID uint, fileName string) string {
+	// Generate UUID for uniqueness
+	fileID := uuid.New().String()
+
+	// Get file extension
+	ext := filepath.Ext(fileName)
+	if ext == "" {
+		ext = ".jpg" // Default to jpg for thumbnails
+	}
+
+	// Clean extension
+	ext = strings.ToLower(ext)
+
+	// Get filename without extension
+	baseName := strings.TrimSuffix(fileName, ext)
+	if baseName == "" {
+		baseName = "file"
+	}
+
+	// Format: users/{userID}/thumbnails/{uuid}-{baseName}_thumb{ext}
+	return fmt.Sprintf("users/%d/thumbnails/%s-%s_thumb%s", userID, fileID, baseName, ext)
 }
