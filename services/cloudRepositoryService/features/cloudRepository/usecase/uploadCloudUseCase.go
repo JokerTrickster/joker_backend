@@ -12,6 +12,7 @@ import (
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/request"
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/response"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 const (
@@ -37,13 +38,15 @@ var (
 type UploadCloudRepositoryUseCase struct {
 	Repo           _interface.IUploadCloudRepositoryRepository
 	StatsRepo      _interface.IUserStatsCloudRepositoryRepository
+	DB             *gorm.DB
 	ContextTimeout time.Duration
 }
 
-func NewUploadCloudRepositoryUseCase(repo _interface.IUploadCloudRepositoryRepository, statsRepo _interface.IUserStatsCloudRepositoryRepository, timeout time.Duration) _interface.IUploadCloudRepositoryUseCase {
+func NewUploadCloudRepositoryUseCase(repo _interface.IUploadCloudRepositoryRepository, statsRepo _interface.IUserStatsCloudRepositoryRepository, db *gorm.DB, timeout time.Duration) _interface.IUploadCloudRepositoryUseCase {
 	return &UploadCloudRepositoryUseCase{
 		Repo:           repo,
 		StatsRepo:      statsRepo,
+		DB:             db,
 		ContextTimeout: timeout,
 	}
 }
@@ -70,9 +73,40 @@ func (u *UploadCloudRepositoryUseCase) RequestUploadURL(c context.Context, userI
 	s3Key := u.generateS3Key(userID, fileType, req.FileName)
 	thumbnailKey := ""
 
-	// Only generate thumbnail key for images
-	if fileType == entity.FileTypeImage {
+	// Generate thumbnail key for both images and videos
+	if fileType == entity.FileTypeImage || fileType == entity.FileTypeVideo {
 		thumbnailKey = u.generateThumbnailKey(userID, req.FileName)
+	}
+
+	// Process tags if provided
+	tags := make([]entity.Tag, 0, len(req.Tags))
+	if len(req.Tags) > 0 {
+		for _, tagName := range req.Tags {
+			if tagName == "" {
+				continue
+			}
+			tag := entity.Tag{
+				UserID: userID,
+				Name:   tagName,
+			}
+			// Find or create tag
+			if err := u.DB.WithContext(ctx).Where("user_id = ? AND name = ?", userID, tagName).FirstOrCreate(&tag).Error; err != nil {
+				return nil, fmt.Errorf("failed to process tag %s: %w", tagName, err)
+			}
+			tags = append(tags, tag)
+		}
+
+		// Log tag activity
+		if u.StatsRepo != nil {
+			for _, tag := range tags {
+				activity := &entity.ActivityLog{
+					UserID:       userID,
+					ActivityType: entity.ActivityTypeTagAdd,
+					TagName:      tag.Name,
+				}
+				_ = u.StatsRepo.LogActivity(ctx, activity) // Don't fail on logging error
+			}
+		}
 	}
 
 	// Create file record in database
@@ -84,6 +118,8 @@ func (u *UploadCloudRepositoryUseCase) RequestUploadURL(c context.Context, userI
 		FileType:     fileType,
 		ContentType:  req.ContentType,
 		FileSize:     req.FileSize,
+		Duration:     req.Duration,
+		Tags:         tags,
 	}
 
 	if err := u.Repo.CreateFile(ctx, file); err != nil {

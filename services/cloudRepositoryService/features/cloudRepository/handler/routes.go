@@ -21,7 +21,7 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string) {
 	activityHistoryRepo := repository.NewActivityHistoryCloudRepositoryRepository(db)
 
 	// UseCases
-	uploadUC := usecase.NewUploadCloudRepositoryUseCase(uploadRepo, userStatsRepo, 10*time.Second)
+	uploadUC := usecase.NewUploadCloudRepositoryUseCase(uploadRepo, userStatsRepo, db, 10*time.Second)
 	batchUploadUC := usecase.NewBatchUploadCloudRepositoryUseCase(uploadUC, 10*time.Second) // Reuses uploadUC logic
 	downloadUC := usecase.NewDownloadCloudRepositoryUseCase(downloadRepo, userStatsRepo, 10*time.Second)
 	listUC := usecase.NewListCloudRepositoryUseCase(listRepo, 10*time.Second)

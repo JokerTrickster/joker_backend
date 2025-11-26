@@ -160,6 +160,27 @@ func GeneratePresignedDownloadURL(ctx context.Context, bucket, key string, expir
 	return html.UnescapeString(presignResult.URL), nil
 }
 
+// GeneratePresignedDownloadURLWithFilename generates a presigned URL for downloading from S3 with Content-Disposition header
+func GeneratePresignedDownloadURLWithFilename(ctx context.Context, bucket, key, filename string, expiration time.Duration) (string, error) {
+	if awsClientS3 == nil {
+		return "", fmt.Errorf("AWS S3 client not initialized - check AWS configuration or IS_LOCAL setting")
+	}
+	presignClient := s3.NewPresignClient(awsClientS3)
+
+	presignParams := &s3.GetObjectInput{
+		Bucket:                     aws.String(bucket),
+		Key:                        aws.String(key),
+		ResponseContentDisposition: aws.String(fmt.Sprintf(`attachment; filename="%s"`, filename)),
+	}
+
+	presignResult, err := presignClient.PresignGetObject(ctx, presignParams, s3.WithPresignExpires(expiration))
+	if err != nil {
+		return "", fmt.Errorf("failed to generate presigned download URL: %w", err)
+	}
+
+	return html.UnescapeString(presignResult.URL), nil
+}
+
 // DeleteObject deletes an object from S3
 func DeleteObject(ctx context.Context, bucket, key string) error {
 	_, err := awsClientS3.DeleteObject(ctx, &s3.DeleteObjectInput{

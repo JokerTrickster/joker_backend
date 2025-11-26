@@ -20,6 +20,7 @@ type CloudFile struct {
 	FileType     FileType   `gorm:"size:20;not null;index" json:"file_type"`
 	ContentType  string     `gorm:"size:100;not null" json:"content_type"`
 	FileSize     int64      `gorm:"not null" json:"file_size"`
+	Duration     *float64   `gorm:"type:decimal(10,2)" json:"duration,omitempty"` // Video duration in seconds
 	Tags         []Tag      `gorm:"many2many:file_tags;" json:"tags,omitempty"`
 	CreatedAt    time.Time  `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt    time.Time  `gorm:"autoUpdateTime" json:"updated_at"`
