@@ -19,6 +19,7 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string) {
 	deleteRepo := repository.NewDeleteCloudRepositoryRepository(db, bucket)
 	userStatsRepo := repository.NewUserStatsCloudRepositoryRepository(db)
 	activityHistoryRepo := repository.NewActivityHistoryCloudRepositoryRepository(db)
+	favoriteRepo := repository.NewFavoriteRepository(db)
 
 	// UseCases
 	uploadUC := usecase.NewUploadCloudRepositoryUseCase(uploadRepo, userStatsRepo, db, 10*time.Second)
@@ -28,6 +29,7 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string) {
 	deleteUC := usecase.NewDeleteCloudRepositoryUseCase(deleteRepo, 10*time.Second)
 	userStatsUC := usecase.NewUserStatsCloudRepositoryUseCase(userStatsRepo, 10*time.Second)
 	activityHistoryUC := usecase.NewActivityHistoryCloudRepositoryUseCase(activityHistoryRepo, 10*time.Second)
+	favoriteUC := usecase.NewFavoriteUseCase(favoriteRepo, downloadRepo, listRepo, 10*time.Second)
 
 	// Handlers
 	NewUploadCloudRepositoryHandler(e, uploadUC)
@@ -37,5 +39,6 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string) {
 	NewDeleteCloudRepositoryHandler(e, deleteUC)
 	NewUserStatsCloudRepositoryHandler(e, userStatsUC)
 	NewActivityHistoryCloudRepositoryHandler(e, activityHistoryUC)
+	NewFavoriteHandler(e, favoriteUC)
 
 }
