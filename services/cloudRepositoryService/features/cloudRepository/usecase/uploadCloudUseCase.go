@@ -17,7 +17,6 @@ import (
 
 const (
 	DefaultUploadExpiration = 12 * time.Hour
-	MaxFileSize             = 100 * 1024 * 1024 // 100MB
 )
 
 var (
@@ -28,10 +27,15 @@ var (
 		"image/webp": true,
 	}
 	AllowedVideoTypes = map[string]bool{
-		"video/mp4":  true,
-		"video/webm": true,
-		"video/avi":  true,
-		"video/mov":  true,
+		"video/mp4":        true,
+		"video/webm":       true,
+		"video/avi":        true,
+		"video/x-msvideo":  true, // Alternative AVI MIME
+		"video/mov":        true,
+		"video/quicktime":  true, // Alternative MOV MIME
+		"video/mpeg":       true, // MPEG files
+		"video/x-matroska": true, // MKV files
+		"video/3gpp":       true, // 3GP mobile video
 	}
 )
 
@@ -55,10 +59,6 @@ func NewUploadCloudRepositoryUseCase(repo _interface.IUploadCloudRepositoryRepos
 func (u *UploadCloudRepositoryUseCase) RequestUploadURL(c context.Context, userID uint, req *request.UploadRequestDTO) (*response.UploadResponseDTO, error) {
 	ctx, cancel := context.WithTimeout(c, u.ContextTimeout)
 	defer cancel()
-	// Validate file size
-	if req.FileSize > MaxFileSize {
-		return nil, fmt.Errorf("file size exceeds maximum allowed size of %d bytes", MaxFileSize)
-	}
 
 	// Validate content type
 	fileType := entity.FileType(req.FileType)

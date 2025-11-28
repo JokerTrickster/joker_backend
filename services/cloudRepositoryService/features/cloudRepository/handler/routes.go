@@ -21,15 +21,15 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string) {
 	activityHistoryRepo := repository.NewActivityHistoryCloudRepositoryRepository(db)
 	favoriteRepo := repository.NewFavoriteRepository(db)
 
-	// UseCases
-	uploadUC := usecase.NewUploadCloudRepositoryUseCase(uploadRepo, userStatsRepo, db, 10*time.Second)
-	batchUploadUC := usecase.NewBatchUploadCloudRepositoryUseCase(uploadUC, 10*time.Second) // Reuses uploadUC logic
-	downloadUC := usecase.NewDownloadCloudRepositoryUseCase(downloadRepo, userStatsRepo, 10*time.Second)
-	listUC := usecase.NewListCloudRepositoryUseCase(listRepo, 10*time.Second)
-	deleteUC := usecase.NewDeleteCloudRepositoryUseCase(deleteRepo, 10*time.Second)
-	userStatsUC := usecase.NewUserStatsCloudRepositoryUseCase(userStatsRepo, 10*time.Second)
-	activityHistoryUC := usecase.NewActivityHistoryCloudRepositoryUseCase(activityHistoryRepo, 10*time.Second)
-	favoriteUC := usecase.NewFavoriteUseCase(favoriteRepo, downloadRepo, listRepo, 10*time.Second)
+	// UseCases - using 30s timeout to match Echo server timeout and provide buffer for DB operations
+	uploadUC := usecase.NewUploadCloudRepositoryUseCase(uploadRepo, userStatsRepo, db, 30*time.Second)
+	batchUploadUC := usecase.NewBatchUploadCloudRepositoryUseCase(uploadUC, 30*time.Second) // Reuses uploadUC logic
+	downloadUC := usecase.NewDownloadCloudRepositoryUseCase(downloadRepo, userStatsRepo, 30*time.Second)
+	listUC := usecase.NewListCloudRepositoryUseCase(listRepo, 30*time.Second)
+	deleteUC := usecase.NewDeleteCloudRepositoryUseCase(deleteRepo, 30*time.Second)
+	userStatsUC := usecase.NewUserStatsCloudRepositoryUseCase(userStatsRepo, 30*time.Second)
+	activityHistoryUC := usecase.NewActivityHistoryCloudRepositoryUseCase(activityHistoryRepo, 30*time.Second)
+	favoriteUC := usecase.NewFavoriteUseCase(favoriteRepo, downloadRepo, listRepo, 30*time.Second)
 
 	// Handlers
 	NewUploadCloudRepositoryHandler(e, uploadUC)
