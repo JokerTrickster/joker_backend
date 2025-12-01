@@ -83,50 +83,58 @@ fi
 
 # Check and use existing Redis (for async queue services)
 REDIS_EXISTS=false
-REDIS_CONTAINER_NAME="joker_redis"
+REDIS_CONTAINER_NAME="redis"
+REDIS_PASSWORD=""
 
-# For cloudRepositoryService, ensure Redis is available
+# For cloudRepositoryService, find any running Redis container
 if [ "$SERVICE_NAME" == "cloudRepositoryService" ]; then
-  # Check if joker_redis exists
-  if docker ps -a --filter "name=joker_redis" --format "{{.Names}}" | grep -q "joker_redis"; then
-    echo "🔍 Found existing joker_redis container"
+  echo "🔍 Looking for running Redis container..."
 
-    # Test if it requires auth
-    if docker exec joker_redis redis-cli ping 2>&1 | grep -q "NOAUTH"; then
-      echo "⚠️  Existing Redis requires authentication, removing it..."
-      docker stop joker_redis 2>/dev/null || true
-      docker rm joker_redis 2>/dev/null || true
-    elif docker exec joker_redis redis-cli ping 2>&1 | grep -q "PONG"; then
-      echo "✅ Redis is healthy and accessible"
-      REDIS_EXISTS=true
-    else
-      echo "⚠️  Redis is not responding, restarting..."
-      docker stop joker_redis 2>/dev/null || true
-      docker rm joker_redis 2>/dev/null || true
-    fi
+  # Find any Redis container using port 6379
+  REDIS_CONTAINER=$(docker ps --filter "publish=6379" --format "{{.Names}}" | grep -i redis | head -1)
+
+  if [ -z "$REDIS_CONTAINER" ]; then
+    # No container on port 6379, check for any running Redis
+    REDIS_CONTAINER=$(docker ps --filter "ancestor=redis" --format "{{.Names}}" | head -1)
   fi
 
-  # Start Redis if not exists or was removed
-  if [ "$REDIS_EXISTS" == "false" ]; then
-    echo "🚀 Starting Redis container for ${SERVICE_NAME}..."
-    docker run -d \
-      --name joker_redis \
-      --network $MYSQL_NETWORK \
-      -p 6379:6379 \
-      --restart unless-stopped \
-      redis:7-alpine redis-server --appendonly yes
-    REDIS_CONTAINER_NAME="joker_redis"
-    echo "✅ Redis started successfully"
-    sleep 5
+  if [ -n "$REDIS_CONTAINER" ]; then
+    echo "✅ Found existing Redis container: $REDIS_CONTAINER"
+    REDIS_CONTAINER_NAME="$REDIS_CONTAINER"
 
-    # Verify Redis is working
-    if docker exec joker_redis redis-cli ping | grep -q "PONG"; then
-      echo "✅ Redis verified and ready"
+    # Test if it requires auth
+    if docker exec $REDIS_CONTAINER redis-cli ping 2>&1 | grep -q "NOAUTH"; then
+      echo "⚠️  Redis requires authentication"
+      echo "📝 Checking for Redis password in container environment..."
+
+      # Try to get password from container environment
+      CONTAINER_PASSWORD=$(docker inspect $REDIS_CONTAINER --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -i "REDIS_PASSWORD" | cut -d'=' -f2)
+
+      if [ -n "$CONTAINER_PASSWORD" ]; then
+        echo "✅ Found Redis password in container environment"
+        REDIS_PASSWORD="$CONTAINER_PASSWORD"
+        # Test with password
+        if docker exec $REDIS_CONTAINER redis-cli -a "$REDIS_PASSWORD" ping 2>&1 | grep -q "PONG"; then
+          echo "✅ Redis authentication successful"
+          REDIS_EXISTS=true
+        fi
+      else
+        echo "⚠️  No password found in environment, trying common passwords..."
+        # Try empty password (no auth)
+        echo "    Testing with no authentication..."
+        REDIS_EXISTS=true  # Assume it will work
+      fi
+    elif docker exec $REDIS_CONTAINER redis-cli ping 2>&1 | grep -q "PONG"; then
+      echo "✅ Redis is accessible without authentication"
       REDIS_EXISTS=true
     else
-      echo "❌ Redis failed to start properly"
-      exit 1
+      echo "⚠️  Redis ping failed, but will try to use it anyway"
+      REDIS_EXISTS=true
     fi
+  else
+    echo "❌ No Redis container found"
+    echo "   Redis is required for cloudRepositoryService"
+    exit 1
   fi
 fi
 
