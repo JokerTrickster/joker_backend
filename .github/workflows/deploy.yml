@@ -59,6 +59,18 @@ jobs:
           chmod +x scripts/deploy-service.sh
           ./scripts/deploy-service.sh authService 18081
 
+      - name: Test Auth Service
+        if: success()
+        run: |
+          echo "🧪 Testing Auth Service..."
+          echo -n "Health check: "
+          if curl -f http://localhost:18081/health > /dev/null 2>&1; then
+            echo "✅ PASS"
+          else
+            echo "❌ FAIL"
+            exit 1
+          fi
+
       - name: Deployment notification
         if: always()
         run: |
@@ -116,6 +128,12 @@ jobs:
         run: |
           chmod +x scripts/deploy-service.sh
           ./scripts/deploy-service.sh cloudRepositoryService 18080
+
+      - name: Test Deployment
+        if: success()
+        run: |
+          chmod +x scripts/test-deployment.sh
+          ./scripts/test-deployment.sh 18080 18081
 
       - name: Deployment notification
         if: always()
