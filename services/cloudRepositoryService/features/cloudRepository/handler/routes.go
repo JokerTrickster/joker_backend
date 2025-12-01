@@ -31,6 +31,7 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string, queueClient *asyn
 	userStatsUC := usecase.NewUserStatsCloudRepositoryUseCase(userStatsRepo, 30*time.Second)
 	activityHistoryUC := usecase.NewActivityHistoryCloudRepositoryUseCase(activityHistoryRepo, 30*time.Second)
 	favoriteUC := usecase.NewFavoriteUseCase(favoriteRepo, downloadRepo, listRepo, 30*time.Second)
+	processingStatusUC := usecase.NewProcessingStatusUseCase(db, bucket)
 
 	// Handlers
 	NewUploadCloudRepositoryHandler(e, uploadUC)
@@ -42,5 +43,9 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string, queueClient *asyn
 	NewActivityHistoryCloudRepositoryHandler(e, activityHistoryUC)
 	NewFavoriteHandler(e, favoriteUC)
 	NewCompleteUploadHandler(e, db, queueClient, bucket)
+
+	// Processing Status Handler
+	processingStatusHandler := NewProcessingStatusHandler(processingStatusUC)
+	processingStatusHandler.RegisterRoutes(e)
 
 }

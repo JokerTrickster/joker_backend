@@ -34,3 +34,8 @@ type IUserStatsCloudRepositoryUseCase interface {
 type IActivityHistoryCloudRepositoryUseCase interface {
 	GetActivityHistory(ctx context.Context, userID uint, req *request.ActivityHistoryRequestDTO) (*response.ActivityHistoryResponseDTO, error)
 }
+
+type IProcessingStatusUseCase interface {
+	GetProcessingStatus(ctx context.Context, userID uint, fileID uint) (*response.ProcessingStatusResponse, error)
+	GetBatchProcessingStatus(ctx context.Context, userID uint, fileIDs []uint) (*response.BatchProcessingStatusResponse, error)
+}

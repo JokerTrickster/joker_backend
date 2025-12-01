@@ -48,13 +48,17 @@ func (p *VideoProcessor) ProcessTask(ctx context.Context, task *asynq.Task) erro
 		zap.Uint("user_id", payload.UserID),
 	)
 
-	// Update status to processing
-	if err := p.updateFileStatus(payload.FileID, entity.ProcessingStatusProcessing, ""); err != nil {
+	// Update status to processing with initial stage
+	if err := p.updateFileProgress(payload.FileID, entity.ProcessingStatusProcessing, entity.ProcessingStageValidating, 0, ""); err != nil {
 		return fmt.Errorf("failed to update status to processing: %w", err)
 	}
 
-	// Extract duration
+	// Extract duration and metadata
 	logger.Info("Extracting video duration", zap.Uint("file_id", payload.FileID))
+	if err := p.updateFileProgress(payload.FileID, entity.ProcessingStatusProcessing, entity.ProcessingStageExtractingMetadata, 20, ""); err != nil {
+		logger.Error("Failed to update progress", zap.Error(err))
+	}
+
 	duration, err := p.ffmpeg.ExtractDuration(ctx, payload.S3Key)
 	if err != nil {
 		p.handleProcessingError(payload, fmt.Errorf("failed to extract duration: %w", err))
@@ -64,6 +68,10 @@ func (p *VideoProcessor) ProcessTask(ctx context.Context, task *asynq.Task) erro
 
 	// Generate thumbnail at middle of video
 	logger.Info("Generating thumbnail", zap.Uint("file_id", payload.FileID))
+	if err := p.updateFileProgress(payload.FileID, entity.ProcessingStatusProcessing, entity.ProcessingStageGeneratingThumbnail, 50, ""); err != nil {
+		logger.Error("Failed to update progress", zap.Error(err))
+	}
+
 	seekTime := duration / 2
 	if duration <= 0 {
 		seekTime = 0
@@ -78,10 +86,18 @@ func (p *VideoProcessor) ProcessTask(ctx context.Context, task *asynq.Task) erro
 	// Upload thumbnail to S3
 	thumbnailKey := fmt.Sprintf("thumbnails/%d_%s.jpg", payload.FileID, payload.FileName)
 	logger.Info("Uploading thumbnail", zap.Uint("file_id", payload.FileID), zap.String("thumbnail_key", thumbnailKey))
+	if err := p.updateFileProgress(payload.FileID, entity.ProcessingStatusProcessing, entity.ProcessingStageUploadingThumbnail, 75, ""); err != nil {
+		logger.Error("Failed to update progress", zap.Error(err))
+	}
 
 	if err := p.ffmpeg.UploadThumbnail(ctx, thumbnailKey, thumbnailData); err != nil {
 		p.handleProcessingError(payload, fmt.Errorf("failed to upload thumbnail: %w", err))
 		return err
+	}
+
+	// Finalize processing
+	if err := p.updateFileProgress(payload.FileID, entity.ProcessingStatusProcessing, entity.ProcessingStageFinalizing, 90, ""); err != nil {
+		logger.Error("Failed to update progress", zap.Error(err))
 	}
 
 	// Update database with results
@@ -99,11 +115,19 @@ func (p *VideoProcessor) ProcessTask(ctx context.Context, task *asynq.Task) erro
 	return nil
 }
 
-// updateFileStatus updates the processing status of a file
-func (p *VideoProcessor) updateFileStatus(fileID uint, status entity.ProcessingStatus, errorMsg string) error {
+// updateFileProgress updates the processing status, stage, and progress of a file
+func (p *VideoProcessor) updateFileProgress(fileID uint, status entity.ProcessingStatus, stage entity.ProcessingStage, progress int, errorMsg string) error {
 	updates := map[string]interface{}{
-		"processing_status": status,
+		"processing_status":   status,
+		"processing_stage":    stage,
+		"processing_progress": progress,
 	}
+
+	// Set processing_started_at when first entering processing status
+	if status == entity.ProcessingStatusProcessing && stage == entity.ProcessingStageValidating {
+		updates["processing_started_at"] = "NOW()"
+	}
+
 	if errorMsg != "" {
 		updates["processing_error"] = errorMsg
 	}
@@ -116,10 +140,13 @@ func (p *VideoProcessor) updateFileStatus(fileID uint, status entity.ProcessingS
 // updateFileWithResults updates file with processing results
 func (p *VideoProcessor) updateFileWithResults(fileID uint, duration float64, thumbnailKey string) error {
 	updates := map[string]interface{}{
-		"duration":          duration,
-		"thumbnail_key":     thumbnailKey,
-		"processing_status": entity.ProcessingStatusCompleted,
-		"processing_error":  "", // Clear any previous errors
+		"duration":                duration,
+		"thumbnail_key":           thumbnailKey,
+		"processing_status":       entity.ProcessingStatusCompleted,
+		"processing_stage":        entity.ProcessingStageDone,
+		"processing_progress":     100,
+		"processing_error":        "", // Clear any previous errors
+		"processing_completed_at": "NOW()",
 	}
 
 	return p.db.Model(&entity.CloudFile{}).
@@ -134,8 +161,14 @@ func (p *VideoProcessor) handleProcessingError(payload *VideoProcessingPayload, 
 		zap.Error(err),
 	)
 
-	// Update database with error
-	if dbErr := p.updateFileStatus(payload.FileID, entity.ProcessingStatusFailed, err.Error()); dbErr != nil {
+	// Update database with error and failed timestamp
+	updates := map[string]interface{}{
+		"processing_status":       entity.ProcessingStatusFailed,
+		"processing_error":        err.Error(),
+		"processing_completed_at": "NOW()",
+	}
+
+	if dbErr := p.db.Model(&entity.CloudFile{}).Where("id = ?", payload.FileID).Updates(updates).Error; dbErr != nil {
 		logger.Error("Failed to update error status",
 			zap.Uint("file_id", payload.FileID),
 			zap.Error(dbErr),
