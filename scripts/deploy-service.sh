@@ -81,6 +81,33 @@ else
   echo "    Please ensure MySQL is running or update docker-compose to include it"
 fi
 
+# Check and use existing Redis (for async queue services)
+REDIS_EXISTS=false
+REDIS_CONTAINER_NAME="redis"
+
+if docker ps --filter "name=redis" --filter "status=running" | grep -q redis; then
+  REDIS_CONTAINER=$(docker ps --filter "name=redis" --filter "status=running" --format "{{.Names}}" | head -1)
+  echo "✅ Redis is already running: $REDIS_CONTAINER"
+  REDIS_CONTAINER_NAME="$REDIS_CONTAINER"
+  REDIS_EXISTS=true
+else
+  echo "⚠️  No Redis container found"
+  # Start Redis if this is cloudRepositoryService
+  if [ "$SERVICE_NAME" == "cloudRepositoryService" ]; then
+    echo "🚀 Starting Redis container for ${SERVICE_NAME}..."
+    docker run -d \
+      --name joker_redis \
+      --network $MYSQL_NETWORK \
+      -p 6379:6379 \
+      --restart unless-stopped \
+      redis:7-alpine
+    REDIS_CONTAINER_NAME="joker_redis"
+    REDIS_EXISTS=true
+    echo "✅ Redis started successfully"
+    sleep 3
+  fi
+fi
+
 # Create .env file
 echo "📝 Creating .env file..."
 cat > "${DEPLOY_DIR}/.env" << EOF
@@ -98,6 +125,9 @@ CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-}
 MIGRATIONS_PATH=./migrations
 AWS_REGION=${AWS_REGION:-}
 CLOUD_REPOSITORY_BUCKET=${CLOUD_REPOSITORY_BUCKET:-}
+REDIS_HOST=${REDIS_CONTAINER_NAME}:6379
+REDIS_PASSWORD=
+JWT_SECRET=${JWT_SECRET:-joker-jwt-secret-key-change-this-in-production}
 EOF
 
 # Stop existing container
