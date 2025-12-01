@@ -84,7 +84,7 @@ fi
 # Check and use existing Redis (for async queue services)
 REDIS_EXISTS=false
 REDIS_CONTAINER_NAME="redis"
-REDIS_PASSWORD=""
+REDIS_PASSWORD="${REDIS_PASSWORD:-}"
 
 # For cloudRepositoryService, find any running Redis container
 if [ "$SERVICE_NAME" == "cloudRepositoryService" ]; then
@@ -102,9 +102,20 @@ if [ "$SERVICE_NAME" == "cloudRepositoryService" ]; then
     echo "✅ Found existing Redis container: $REDIS_CONTAINER"
     REDIS_CONTAINER_NAME="$REDIS_CONTAINER"
 
+    # Check if password is provided via environment variable
+    if [ -n "$REDIS_PASSWORD" ]; then
+      echo "🔑 Using Redis password from environment variable"
+      # Test with provided password
+      if docker exec $REDIS_CONTAINER redis-cli -a "$REDIS_PASSWORD" ping 2>&1 | grep -q "PONG"; then
+        echo "✅ Redis authentication successful with provided password"
+        REDIS_EXISTS=true
+      else
+        echo "❌ Redis authentication failed with provided password"
+        exit 1
+      fi
     # Test if it requires auth
-    if docker exec $REDIS_CONTAINER redis-cli ping 2>&1 | grep -q "NOAUTH"; then
-      echo "⚠️  Redis requires authentication"
+    elif docker exec $REDIS_CONTAINER redis-cli ping 2>&1 | grep -q "NOAUTH"; then
+      echo "⚠️  Redis requires authentication but no password provided"
       echo "📝 Checking for Redis password in container environment..."
 
       # Try to get password from container environment
@@ -119,17 +130,15 @@ if [ "$SERVICE_NAME" == "cloudRepositoryService" ]; then
           REDIS_EXISTS=true
         fi
       else
-        echo "⚠️  No password found in environment, trying common passwords..."
-        # Try empty password (no auth)
-        echo "    Testing with no authentication..."
-        REDIS_EXISTS=true  # Assume it will work
+        echo "❌ No password found anywhere, cannot connect to Redis"
+        exit 1
       fi
     elif docker exec $REDIS_CONTAINER redis-cli ping 2>&1 | grep -q "PONG"; then
       echo "✅ Redis is accessible without authentication"
       REDIS_EXISTS=true
     else
-      echo "⚠️  Redis ping failed, but will try to use it anyway"
-      REDIS_EXISTS=true
+      echo "❌ Redis ping failed"
+      exit 1
     fi
   else
     echo "❌ No Redis container found"
