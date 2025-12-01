@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/entity"
 	_interface "github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/interface"
@@ -56,7 +57,7 @@ func (u *ProcessingStatusUseCase) GetProcessingStatus(ctx context.Context, userI
 
 		// Add thumbnail URL if available
 		if file.ThumbnailKey != "" {
-			thumbnailURL, err := aws.GeneratePresignedDownloadURL(ctx, u.Bucket, file.ThumbnailKey)
+			thumbnailURL, err := aws.GeneratePresignedDownloadURL(ctx, u.Bucket, file.ThumbnailKey, 15*time.Minute)
 			if err == nil {
 				resp.ThumbnailURL = &thumbnailURL
 			}
