@@ -8,17 +8,20 @@ type TagDTO struct {
 
 // FileInfoDTO represents file metadata
 type FileInfoDTO struct {
-	ID           uint     `json:"id"`
-	FileName     string   `json:"file_name"`
-	FileType     string   `json:"file_type"`
-	ContentType  string   `json:"content_type"`
-	FileSize     int64    `json:"file_size"`
-	Duration     *float64 `json:"duration,omitempty"` // Video duration in seconds
-	Tags         []TagDTO `json:"tags"`
-	DownloadURL  string   `json:"download_url"`
-	ThumbnailURL string   `json:"thumbnail_url,omitempty"`
-	CreatedAt    string   `json:"created_at"`
-	UpdatedAt    string   `json:"updated_at"`
+	ID                 uint     `json:"id"`
+	FileName           string   `json:"file_name"`
+	FileType           string   `json:"file_type"`
+	ContentType        string   `json:"content_type"`
+	FileSize           int64    `json:"file_size"`
+	Duration           *float64 `json:"duration,omitempty"` // Video duration in seconds
+	Tags               []TagDTO `json:"tags"`
+	DownloadURL        string   `json:"download_url"`
+	ThumbnailURL       string   `json:"thumbnail_url,omitempty"`
+	ProcessingStatus   string   `json:"processing_status"`             // "pending" | "processing" | "completed" | "failed"
+	ProcessingProgress *int     `json:"processing_progress,omitempty"` // 0-100 (optional, when processing)
+	ProcessingStage    *string  `json:"processing_stage,omitempty"`    // (optional, when processing)
+	CreatedAt          string   `json:"created_at"`
+	UpdatedAt          string   `json:"updated_at"`
 }
 
 // ListFilesResponseDTO for listing files

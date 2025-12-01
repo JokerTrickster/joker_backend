@@ -76,18 +76,34 @@ func (u *ListCloudRepositoryUseCase) ListFiles(c context.Context, userID uint, r
 			}
 		}
 
+		// Processing status fields
+		var processingProgress *int
+		var processingStage *string
+
+		// Only include progress and stage if processing or pending
+		if file.ProcessingStatus == entity.ProcessingStatusProcessing || file.ProcessingStatus == entity.ProcessingStatusPending {
+			processingProgress = &file.ProcessingProgress
+			if file.ProcessingStage != "" {
+				stage := string(file.ProcessingStage)
+				processingStage = &stage
+			}
+		}
+
 		fileInfos[i] = response.FileInfoDTO{
-			ID:           file.ID,
-			FileName:     file.FileName,
-			FileType:     string(file.FileType),
-			ContentType:  file.ContentType,
-			FileSize:     file.FileSize,
-			Duration:     file.Duration,
-			Tags:         tagDTOs,
-			DownloadURL:  downloadURL,
-			ThumbnailURL: thumbnailURL,
-			CreatedAt:    file.CreatedAt.Format(time.RFC3339),
-			UpdatedAt:    file.UpdatedAt.Format(time.RFC3339),
+			ID:                 file.ID,
+			FileName:           file.FileName,
+			FileType:           string(file.FileType),
+			ContentType:        file.ContentType,
+			FileSize:           file.FileSize,
+			Duration:           file.Duration,
+			Tags:               tagDTOs,
+			DownloadURL:        downloadURL,
+			ThumbnailURL:       thumbnailURL,
+			ProcessingStatus:   string(file.ProcessingStatus),
+			ProcessingProgress: processingProgress,
+			ProcessingStage:    processingStage,
+			CreatedAt:          file.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:          file.UpdatedAt.Format(time.RFC3339),
 		}
 	}
 

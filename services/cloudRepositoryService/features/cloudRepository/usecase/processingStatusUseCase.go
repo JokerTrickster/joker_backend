@@ -51,6 +51,15 @@ func (u *ProcessingStatusUseCase) GetProcessingStatus(ctx context.Context, userI
 		resp.Stage = &stage
 	}
 
+	// Calculate estimated completion time for processing files
+	if file.ProcessingStatus == entity.ProcessingStatusProcessing && file.ProcessingStartedAt != nil {
+		estimatedTime := u.calculateEstimatedCompletionTime(&file)
+		if estimatedTime != nil {
+			timeStr := estimatedTime.Format(time.RFC3339)
+			resp.EstimatedCompletionTime = &timeStr
+		}
+	}
+
 	// Add timestamps based on status
 	if file.ProcessingStatus == entity.ProcessingStatusCompleted && file.ProcessingCompletedAt != nil {
 		resp.CompletedAt = file.ProcessingCompletedAt
@@ -134,4 +143,30 @@ func (u *ProcessingStatusUseCase) GetBatchProcessingStatus(ctx context.Context, 
 	return &response.BatchProcessingStatusResponse{
 		Results: results,
 	}, nil
+}
+
+// calculateEstimatedCompletionTime estimates when processing will complete
+// based on file size, current progress, and elapsed time
+func (u *ProcessingStatusUseCase) calculateEstimatedCompletionTime(file *entity.CloudFile) *time.Time {
+	// Can't estimate if no start time or no progress
+	if file.ProcessingStartedAt == nil || file.ProcessingProgress <= 0 {
+		return nil
+	}
+
+	// Calculate elapsed time
+	elapsed := time.Since(*file.ProcessingStartedAt)
+
+	// Calculate average time per percent
+	timePerPercent := elapsed / time.Duration(file.ProcessingProgress)
+
+	// Calculate remaining time
+	remainingPercent := 100 - file.ProcessingProgress
+	remainingTime := timePerPercent * time.Duration(remainingPercent)
+
+	// Add buffer (20%) for variability in processing stages
+	remainingTime = time.Duration(float64(remainingTime) * 1.2)
+
+	// Estimated completion time
+	estimatedTime := time.Now().Add(remainingTime)
+	return &estimatedTime
 }
