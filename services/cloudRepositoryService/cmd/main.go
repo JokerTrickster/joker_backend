@@ -18,10 +18,14 @@ import (
 	_ "github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/docs"
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/handler"
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/entity"
+	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/pkg/queue"
+	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/pkg/websocket"
 	"github.com/JokerTrickster/joker_backend/shared"
+	"github.com/JokerTrickster/joker_backend/shared/aws"
 	"github.com/JokerTrickster/joker_backend/shared/db/mysql"
 	"github.com/JokerTrickster/joker_backend/shared/jwt"
 	"github.com/JokerTrickster/joker_backend/shared/logger"
+	"github.com/hibiken/asynq"
 	"github.com/labstack/echo/v4"
 	echoSwagger "github.com/swaggo/echo-swagger"
 	"go.uber.org/zap"
@@ -63,6 +67,41 @@ func main() {
 	}
 	logger.Info("Database migration completed successfully")
 
+	// Initialize Redis queue
+	logger.Info("Initializing async queue...")
+	queueConfig := queue.NewConfig()
+	if err := queue.TestConnection(queueConfig); err != nil {
+		logger.Fatal("Failed to connect to Redis", zap.Error(err))
+	}
+	queueClient := queue.NewClient(queueConfig)
+	defer queueClient.Close()
+	logger.Info("Async queue initialized successfully")
+
+	// Initialize WebSocket hub
+	logger.Info("Initializing WebSocket hub...")
+	wsHub := websocket.NewHub()
+	go wsHub.Run()
+	wsHandler := websocket.NewHandler(wsHub)
+	wsHandler.RegisterRoutes(e)
+	logger.Info("WebSocket hub initialized successfully")
+
+	// Start async worker in background
+	logger.Info("Starting async worker...")
+	queueServer := queue.NewServer(queueConfig)
+	s3Client := aws.S3Client
+	videoProcessor := queue.NewVideoProcessor(database, s3Client, bucket, wsHub)
+
+	mux := asynq.NewServeMux()
+	mux.HandleFunc(queue.TypeVideoProcessing, videoProcessor.ProcessTask)
+
+	go func() {
+		if err := queueServer.Run(mux); err != nil {
+			logger.Fatal("Failed to start async worker", zap.Error(err))
+		}
+	}()
+	defer queueServer.Shutdown()
+	logger.Info("Async worker started successfully")
+
 	// Register routes
 	api := e.Group("/api/v1")
 
@@ -85,7 +124,7 @@ func main() {
 		})
 	}
 
-	handler.RegisterRoutes(api, database, bucket)
+	handler.RegisterRoutes(api, database, bucket, queueClient)
 
 	// Swagger
 	e.GET("/swagger/*", echoSwagger.WrapHandler)

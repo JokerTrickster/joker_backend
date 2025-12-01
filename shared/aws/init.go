@@ -15,6 +15,7 @@ import (
 var AwsClientSsm *ssm.Client
 var awsClientSes *sesv2.Client
 var awsClientS3 *s3.Client
+var S3Client *s3.Client // Exported for external use
 var awsClientS3Uploader *manager.Uploader
 var awsClientS3Downloader *manager.Downloader
 var awsS3Signer *s3.PresignClient
@@ -45,6 +46,7 @@ func InitAws() error {
 	AwsClientSsm = ssm.NewFromConfig(awsConfig)
 	awsClientSes = sesv2.NewFromConfig(awsConfig)
 	awsClientS3 = s3.NewFromConfig(awsConfig)
+	S3Client = awsClientS3 // Set exported client
 	awsClientS3Uploader = manager.NewUploader(awsClientS3)
 	awsClientS3Downloader = manager.NewDownloader(awsClientS3)
 	awsClientSes = sesv2.NewFromConfig(awsConfig)

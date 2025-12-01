@@ -23,6 +23,23 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis for async queue
+  redis:
+    image: redis:7-alpine
+    container_name: joker_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - joker_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   # Auth Service (Port 8080)
   auth-service:
     build:
@@ -76,6 +93,39 @@ services:
       - joker_network
     restart: unless-stopped
 
+  # Cloud Repository Service (Port 18080)
+  cloud-repository-service:
+    build:
+      context: ./services/cloudRepositoryService
+      dockerfile: Dockerfile
+    container_name: joker_cloud_repository_service
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: ${MYSQL_USER:-joker_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-joker_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-joker_db}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PORT: 18080
+      ENV: ${ENV:-development}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-*}
+      IS_LOCAL: "true"
+      AWS_REGION: ${AWS_REGION:-ap-northeast-2}
+      CLOUD_REPOSITORY_BUCKET: ${CLOUD_REPOSITORY_BUCKET:-joker-cloud-repository-dev}
+      JWT_SECRET: ${JWT_SECRET:-joker-jwt-secret-key}
+      REDIS_HOST: redis:6379
+      REDIS_PASSWORD: ""
+    ports:
+      - "18080:18080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - joker_network
+    restart: unless-stopped
+
   # Payment Service (Port 6002) - Placeholder
   # Uncomment when ready to use
   # payment-service:
@@ -102,6 +152,7 @@ services:
 
 volumes:
   mysql_data:
+  redis_data:
 
 networks:
   joker_network:

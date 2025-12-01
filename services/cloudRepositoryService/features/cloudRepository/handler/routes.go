@@ -5,12 +5,13 @@ import (
 
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/repository"
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/usecase"
+	"github.com/hibiken/asynq"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 )
 
 // RegisterRoutes registers all cloud repository routes
-func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string) {
+func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string, queueClient *asynq.Client) {
 	// Repositories
 	uploadRepo := repository.NewUploadCloudRepositoryRepository(db, bucket)
 	// batchUploadRepo := repository.NewBatchUploadCloudRepositoryRepository(db, bucket) // Unused as usecase reuses uploadUC
@@ -40,5 +41,6 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string) {
 	NewUserStatsCloudRepositoryHandler(e, userStatsUC)
 	NewActivityHistoryCloudRepositoryHandler(e, activityHistoryUC)
 	NewFavoriteHandler(e, favoriteUC)
+	NewCompleteUploadHandler(e, db, queueClient, bucket)
 
 }
