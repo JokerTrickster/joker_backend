@@ -126,6 +126,9 @@ func main() {
 
 	handler.RegisterRoutes(api, database, bucket, queueClient)
 
+	// WebSocket endpoint
+	e.GET("/ws/", wsHandler.HandleWebSocket)
+
 	// Swagger
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
