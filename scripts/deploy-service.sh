@@ -83,28 +83,50 @@ fi
 
 # Check and use existing Redis (for async queue services)
 REDIS_EXISTS=false
-REDIS_CONTAINER_NAME="redis"
+REDIS_CONTAINER_NAME="joker_redis"
 
-if docker ps --filter "name=redis" --filter "status=running" | grep -q redis; then
-  REDIS_CONTAINER=$(docker ps --filter "name=redis" --filter "status=running" --format "{{.Names}}" | head -1)
-  echo "✅ Redis is already running: $REDIS_CONTAINER"
-  REDIS_CONTAINER_NAME="$REDIS_CONTAINER"
-  REDIS_EXISTS=true
-else
-  echo "⚠️  No Redis container found"
-  # Start Redis if this is cloudRepositoryService
-  if [ "$SERVICE_NAME" == "cloudRepositoryService" ]; then
+# For cloudRepositoryService, ensure Redis is available
+if [ "$SERVICE_NAME" == "cloudRepositoryService" ]; then
+  # Check if joker_redis exists
+  if docker ps -a --filter "name=joker_redis" --format "{{.Names}}" | grep -q "joker_redis"; then
+    echo "🔍 Found existing joker_redis container"
+
+    # Test if it requires auth
+    if docker exec joker_redis redis-cli ping 2>&1 | grep -q "NOAUTH"; then
+      echo "⚠️  Existing Redis requires authentication, removing it..."
+      docker stop joker_redis 2>/dev/null || true
+      docker rm joker_redis 2>/dev/null || true
+    elif docker exec joker_redis redis-cli ping 2>&1 | grep -q "PONG"; then
+      echo "✅ Redis is healthy and accessible"
+      REDIS_EXISTS=true
+    else
+      echo "⚠️  Redis is not responding, restarting..."
+      docker stop joker_redis 2>/dev/null || true
+      docker rm joker_redis 2>/dev/null || true
+    fi
+  fi
+
+  # Start Redis if not exists or was removed
+  if [ "$REDIS_EXISTS" == "false" ]; then
     echo "🚀 Starting Redis container for ${SERVICE_NAME}..."
     docker run -d \
       --name joker_redis \
       --network $MYSQL_NETWORK \
       -p 6379:6379 \
       --restart unless-stopped \
-      redis:7-alpine
+      redis:7-alpine redis-server --appendonly yes
     REDIS_CONTAINER_NAME="joker_redis"
-    REDIS_EXISTS=true
     echo "✅ Redis started successfully"
-    sleep 3
+    sleep 5
+
+    # Verify Redis is working
+    if docker exec joker_redis redis-cli ping | grep -q "PONG"; then
+      echo "✅ Redis verified and ready"
+      REDIS_EXISTS=true
+    else
+      echo "❌ Redis failed to start properly"
+      exit 1
+    fi
   fi
 fi
 
