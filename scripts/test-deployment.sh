@@ -67,7 +67,8 @@ test_endpoint "Swagger Documentation" "${BASE_URL}/swagger/index.html" 200
 
 # Test API endpoints (should return 401 without auth)
 test_endpoint "Files List (No Auth)" "${BASE_URL}/api/v1/files" 401
-test_endpoint "Upload URL (No Auth)" "${BASE_URL}/api/v1/files/upload" 401
+# Test user stats endpoint instead (GET method, requires auth)
+test_endpoint "User Stats (No Auth)" "${BASE_URL}/api/v1/files/stats" 401
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
