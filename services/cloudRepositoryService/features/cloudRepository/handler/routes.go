@@ -23,7 +23,7 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string, queueClient *asyn
 	favoriteRepo := repository.NewFavoriteRepository(db)
 
 	// UseCases - using 30s timeout to match Echo server timeout and provide buffer for DB operations
-	uploadUC := usecase.NewUploadCloudRepositoryUseCase(uploadRepo, userStatsRepo, db, 30*time.Second)
+	uploadUC := usecase.NewUploadCloudRepositoryUseCase(uploadRepo, userStatsRepo, db, queueClient, bucket, 30*time.Second)
 	batchUploadUC := usecase.NewBatchUploadCloudRepositoryUseCase(uploadUC, 30*time.Second) // Reuses uploadUC logic
 	downloadUC := usecase.NewDownloadCloudRepositoryUseCase(downloadRepo, userStatsRepo, 30*time.Second)
 	listUC := usecase.NewListCloudRepositoryUseCase(listRepo, 30*time.Second)

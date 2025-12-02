@@ -11,7 +11,11 @@ import (
 	_interface "github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/request"
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/response"
+	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/pkg/queue"
+	"github.com/JokerTrickster/joker_backend/shared/logger"
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -43,14 +47,18 @@ type UploadCloudRepositoryUseCase struct {
 	Repo           _interface.IUploadCloudRepositoryRepository
 	StatsRepo      _interface.IUserStatsCloudRepositoryRepository
 	DB             *gorm.DB
+	QueueClient    *asynq.Client
+	Bucket         string
 	ContextTimeout time.Duration
 }
 
-func NewUploadCloudRepositoryUseCase(repo _interface.IUploadCloudRepositoryRepository, statsRepo _interface.IUserStatsCloudRepositoryRepository, db *gorm.DB, timeout time.Duration) _interface.IUploadCloudRepositoryUseCase {
+func NewUploadCloudRepositoryUseCase(repo _interface.IUploadCloudRepositoryRepository, statsRepo _interface.IUserStatsCloudRepositoryRepository, db *gorm.DB, queueClient *asynq.Client, bucket string, timeout time.Duration) _interface.IUploadCloudRepositoryUseCase {
 	return &UploadCloudRepositoryUseCase{
 		Repo:           repo,
 		StatsRepo:      statsRepo,
 		DB:             db,
+		QueueClient:    queueClient,
+		Bucket:         bucket,
 		ContextTimeout: timeout,
 	}
 }
@@ -149,6 +157,35 @@ func (u *UploadCloudRepositoryUseCase) RequestUploadURL(c context.Context, userI
 		if err != nil {
 			// Log error but don't fail the entire request
 			thumbnailURL = ""
+		}
+	}
+
+	// Automatically enqueue video processing for videos
+	if fileType == entity.FileTypeVideo && u.QueueClient != nil {
+		logger.Info("Auto-enqueueing video processing task",
+			zap.Uint("file_id", file.ID),
+			zap.String("s3_key", s3Key),
+		)
+
+		payload := &queue.VideoProcessingPayload{
+			FileID:   file.ID,
+			S3Key:    s3Key,
+			UserID:   userID,
+			Bucket:   u.Bucket,
+			FileName: req.FileName,
+		}
+
+		// Enqueue with a delay to allow S3 upload to complete
+		if err := queue.EnqueueVideoProcessing(u.QueueClient, payload); err != nil {
+			logger.Error("Failed to auto-enqueue video processing task",
+				zap.Uint("file_id", file.ID),
+				zap.Error(err),
+			)
+			// Don't fail the request if queueing fails
+		} else {
+			logger.Info("Video processing task auto-enqueued successfully",
+				zap.Uint("file_id", file.ID),
+			)
 		}
 	}
 
