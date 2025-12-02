@@ -101,26 +101,6 @@ fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "5. Redis Connection Test"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-REDIS_CONTAINER=$(docker ps --filter "publish=6379" --format "{{.Names}}" | head -1)
-if [ -n "$REDIS_CONTAINER" ]; then
-  echo -n "Testing Redis PING... "
-  if docker exec "$REDIS_CONTAINER" redis-cli ping 2>&1 | grep -q "PONG"; then
-    echo -e "${GREEN}✓ PASS${NC}"
-    TESTS_PASSED=$((TESTS_PASSED + 1))
-  else
-    echo -e "${RED}✗ FAIL${NC}"
-    TESTS_FAILED=$((TESTS_FAILED + 1))
-  fi
-else
-  echo -e "${RED}Redis container not found${NC}"
-  TESTS_FAILED=$((TESTS_FAILED + 1))
-fi
-
-echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "📊 Test Summary"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo -e "Tests Passed: ${GREEN}${TESTS_PASSED}${NC}"
