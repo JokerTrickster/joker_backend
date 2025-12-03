@@ -39,3 +39,9 @@ type IProcessingStatusUseCase interface {
 	GetProcessingStatus(ctx context.Context, userID uint, fileID uint) (*response.ProcessingStatusResponse, error)
 	GetBatchProcessingStatus(ctx context.Context, userID uint, fileIDs []uint) (*response.BatchProcessingStatusResponse, error)
 }
+
+type ITagUseCase interface {
+	UpdateFileTags(ctx context.Context, userID uint, fileID uint, req *request.UpdateFileTagsRequestDTO) (*response.UpdateFileTagsResponseDTO, error)
+	AddTagToFile(ctx context.Context, userID uint, fileID uint, req *request.AddFileTagRequestDTO) (*response.AddFileTagResponseDTO, error)
+	RemoveTagFromFile(ctx context.Context, userID uint, fileID uint, tagName string) error
+}

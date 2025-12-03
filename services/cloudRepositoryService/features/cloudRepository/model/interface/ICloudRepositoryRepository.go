@@ -47,3 +47,11 @@ type IActivityHistoryCloudRepositoryRepository interface {
 	GetMonthlyActivity(ctx context.Context, userID uint, year int, month int) ([]entity.ActivityLog, error)
 	GetMonthlyUsedTags(ctx context.Context, userID uint, year int, month int) (map[string][]string, error)
 }
+
+type ITagRepository interface {
+	GetFileByID(ctx context.Context, id uint, userID uint) (*entity.CloudFile, error)
+	UpdateFileTags(ctx context.Context, fileID uint, userID uint, tags []entity.Tag) error
+	AddTagToFile(ctx context.Context, fileID uint, userID uint, tag entity.Tag) error
+	RemoveTagFromFile(ctx context.Context, fileID uint, userID uint, tagName string) error
+	FindOrCreateTag(ctx context.Context, userID uint, tagName string) (*entity.Tag, error)
+}

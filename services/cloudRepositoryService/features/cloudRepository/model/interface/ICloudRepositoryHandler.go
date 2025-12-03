@@ -23,3 +23,9 @@ type IListCloudRepositoryHandler interface {
 type IDeleteCloudRepositoryHandler interface {
 	DeleteFile(c echo.Context) error
 }
+
+type ITagHandler interface {
+	UpdateFileTags(c echo.Context) error
+	AddTagToFile(c echo.Context) error
+	RemoveTagFromFile(c echo.Context) error
+}
