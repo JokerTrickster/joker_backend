@@ -125,7 +125,7 @@ func (p *VideoProcessor) updateFileProgress(fileID uint, status entity.Processin
 
 	// Set processing_started_at when first entering processing status
 	if status == entity.ProcessingStatusProcessing && stage == entity.ProcessingStageValidating {
-		updates["processing_started_at"] = "NOW()"
+		updates["processing_started_at"] = time.Now()
 	}
 
 	if errorMsg != "" {
@@ -146,7 +146,7 @@ func (p *VideoProcessor) updateFileWithResults(fileID uint, duration float64, th
 		"processing_stage":        entity.ProcessingStageDone,
 		"processing_progress":     100,
 		"processing_error":        "", // Clear any previous errors
-		"processing_completed_at": "NOW()",
+		"processing_completed_at": time.Now(),
 	}
 
 	return p.db.Model(&entity.CloudFile{}).
@@ -165,7 +165,7 @@ func (p *VideoProcessor) handleProcessingError(payload *VideoProcessingPayload, 
 	updates := map[string]interface{}{
 		"processing_status":       entity.ProcessingStatusFailed,
 		"processing_error":        err.Error(),
-		"processing_completed_at": "NOW()",
+		"processing_completed_at": time.Now(),
 	}
 
 	if dbErr := p.db.Model(&entity.CloudFile{}).Where("id = ?", payload.FileID).Updates(updates).Error; dbErr != nil {
