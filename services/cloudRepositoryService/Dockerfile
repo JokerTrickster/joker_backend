@@ -10,13 +10,13 @@ WORKDIR /app/services/cloudRepositoryService
 COPY shared /app/shared
 
 # Copy go mod files
-COPY services/cloudRepositoryService/go.mod services/cloudRepositoryService/go.sum ./
+COPY go.mod go.sum ./
 
 # Download dependencies
 RUN go mod download
 
 # Copy source code
-COPY services/cloudRepositoryService/ .
+COPY . .
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/main.go
