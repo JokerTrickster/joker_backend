@@ -45,3 +45,10 @@ type ITagUseCase interface {
 	AddTagToFile(ctx context.Context, userID uint, fileID uint, req *request.AddFileTagRequestDTO) (*response.AddFileTagResponseDTO, error)
 	RemoveTagFromFile(ctx context.Context, userID uint, fileID uint, tagName string) error
 }
+
+type IMultipartUploadUseCase interface {
+	InitiateMultipartUpload(ctx context.Context, userID uint, req *request.InitiateMultipartUploadRequestDTO) (*response.InitiateMultipartUploadResponseDTO, error)
+	GeneratePresignedURLs(ctx context.Context, userID uint, req *request.GeneratePresignedURLsRequestDTO) (*response.GeneratePresignedURLsResponseDTO, error)
+	CompleteMultipartUpload(ctx context.Context, userID uint, req *request.CompleteMultipartUploadRequestDTO) (*response.CompleteMultipartUploadResponseDTO, error)
+	AbortMultipartUpload(ctx context.Context, userID uint, req *request.AbortMultipartUploadRequestDTO) (*response.AbortMultipartUploadResponseDTO, error)
+}

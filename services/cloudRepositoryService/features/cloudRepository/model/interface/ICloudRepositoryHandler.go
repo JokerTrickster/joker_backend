@@ -29,3 +29,10 @@ type ITagHandler interface {
 	AddTagToFile(c echo.Context) error
 	RemoveTagFromFile(c echo.Context) error
 }
+
+type IMultipartUploadHandler interface {
+	InitiateMultipartUpload(c echo.Context) error
+	GeneratePresignedURLs(c echo.Context) error
+	CompleteMultipartUpload(c echo.Context) error
+	AbortMultipartUpload(c echo.Context) error
+}

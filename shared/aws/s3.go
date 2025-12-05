@@ -12,6 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/disintegration/imaging"
 )
 
@@ -192,4 +193,98 @@ func DeleteObject(ctx context.Context, bucket, key string) error {
 	}
 
 	return nil
+}
+
+// CreateMultipartUpload initiates a multipart upload
+func CreateMultipartUpload(ctx context.Context, bucket, key, contentType string) (string, error) {
+	if awsClientS3 == nil {
+		return "", fmt.Errorf("AWS S3 client not initialized - check AWS configuration or IS_LOCAL setting")
+	}
+
+	output, err := awsClientS3.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		ContentType: aws.String(contentType),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to create multipart upload: %w", err)
+	}
+
+	return *output.UploadId, nil
+}
+
+// GeneratePresignedUploadPartURL generates a presigned URL for uploading a part
+func GeneratePresignedUploadPartURL(ctx context.Context, bucket, key, uploadID string, partNumber int, expiration time.Duration) (string, error) {
+	if awsClientS3 == nil {
+		return "", fmt.Errorf("AWS S3 client not initialized - check AWS configuration or IS_LOCAL setting")
+	}
+	presignClient := s3.NewPresignClient(awsClientS3)
+
+	presignParams := &s3.UploadPartInput{
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(key),
+		PartNumber: aws.Int32(int32(partNumber)),
+		UploadId:   aws.String(uploadID),
+	}
+
+	presignResult, err := presignClient.PresignUploadPart(ctx, presignParams, s3.WithPresignExpires(expiration))
+	if err != nil {
+		return "", fmt.Errorf("failed to generate presigned upload part URL: %w", err)
+	}
+
+	return html.UnescapeString(presignResult.URL), nil
+}
+
+// CompleteMultipartUpload completes a multipart upload
+func CompleteMultipartUpload(ctx context.Context, bucket, key, uploadID string, parts []CompletedPart) error {
+	if awsClientS3 == nil {
+		return fmt.Errorf("AWS S3 client not initialized - check AWS configuration or IS_LOCAL setting")
+	}
+
+	// Convert to AWS SDK types
+	var completedParts []types.CompletedPart
+	for _, part := range parts {
+		completedParts = append(completedParts, types.CompletedPart{
+			ETag:       aws.String(part.ETag),
+			PartNumber: aws.Int32(int32(part.PartNumber)),
+		})
+	}
+
+	_, err := awsClientS3.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(key),
+		UploadId: aws.String(uploadID),
+		MultipartUpload: &types.CompletedMultipartUpload{
+			Parts: completedParts,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to complete multipart upload: %w", err)
+	}
+
+	return nil
+}
+
+// AbortMultipartUpload aborts a multipart upload
+func AbortMultipartUpload(ctx context.Context, bucket, key, uploadID string) error {
+	if awsClientS3 == nil {
+		return fmt.Errorf("AWS S3 client not initialized - check AWS configuration or IS_LOCAL setting")
+	}
+
+	_, err := awsClientS3.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(key),
+		UploadId: aws.String(uploadID),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to abort multipart upload: %w", err)
+	}
+
+	return nil
+}
+
+// CompletedPart represents a completed multipart upload part
+type CompletedPart struct {
+	PartNumber int
+	ETag       string
 }

@@ -55,3 +55,18 @@ type ITagRepository interface {
 	RemoveTagFromFile(ctx context.Context, fileID uint, userID uint, tagName string) error
 	FindOrCreateTag(ctx context.Context, userID uint, tagName string) (*entity.Tag, error)
 }
+
+type IMultipartUploadRepository interface {
+	CreateMultipartUpload(ctx context.Context, bucket, key, contentType string) (string, error)
+	GeneratePresignedUploadPartURL(ctx context.Context, bucket, key, uploadID string, partNumber int, expiration time.Duration) (string, error)
+	CompleteMultipartUpload(ctx context.Context, bucket, key, uploadID string, parts []CompletedPart) error
+	AbortMultipartUpload(ctx context.Context, bucket, key, uploadID string) error
+	CreateMultipartUploadRecord(ctx context.Context, upload *entity.MultipartUpload) error
+	UpdateMultipartUploadStatus(ctx context.Context, uploadID string, status entity.MultipartUploadStatus) error
+	GetMultipartUpload(ctx context.Context, uploadID string, userID uint) (*entity.MultipartUpload, error)
+}
+
+type CompletedPart struct {
+	PartNumber int
+	ETag       string
+}
