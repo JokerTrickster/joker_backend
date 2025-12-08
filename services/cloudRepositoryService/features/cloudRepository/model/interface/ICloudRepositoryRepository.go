@@ -66,6 +66,17 @@ type IMultipartUploadRepository interface {
 	GetMultipartUpload(ctx context.Context, uploadID string, userID uint) (*entity.MultipartUpload, error)
 }
 
+type IFolderRepository interface {
+	CreateFolder(ctx context.Context, folder *entity.Folder) error
+	GetFolderByID(ctx context.Context, id uint, userID uint) (*entity.Folder, error)
+	GetFoldersByUserID(ctx context.Context, userID uint) ([]entity.Folder, error)
+	UpdateFolder(ctx context.Context, folder *entity.Folder) error
+	DeleteFolder(ctx context.Context, id uint, userID uint) error
+	GetFolderFileCount(ctx context.Context, folderID uint, userID uint) (int, error)
+	GetFilesByFolderID(ctx context.Context, folderID *uint, userID uint) ([]entity.CloudFile, error)
+	MoveFilesToFolder(ctx context.Context, fileIDs []uint, folderID *uint, userID uint) (int, error)
+}
+
 type CompletedPart struct {
 	PartNumber int
 	ETag       string

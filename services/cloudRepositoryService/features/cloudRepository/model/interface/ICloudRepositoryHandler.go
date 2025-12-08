@@ -36,3 +36,13 @@ type IMultipartUploadHandler interface {
 	CompleteMultipartUpload(c echo.Context) error
 	AbortMultipartUpload(c echo.Context) error
 }
+
+type IFolderHandler interface {
+	CreateFolder(c echo.Context) error
+	GetFolders(c echo.Context) error
+	GetFolderByID(c echo.Context) error
+	UpdateFolder(c echo.Context) error
+	DeleteFolder(c echo.Context) error
+	GetFolderFiles(c echo.Context) error
+	MoveFiles(c echo.Context) error
+}

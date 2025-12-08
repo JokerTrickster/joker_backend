@@ -23,6 +23,7 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string, queueClient *asyn
 	favoriteRepo := repository.NewFavoriteRepository(db)
 	tagRepo := repository.NewTagRepository(db)
 	multipartUploadRepo := repository.NewMultipartUploadRepository(db, bucket)
+	folderRepo := repository.NewFolderRepository(db)
 
 	// UseCases - using 30s timeout to match Echo server timeout and provide buffer for DB operations
 	uploadUC := usecase.NewUploadCloudRepositoryUseCase(uploadRepo, userStatsRepo, db, queueClient, bucket, 30*time.Second)
@@ -36,6 +37,7 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string, queueClient *asyn
 	processingStatusUC := usecase.NewProcessingStatusUseCase(db, bucket)
 	tagUC := usecase.NewTagUseCase(tagRepo, userStatsRepo, 30*time.Second)
 	multipartUploadUC := usecase.NewMultipartUploadUseCase(multipartUploadRepo, userStatsRepo, db, queueClient, bucket, 30*time.Second)
+	folderUC := usecase.NewFolderUseCase(folderRepo, 30*time.Second)
 
 	// Handlers
 	NewUploadCloudRepositoryHandler(e, uploadUC)
@@ -49,6 +51,7 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string, queueClient *asyn
 	NewCompleteUploadHandler(e, db, queueClient, bucket)
 	NewTagHandler(e, tagUC)
 	NewMultipartUploadHandler(e, multipartUploadUC)
+	NewFolderHandler(e, folderUC)
 
 	// Processing Status Handler
 	processingStatusHandler := NewProcessingStatusHandler(processingStatusUC)
