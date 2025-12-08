@@ -235,10 +235,17 @@ func (h *FolderHandler) DeleteFolder(c echo.Context) error {
 	// Delete folder
 	err = h.UseCase.DeleteFolder(ctx, folderID, userID)
 	if err != nil {
-		if err.Error() == "failed to delete folder: record not found" {
+		errMsg := err.Error()
+		if errMsg == "failed to delete folder: record not found" {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "folder not found"})
 		}
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		// Check for sub-folder error (starts with "failed to delete folder: cannot delete folder with")
+		if len(errMsg) > 47 && errMsg[:47] == "failed to delete folder: cannot delete folder w" {
+			// Extract the actual error message after "failed to delete folder: "
+			actualError := errMsg[26:]
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": actualError})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": errMsg})
 	}
 
 	return c.NoContent(http.StatusNoContent)

@@ -108,6 +108,18 @@ func (r *FolderRepository) DeleteFolder(ctx context.Context, id uint, userID uin
 			return err
 		}
 
+		// Check if folder has sub-folders
+		var subFolderCount int64
+		if err := tx.Model(&entity.Folder{}).
+			Where("parent_folder_id = ? AND user_id = ? AND deleted_at IS NULL", id, userID).
+			Count(&subFolderCount).Error; err != nil {
+			return fmt.Errorf("failed to check sub-folders: %w", err)
+		}
+
+		if subFolderCount > 0 {
+			return fmt.Errorf("cannot delete folder with %d sub-folders", subFolderCount)
+		}
+
 		// Soft delete the folder
 		if err := tx.Model(&entity.Folder{}).
 			Where("id = ? AND user_id = ?", id, userID).

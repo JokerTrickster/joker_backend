@@ -14,6 +14,6 @@ type UpdateFolderRequestDTO struct {
 
 // MoveFilesToFolderRequestDTO for moving multiple files to a folder
 type MoveFilesToFolderRequestDTO struct {
-	FileIDs        []uint `json:"file_ids" validate:"required,min=1,dive,min=1"`
-	TargetFolderID *uint  `json:"target_folder_id"` // null means move to root
+	FileIDs        []uint `json:"file_ids" validate:"required,min=1,max=100,dive,min=1"` // Max 100 files per batch
+	TargetFolderID *uint  `json:"target_folder_id"`                                      // null means move to root
 }
