@@ -32,6 +32,9 @@ WORKDIR /root/
 # Copy the binary from builder
 COPY --from=builder /app/services/cloudRepositoryService/main .
 
+# Copy migrations directory
+COPY migrations ./migrations
+
 # Port is configured via environment variable
 EXPOSE 18080
 
