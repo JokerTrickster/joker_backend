@@ -13,15 +13,18 @@ import (
 
 type FolderUseCase struct {
 	FolderRepo     _interface.IFolderRepository
+	S3Repo         _interface.IListCloudRepositoryRepository
 	ContextTimeout time.Duration
 }
 
 func NewFolderUseCase(
 	folderRepo _interface.IFolderRepository,
+	s3Repo _interface.IListCloudRepositoryRepository,
 	timeout time.Duration,
 ) _interface.IFolderUseCase {
 	return &FolderUseCase{
 		FolderRepo:     folderRepo,
+		S3Repo:         s3Repo,
 		ContextTimeout: timeout,
 	}
 }
@@ -212,7 +215,7 @@ func (u *FolderUseCase) GetFolderFiles(
 	c context.Context,
 	folderID uint,
 	userID uint,
-) ([]entity.CloudFile, error) {
+) ([]response.FileInfoDTO, error) {
 	ctx, cancel := context.WithTimeout(c, u.ContextTimeout)
 	defer cancel()
 
@@ -228,7 +231,64 @@ func (u *FolderUseCase) GetFolderFiles(
 		return nil, fmt.Errorf("failed to get folder files: %w", err)
 	}
 
-	return files, nil
+	// Convert to DTO with presigned URLs
+	fileInfos := make([]response.FileInfoDTO, len(files))
+	for i, file := range files {
+		// Map tags
+		tagDTOs := make([]response.TagDTO, len(file.Tags))
+		for j, tag := range file.Tags {
+			tagDTOs[j] = response.TagDTO{
+				ID:   tag.ID,
+				Name: tag.Name,
+			}
+		}
+
+		// Generate presigned download URL
+		downloadURL, err := u.S3Repo.GeneratePresignedDownloadURL(ctx, file.S3Key, 1*time.Hour)
+		if err != nil {
+			downloadURL = ""
+		}
+
+		// Generate presigned thumbnail URL if available
+		thumbnailURL := ""
+		if file.ThumbnailKey != "" {
+			thumbnailURL, err = u.S3Repo.GeneratePresignedDownloadURL(ctx, file.ThumbnailKey, 1*time.Hour)
+			if err != nil {
+				thumbnailURL = ""
+			}
+		}
+
+		// Processing status fields
+		var processingProgress *int
+		var processingStage *string
+
+		if file.ProcessingStatus == entity.ProcessingStatusProcessing || file.ProcessingStatus == entity.ProcessingStatusPending {
+			processingProgress = &file.ProcessingProgress
+			if file.ProcessingStage != "" {
+				stage := string(file.ProcessingStage)
+				processingStage = &stage
+			}
+		}
+
+		fileInfos[i] = response.FileInfoDTO{
+			ID:                 file.ID,
+			FileName:           file.FileName,
+			FileType:           string(file.FileType),
+			ContentType:        file.ContentType,
+			FileSize:           file.FileSize,
+			Duration:           file.Duration,
+			Tags:               tagDTOs,
+			DownloadURL:        downloadURL,
+			ThumbnailURL:       thumbnailURL,
+			ProcessingStatus:   string(file.ProcessingStatus),
+			ProcessingProgress: processingProgress,
+			ProcessingStage:    processingStage,
+			CreatedAt:          file.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:          file.UpdatedAt.Format(time.RFC3339),
+		}
+	}
+
+	return fileInfos, nil
 }
 
 // MoveFiles moves multiple files to a target folder

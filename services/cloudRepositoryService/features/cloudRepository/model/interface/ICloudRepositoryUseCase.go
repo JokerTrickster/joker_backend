@@ -3,7 +3,6 @@ package _interface
 import (
 	"context"
 
-	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/entity"
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/request"
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/response"
 )
@@ -60,6 +59,6 @@ type IFolderUseCase interface {
 	GetFolderByID(ctx context.Context, folderID uint, userID uint) (*response.FolderResponseDTO, error)
 	UpdateFolder(ctx context.Context, folderID uint, userID uint, req *request.UpdateFolderRequestDTO) (*response.FolderResponseDTO, error)
 	DeleteFolder(ctx context.Context, folderID uint, userID uint) error
-	GetFolderFiles(ctx context.Context, folderID uint, userID uint) ([]entity.CloudFile, error)
+	GetFolderFiles(ctx context.Context, folderID uint, userID uint) ([]response.FileInfoDTO, error)
 	MoveFiles(ctx context.Context, userID uint, req *request.MoveFilesToFolderRequestDTO) (*response.MoveFilesResponseDTO, error)
 }

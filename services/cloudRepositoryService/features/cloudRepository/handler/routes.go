@@ -37,7 +37,7 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string, queueClient *asyn
 	processingStatusUC := usecase.NewProcessingStatusUseCase(db, bucket)
 	tagUC := usecase.NewTagUseCase(tagRepo, userStatsRepo, 30*time.Second)
 	multipartUploadUC := usecase.NewMultipartUploadUseCase(multipartUploadRepo, userStatsRepo, db, queueClient, bucket, 30*time.Second)
-	folderUC := usecase.NewFolderUseCase(folderRepo, 30*time.Second)
+	folderUC := usecase.NewFolderUseCase(folderRepo, listRepo, 30*time.Second)
 
 	// Handlers
 	NewUploadCloudRepositoryHandler(e, uploadUC)
