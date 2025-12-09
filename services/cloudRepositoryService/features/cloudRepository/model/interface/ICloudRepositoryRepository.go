@@ -77,6 +77,23 @@ type IFolderRepository interface {
 	MoveFilesToFolder(ctx context.Context, fileIDs []uint, folderID *uint, userID uint) (int, error)
 }
 
+type IFolderShareRepository interface {
+	CreateFolderShare(ctx context.Context, share *entity.FolderShare) error
+	GetFolderSharesByFolderID(ctx context.Context, folderID uint) ([]entity.FolderShare, error)
+	GetSharedFoldersByUserID(ctx context.Context, userID uint) ([]entity.FolderShare, error)
+	DeleteFolderShare(ctx context.Context, folderID uint, sharedWithID uint, ownerID uint) error
+	HasFolderAccess(ctx context.Context, userID uint, folderID uint) (bool, error)
+	GetUsersByEmails(ctx context.Context, emails []string) ([]entity.User, error)
+}
+
+type IFileShareRepository interface {
+	CreateFileShare(ctx context.Context, share *entity.FileShare) error
+	GetFileSharesByFileID(ctx context.Context, fileID uint) ([]entity.FileShare, error)
+	GetSharedFilesByUserID(ctx context.Context, userID uint) ([]entity.FileShare, error)
+	DeleteFileShare(ctx context.Context, fileID uint, sharedWithID uint, ownerID uint) error
+	HasFileAccess(ctx context.Context, userID uint, fileID uint) (bool, error)
+}
+
 type CompletedPart struct {
 	PartNumber int
 	ETag       string

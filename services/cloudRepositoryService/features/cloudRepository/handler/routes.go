@@ -24,6 +24,8 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string, queueClient *asyn
 	tagRepo := repository.NewTagRepository(db)
 	multipartUploadRepo := repository.NewMultipartUploadRepository(db, bucket)
 	folderRepo := repository.NewFolderRepository(db)
+	folderShareRepo := repository.NewFolderShareRepository(db)
+	fileShareRepo := repository.NewFileShareRepository(db)
 
 	// UseCases - using 30s timeout to match Echo server timeout and provide buffer for DB operations
 	uploadUC := usecase.NewUploadCloudRepositoryUseCase(uploadRepo, userStatsRepo, db, queueClient, bucket, 30*time.Second)
@@ -38,6 +40,8 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string, queueClient *asyn
 	tagUC := usecase.NewTagUseCase(tagRepo, userStatsRepo, 30*time.Second)
 	multipartUploadUC := usecase.NewMultipartUploadUseCase(multipartUploadRepo, userStatsRepo, db, queueClient, bucket, 30*time.Second)
 	folderUC := usecase.NewFolderUseCase(folderRepo, listRepo, 30*time.Second)
+	folderShareUC := usecase.NewFolderShareUseCase(folderRepo, folderShareRepo, 30*time.Second)
+	fileShareUC := usecase.NewFileShareUseCase(fileShareRepo, folderShareRepo, listRepo, 30*time.Second)
 
 	// Handlers
 	NewUploadCloudRepositoryHandler(e, uploadUC)
@@ -56,5 +60,8 @@ func RegisterRoutes(e *echo.Group, db *gorm.DB, bucket string, queueClient *asyn
 	// Processing Status Handler
 	processingStatusHandler := NewProcessingStatusHandler(processingStatusUC)
 	processingStatusHandler.RegisterRoutes(e)
+
+	// Share Handler
+	NewShareHandler(e, folderShareUC, fileShareUC)
 
 }

@@ -62,7 +62,15 @@ func main() {
 
 	// Auto-migrate database
 	logger.Info("Starting database migration...")
-	if err := database.AutoMigrate(&entity.CloudFile{}, &entity.Tag{}, &entity.ActivityLog{}); err != nil {
+	if err := database.AutoMigrate(
+		&entity.CloudFile{},
+		&entity.Tag{},
+		&entity.ActivityLog{},
+		&entity.Folder{},
+		&entity.FolderShare{},
+		&entity.FileShare{},
+		&entity.User{},
+	); err != nil {
 		logger.Fatal("Failed to migrate database", zap.Error(err))
 	}
 	logger.Info("Database migration completed successfully")

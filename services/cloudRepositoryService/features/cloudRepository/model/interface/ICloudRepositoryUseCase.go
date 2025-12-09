@@ -62,3 +62,17 @@ type IFolderUseCase interface {
 	GetFolderFiles(ctx context.Context, folderID uint, userID uint) ([]response.FileInfoDTO, error)
 	MoveFiles(ctx context.Context, userID uint, req *request.MoveFilesToFolderRequestDTO) (*response.MoveFilesResponseDTO, error)
 }
+
+type IFolderShareUseCase interface {
+	ShareFolder(ctx context.Context, folderID uint, ownerID uint, req *request.ShareFolderRequestDTO) (*response.ShareFolderResponseDTO, error)
+	GetFolderShares(ctx context.Context, folderID uint, ownerID uint) (*response.FolderShareListResponseDTO, error)
+	RevokeFolderShare(ctx context.Context, folderID uint, sharedWithID uint, ownerID uint) (*response.RevokeShareResponseDTO, error)
+	GetSharedWithMeFolders(ctx context.Context, userID uint) (*response.SharedWithMeFoldersResponseDTO, error)
+}
+
+type IFileShareUseCase interface {
+	ShareFile(ctx context.Context, fileID uint, ownerID uint, req *request.ShareFileRequestDTO) (*response.ShareFileResponseDTO, error)
+	GetFileShares(ctx context.Context, fileID uint, ownerID uint) (*response.FileShareListResponseDTO, error)
+	RevokeFileShare(ctx context.Context, fileID uint, sharedWithID uint, ownerID uint) (*response.RevokeShareResponseDTO, error)
+	GetSharedWithMeFiles(ctx context.Context, userID uint) (*response.SharedWithMeFilesResponseDTO, error)
+}
