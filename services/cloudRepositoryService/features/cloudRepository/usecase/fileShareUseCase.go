@@ -195,8 +195,8 @@ func (u *FileShareUseCase) GetSharedWithMeFiles(
 			}
 
 			var thumbnailURL *string
-			if share.File.ThumbnailKey != nil && *share.File.ThumbnailKey != "" {
-				url, err := u.S3Repo.GeneratePresignedDownloadURL(ctx, *share.File.ThumbnailKey, 1*time.Hour)
+			if share.File.ThumbnailKey != "" {
+				url, err := u.S3Repo.GeneratePresignedDownloadURL(ctx, share.File.ThumbnailKey, 1*time.Hour)
 				if err == nil {
 					thumbnailURL = &url
 				}
@@ -212,7 +212,7 @@ func (u *FileShareUseCase) GetSharedWithMeFiles(
 			files = append(files, response.SharedFileDTO{
 				ID:           share.File.ID,
 				FileName:     share.File.FileName,
-				FileType:     share.File.FileType,
+				FileType:     string(share.File.FileType),
 				ContentType:  share.File.ContentType,
 				FileSize:     share.File.FileSize,
 				Owner:        ownerInfo,
