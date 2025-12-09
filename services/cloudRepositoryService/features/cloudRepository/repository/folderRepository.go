@@ -42,11 +42,22 @@ func (r *FolderRepository) CreateFolder(ctx context.Context, folder *entity.Fold
 	return nil
 }
 
-// GetFolderByID retrieves a folder by ID
+// GetFolderByID retrieves a folder by ID (owner only)
 func (r *FolderRepository) GetFolderByID(ctx context.Context, id uint, userID uint) (*entity.Folder, error) {
 	var folder entity.Folder
 	if err := r.db.WithContext(ctx).
 		Where("id = ? AND user_id = ? AND deleted_at IS NULL", id, userID).
+		First(&folder).Error; err != nil {
+		return nil, err
+	}
+	return &folder, nil
+}
+
+// GetFolderByIDWithoutUserCheck retrieves a folder by ID without user check (use after permission check)
+func (r *FolderRepository) GetFolderByIDWithoutUserCheck(ctx context.Context, id uint) (*entity.Folder, error) {
+	var folder entity.Folder
+	if err := r.db.WithContext(ctx).
+		Where("id = ? AND deleted_at IS NULL", id).
 		First(&folder).Error; err != nil {
 		return nil, err
 	}

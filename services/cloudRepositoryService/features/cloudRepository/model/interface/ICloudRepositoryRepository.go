@@ -69,6 +69,7 @@ type IMultipartUploadRepository interface {
 type IFolderRepository interface {
 	CreateFolder(ctx context.Context, folder *entity.Folder) error
 	GetFolderByID(ctx context.Context, id uint, userID uint) (*entity.Folder, error)
+	GetFolderByIDWithoutUserCheck(ctx context.Context, id uint) (*entity.Folder, error)
 	GetFoldersByUserID(ctx context.Context, userID uint) ([]entity.Folder, error)
 	UpdateFolder(ctx context.Context, folder *entity.Folder) error
 	DeleteFolder(ctx context.Context, id uint, userID uint) error

@@ -12,20 +12,23 @@ import (
 )
 
 type FolderUseCase struct {
-	FolderRepo     _interface.IFolderRepository
-	S3Repo         _interface.IListCloudRepositoryRepository
-	ContextTimeout time.Duration
+	FolderRepo      _interface.IFolderRepository
+	FolderShareRepo _interface.IFolderShareRepository
+	S3Repo          _interface.IListCloudRepositoryRepository
+	ContextTimeout  time.Duration
 }
 
 func NewFolderUseCase(
 	folderRepo _interface.IFolderRepository,
+	folderShareRepo _interface.IFolderShareRepository,
 	s3Repo _interface.IListCloudRepositoryRepository,
 	timeout time.Duration,
 ) _interface.IFolderUseCase {
 	return &FolderUseCase{
-		FolderRepo:     folderRepo,
-		S3Repo:         s3Repo,
-		ContextTimeout: timeout,
+		FolderRepo:      folderRepo,
+		FolderShareRepo: folderShareRepo,
+		S3Repo:          s3Repo,
+		ContextTimeout:  timeout,
 	}
 }
 
@@ -126,14 +129,23 @@ func (u *FolderUseCase) GetFolderByID(
 	ctx, cancel := context.WithTimeout(c, u.ContextTimeout)
 	defer cancel()
 
-	// Get folder
-	folder, err := u.FolderRepo.GetFolderByID(ctx, folderID, userID)
+	// Check if user has access (owner or shared)
+	hasAccess, err := u.FolderShareRepo.HasFolderAccess(ctx, userID, folderID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check folder access: %w", err)
+	}
+	if !hasAccess {
+		return nil, fmt.Errorf("folder not found or access denied")
+	}
+
+	// Get folder info (permission already checked)
+	folder, err := u.FolderRepo.GetFolderByIDWithoutUserCheck(ctx, folderID)
 	if err != nil {
 		return nil, fmt.Errorf("folder not found: %w", err)
 	}
 
 	// Get file count
-	fileCount, err := u.FolderRepo.GetFolderFileCount(ctx, folder.ID, userID)
+	fileCount, err := u.FolderRepo.GetFolderFileCount(ctx, folder.ID, folder.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get file count: %w", err)
 	}
