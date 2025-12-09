@@ -45,24 +45,65 @@ func (u *FileShareUseCase) ShareFile(
 	// Verify file exists and user has access
 	hasAccess, err := u.FileShareRepo.HasFileAccess(ctx, ownerID, fileID)
 	if err != nil || !hasAccess {
-		return nil, fmt.Errorf("file not found or access denied")
+		return nil, fmt.Errorf("파일을 찾을 수 없거나 권한이 없습니다")
 	}
 
 	// Get users by emails
 	users, err := u.FolderShareRepo.GetUsersByEmails(ctx, req.UserEmails)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get users: %w", err)
+		return nil, fmt.Errorf("사용자 조회 실패: %w", err)
+	}
+
+	// Check which emails were not found
+	userEmailMap := make(map[string]bool)
+	for _, user := range users {
+		userEmailMap[user.Email] = true
+	}
+
+	notFoundEmails := make([]string, 0)
+	for _, email := range req.UserEmails {
+		if !userEmailMap[email] {
+			notFoundEmails = append(notFoundEmails, email)
+		}
+	}
+
+	if len(notFoundEmails) > 0 {
+		return nil, fmt.Errorf("존재하지 않는 사용자: %s", notFoundEmails[0])
 	}
 
 	if len(users) == 0 {
-		return nil, fmt.Errorf("no valid users found with provided emails")
+		return nil, fmt.Errorf("유효한 사용자를 찾을 수 없습니다")
+	}
+
+	// Get existing shares to prevent duplicates
+	existingShares, err := u.FileShareRepo.GetFileSharesByFileID(ctx, fileID)
+	if err != nil {
+		return nil, fmt.Errorf("기존 공유 정보 조회 실패: %w", err)
+	}
+
+	existingShareMap := make(map[int32]bool)
+	for _, share := range existingShares {
+		existingShareMap[share.SharedWithID] = true
 	}
 
 	// Create shares for each user
 	sharedUsers := make([]response.ShareUserDTO, 0, len(users))
+	newShareCount := 0
+
 	for _, user := range users {
 		// Skip if user is the owner
 		if user.ID == ownerID {
+			continue
+		}
+
+		// Skip if already shared (duplicate)
+		if existingShareMap[user.ID] {
+			// Still add to response for frontend consistency
+			sharedUsers = append(sharedUsers, response.ShareUserDTO{
+				ID:    user.ID,
+				Name:  user.Name,
+				Email: user.Email,
+			})
 			continue
 		}
 
@@ -72,7 +113,7 @@ func (u *FileShareUseCase) ShareFile(
 			SharedWithID: user.ID,
 		}
 
-		// Create share (will ignore if already exists due to unique constraint)
+		// Create share
 		err := u.FileShareRepo.CreateFileShare(ctx, share)
 		if err != nil {
 			// Log error but continue with other users
@@ -80,6 +121,7 @@ func (u *FileShareUseCase) ShareFile(
 			continue
 		}
 
+		newShareCount++
 		sharedUsers = append(sharedUsers, response.ShareUserDTO{
 			ID:       user.ID,
 			Name:     user.Name,
@@ -88,7 +130,12 @@ func (u *FileShareUseCase) ShareFile(
 		})
 	}
 
-	message := fmt.Sprintf("%d명의 사용자와 파일을 공유했습니다", len(sharedUsers))
+	var message string
+	if newShareCount > 0 {
+		message = fmt.Sprintf("공유되었습니다")
+	} else {
+		message = "이미 공유된 사용자입니다"
+	}
 
 	return &response.ShareFileResponseDTO{
 		Message:     message,
@@ -155,17 +202,17 @@ func (u *FileShareUseCase) RevokeFileShare(
 	// Verify file exists and user has access
 	hasAccess, err := u.FileShareRepo.HasFileAccess(ctx, ownerID, fileID)
 	if err != nil || !hasAccess {
-		return nil, fmt.Errorf("file not found or access denied")
+		return nil, fmt.Errorf("폴더/파일을 수정할 권한이 없습니다")
 	}
 
 	// Delete the share
 	err = u.FileShareRepo.DeleteFileShare(ctx, fileID, sharedWithID, ownerID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to revoke file share: %w", err)
+		return nil, fmt.Errorf("공유 취소 실패: %w", err)
 	}
 
 	return &response.RevokeShareResponseDTO{
-		Message: "공유가 취소되었습니다",
+		Message: "공유가 해제되었습니다",
 	}, nil
 }
 
