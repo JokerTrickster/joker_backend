@@ -35,6 +35,10 @@ func NewShareHandler(
 	c.GET("/files/:id/shares", handler.GetFileShares)
 	c.DELETE("/files/:id/shares/:userId", handler.RevokeFileShare)
 	c.GET("/files/shared-with-me", handler.GetSharedWithMeFiles)
+	c.GET("/files/shared-by-me", handler.GetFilesSharedByMe)
+
+	// Folder shared-by-me route
+	c.GET("/folders/shared-by-me", handler.GetFoldersSharedByMe)
 
 	return handler
 }
@@ -360,6 +364,62 @@ func (h *ShareHandler) GetSharedWithMeFiles(c echo.Context) error {
 
 	// Get shared files
 	resp, err := h.FileShareUseCase.GetSharedWithMeFiles(ctx, int32(userID))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, resp)
+}
+
+// GetFoldersSharedByMe retrieves folders shared by the current user
+// @Summary Get folders shared by me
+// @Description Get list of folders that the current user has shared with others
+// @Tags CloudRepository
+// @Accept json
+// @Produce json
+// @Success 200 {object} response.FoldersSharedByMeResponseDTO
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/v1/folders/shared-by-me [get]
+func (h *ShareHandler) GetFoldersSharedByMe(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	// Get user ID from JWT token
+	userID, err := getUserIDFromContext(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
+	// Get folders shared by this user
+	resp, err := h.FolderShareUseCase.GetFoldersSharedByMe(ctx, int32(userID))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, resp)
+}
+
+// GetFilesSharedByMe retrieves files shared by the current user
+// @Summary Get files shared by me
+// @Description Get list of files that the current user has shared with others
+// @Tags CloudRepository
+// @Accept json
+// @Produce json
+// @Success 200 {object} response.FilesSharedByMeResponseDTO
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/v1/files/shared-by-me [get]
+func (h *ShareHandler) GetFilesSharedByMe(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	// Get user ID from JWT token
+	userID, err := getUserIDFromContext(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
+	// Get files shared by this user
+	resp, err := h.FileShareUseCase.GetFilesSharedByMe(ctx, int32(userID))
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}

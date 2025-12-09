@@ -68,6 +68,7 @@ type IFolderShareUseCase interface {
 	GetFolderShares(ctx context.Context, folderID uint, ownerID int32) (*response.FolderShareListResponseDTO, error)
 	RevokeFolderShare(ctx context.Context, folderID uint, sharedWithID int32, ownerID int32) (*response.RevokeShareResponseDTO, error)
 	GetSharedWithMeFolders(ctx context.Context, userID int32) (*response.SharedWithMeFoldersResponseDTO, error)
+	GetFoldersSharedByMe(ctx context.Context, ownerID int32) (*response.FoldersSharedByMeResponseDTO, error)
 }
 
 type IFileShareUseCase interface {
@@ -75,4 +76,5 @@ type IFileShareUseCase interface {
 	GetFileShares(ctx context.Context, fileID uint, ownerID int32) (*response.FileShareListResponseDTO, error)
 	RevokeFileShare(ctx context.Context, fileID uint, sharedWithID int32, ownerID int32) (*response.RevokeShareResponseDTO, error)
 	GetSharedWithMeFiles(ctx context.Context, userID int32) (*response.SharedWithMeFilesResponseDTO, error)
+	GetFilesSharedByMe(ctx context.Context, ownerID int32) (*response.FilesSharedByMeResponseDTO, error)
 }

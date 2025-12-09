@@ -228,3 +228,79 @@ func (u *FileShareUseCase) GetSharedWithMeFiles(
 		Files: files,
 	}, nil
 }
+
+// GetFilesSharedByMe retrieves files that the current user has shared with others
+func (u *FileShareUseCase) GetFilesSharedByMe(
+	c context.Context,
+	ownerID int32,
+) (*response.FilesSharedByMeResponseDTO, error) {
+	ctx, cancel := context.WithTimeout(c, u.ContextTimeout)
+	defer cancel()
+
+	// Get all file shares created by this owner
+	shares, err := u.FileShareRepo.GetFilesSharedByUserID(ctx, ownerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get files shared by user: %w", err)
+	}
+
+	// Group shares by file ID
+	fileSharesMap := make(map[uint][]entity.FileShare)
+	for _, share := range shares {
+		if share.File != nil && share.SharedWith != nil {
+			fileSharesMap[share.File.ID] = append(fileSharesMap[share.File.ID], share)
+		}
+	}
+
+	// Convert to DTO
+	files := make([]response.FileSharedByMeDTO, 0)
+	for fileID, fileShares := range fileSharesMap {
+		if len(fileShares) == 0 {
+			continue
+		}
+
+		file := fileShares[0].File
+
+		// Generate presigned URL for download
+		downloadURL, err := u.S3Repo.GeneratePresignedDownloadURL(ctx, file.S3Key, 1*time.Hour)
+		if err != nil {
+			downloadURL = "" // Default to empty on error
+		}
+
+		// Generate thumbnail URL if available
+		var thumbnailURL *string
+		if file.ThumbnailKey != "" {
+			url, err := u.S3Repo.GeneratePresignedDownloadURL(ctx, file.ThumbnailKey, 1*time.Hour)
+			if err == nil {
+				thumbnailURL = &url
+			}
+		}
+
+		// Build shared_with array
+		sharedWith := make([]response.ShareUserDTO, 0, len(fileShares))
+		for _, share := range fileShares {
+			if share.SharedWith != nil {
+				sharedWith = append(sharedWith, response.ShareUserDTO{
+					ID:       share.SharedWith.ID,
+					Name:     share.SharedWith.Name,
+					Email:    share.SharedWith.Email,
+					SharedAt: share.CreatedAt,
+				})
+			}
+		}
+
+		files = append(files, response.FileSharedByMeDTO{
+			ID:           fileID,
+			Name:         file.FileName,
+			Type:         file.ContentType,
+			Size:         file.FileSize,
+			URL:          downloadURL,
+			ThumbnailURL: thumbnailURL,
+			CreatedAt:    file.CreatedAt,
+			SharedWith:   sharedWith,
+		})
+	}
+
+	return &response.FilesSharedByMeResponseDTO{
+		Files: files,
+	}, nil
+}

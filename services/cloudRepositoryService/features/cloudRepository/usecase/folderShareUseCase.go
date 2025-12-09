@@ -207,3 +207,67 @@ func (u *FolderShareUseCase) GetSharedWithMeFolders(
 		Folders: folders,
 	}, nil
 }
+
+// GetFoldersSharedByMe retrieves folders that the current user has shared with others
+func (u *FolderShareUseCase) GetFoldersSharedByMe(
+	c context.Context,
+	ownerID int32,
+) (*response.FoldersSharedByMeResponseDTO, error) {
+	ctx, cancel := context.WithTimeout(c, u.ContextTimeout)
+	defer cancel()
+
+	// Get all folder shares created by this owner
+	shares, err := u.FolderShareRepo.GetFoldersSharedByUserID(ctx, ownerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get folders shared by user: %w", err)
+	}
+
+	// Group shares by folder ID
+	folderSharesMap := make(map[uint][]entity.FolderShare)
+	for _, share := range shares {
+		if share.Folder != nil && share.SharedWith != nil {
+			folderSharesMap[share.Folder.ID] = append(folderSharesMap[share.Folder.ID], share)
+		}
+	}
+
+	// Convert to DTO
+	folders := make([]response.FolderSharedByMeDTO, 0)
+	for folderID, folderShares := range folderSharesMap {
+		if len(folderShares) == 0 {
+			continue
+		}
+
+		folder := folderShares[0].Folder
+
+		// Get file count for the folder
+		fileCount, err := u.FolderRepo.GetFolderFileCount(ctx, folder.ID, int32(folder.UserID))
+		if err != nil {
+			fileCount = 0 // Default to 0 on error
+		}
+
+		// Build shared_with array
+		sharedWith := make([]response.ShareUserDTO, 0, len(folderShares))
+		for _, share := range folderShares {
+			if share.SharedWith != nil {
+				sharedWith = append(sharedWith, response.ShareUserDTO{
+					ID:       share.SharedWith.ID,
+					Name:     share.SharedWith.Name,
+					Email:    share.SharedWith.Email,
+					SharedAt: share.CreatedAt,
+				})
+			}
+		}
+
+		folders = append(folders, response.FolderSharedByMeDTO{
+			ID:         folderID,
+			FolderName: folder.FolderName,
+			FileCount:  fileCount,
+			CreatedAt:  folder.CreatedAt,
+			SharedWith: sharedWith,
+		})
+	}
+
+	return &response.FoldersSharedByMeResponseDTO{
+		Folders: folders,
+	}, nil
+}

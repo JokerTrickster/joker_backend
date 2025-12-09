@@ -81,3 +81,34 @@ type SharedWithMeFilesResponseDTO struct {
 type RevokeShareResponseDTO struct {
 	Message string `json:"message"`
 }
+
+// FolderSharedByMeDTO represents a folder shared by the current user
+type FolderSharedByMeDTO struct {
+	ID         uint           `json:"id"`
+	FolderName string         `json:"folder_name"`
+	FileCount  int            `json:"file_count"`
+	CreatedAt  time.Time      `json:"created_at"`
+	SharedWith []ShareUserDTO `json:"shared_with"`
+}
+
+// FileSharedByMeDTO represents a file shared by the current user
+type FileSharedByMeDTO struct {
+	ID           uint           `json:"id"`
+	Name         string         `json:"name"`
+	Type         string         `json:"type"`
+	Size         int64          `json:"size"`
+	URL          string         `json:"url"`
+	ThumbnailURL *string        `json:"thumbnail_url,omitempty"`
+	CreatedAt    time.Time      `json:"created_at"`
+	SharedWith   []ShareUserDTO `json:"shared_with"`
+}
+
+// FoldersSharedByMeResponseDTO for listing folders shared by the current user
+type FoldersSharedByMeResponseDTO struct {
+	Folders []FolderSharedByMeDTO `json:"folders"`
+}
+
+// FilesSharedByMeResponseDTO for listing files shared by the current user
+type FilesSharedByMeResponseDTO struct {
+	Files []FileSharedByMeDTO `json:"files"`
+}

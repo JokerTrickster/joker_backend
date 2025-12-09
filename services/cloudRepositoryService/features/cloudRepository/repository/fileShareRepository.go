@@ -121,3 +121,17 @@ func (r *FileShareRepository) HasFileAccess(ctx context.Context, userID int32, f
 
 	return false, nil // No access
 }
+
+// GetFilesSharedByUserID retrieves files that a user has shared with others
+func (r *FileShareRepository) GetFilesSharedByUserID(ctx context.Context, ownerID int32) ([]entity.FileShare, error) {
+	var shares []entity.FileShare
+	if err := r.db.WithContext(ctx).
+		Preload("File").
+		Preload("SharedWith").
+		Where("owner_id = ? AND deleted_at IS NULL", ownerID).
+		Order("created_at DESC").
+		Find(&shares).Error; err != nil {
+		return nil, fmt.Errorf("failed to get files shared by user: %w", err)
+	}
+	return shares, nil
+}
