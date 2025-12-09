@@ -180,7 +180,7 @@ func (u *FolderShareUseCase) GetSharedWithMeFolders(
 	for _, share := range shares {
 		if share.Folder != nil {
 			// Get file count for the folder
-			fileCount, err := u.FolderRepo.GetFolderFileCount(ctx, share.Folder.ID, share.Folder.UserID)
+			fileCount, err := u.FolderRepo.GetFolderFileCount(ctx, share.Folder.ID, int32(share.Folder.UserID))
 			if err != nil {
 				fileCount = 0 // Default to 0 on error
 			}
