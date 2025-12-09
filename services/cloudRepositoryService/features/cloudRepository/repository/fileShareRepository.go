@@ -40,7 +40,7 @@ func (r *FileShareRepository) GetFileSharesByFileID(ctx context.Context, fileID 
 }
 
 // GetSharedFilesByUserID retrieves all files shared with a user
-func (r *FileShareRepository) GetSharedFilesByUserID(ctx context.Context, userID uint) ([]entity.FileShare, error) {
+func (r *FileShareRepository) GetSharedFilesByUserID(ctx context.Context, userID int32) ([]entity.FileShare, error) {
 	var shares []entity.FileShare
 	if err := r.db.WithContext(ctx).
 		Preload("File").
@@ -53,7 +53,7 @@ func (r *FileShareRepository) GetSharedFilesByUserID(ctx context.Context, userID
 }
 
 // DeleteFileShare removes a file share
-func (r *FileShareRepository) DeleteFileShare(ctx context.Context, fileID uint, sharedWithID uint, ownerID uint) error {
+func (r *FileShareRepository) DeleteFileShare(ctx context.Context, fileID uint, sharedWithID int32, ownerID int32) error {
 	result := r.db.WithContext(ctx).
 		Where("file_id = ? AND shared_with_id = ? AND owner_id = ? AND deleted_at IS NULL", fileID, sharedWithID, ownerID).
 		Delete(&entity.FileShare{})

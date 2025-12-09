@@ -33,7 +33,7 @@ func NewFolderShareUseCase(
 func (u *FolderShareUseCase) ShareFolder(
 	c context.Context,
 	folderID uint,
-	ownerID uint,
+	ownerID int32,
 	req *request.ShareFolderRequestDTO,
 ) (*response.ShareFolderResponseDTO, error) {
 	ctx, cancel := context.WithTimeout(c, u.ContextTimeout)
@@ -97,7 +97,7 @@ func (u *FolderShareUseCase) ShareFolder(
 func (u *FolderShareUseCase) GetFolderShares(
 	c context.Context,
 	folderID uint,
-	ownerID uint,
+	ownerID int32,
 ) (*response.FolderShareListResponseDTO, error) {
 	ctx, cancel := context.WithTimeout(c, u.ContextTimeout)
 	defer cancel()
@@ -138,8 +138,8 @@ func (u *FolderShareUseCase) GetFolderShares(
 func (u *FolderShareUseCase) RevokeFolderShare(
 	c context.Context,
 	folderID uint,
-	sharedWithID uint,
-	ownerID uint,
+	sharedWithID int32,
+	ownerID int32,
 ) (*response.RevokeShareResponseDTO, error) {
 	ctx, cancel := context.WithTimeout(c, u.ContextTimeout)
 	defer cancel()
@@ -164,7 +164,7 @@ func (u *FolderShareUseCase) RevokeFolderShare(
 // GetSharedWithMeFolders retrieves all folders shared with the current user
 func (u *FolderShareUseCase) GetSharedWithMeFolders(
 	c context.Context,
-	userID uint,
+	userID int32,
 ) (*response.SharedWithMeFoldersResponseDTO, error) {
 	ctx, cancel := context.WithTimeout(c, u.ContextTimeout)
 	defer cancel()

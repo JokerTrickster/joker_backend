@@ -40,7 +40,7 @@ func (r *FolderShareRepository) GetFolderSharesByFolderID(ctx context.Context, f
 }
 
 // GetSharedFoldersByUserID retrieves all folders shared with a user
-func (r *FolderShareRepository) GetSharedFoldersByUserID(ctx context.Context, userID uint) ([]entity.FolderShare, error) {
+func (r *FolderShareRepository) GetSharedFoldersByUserID(ctx context.Context, userID int32) ([]entity.FolderShare, error) {
 	var shares []entity.FolderShare
 	if err := r.db.WithContext(ctx).
 		Preload("Folder").
@@ -53,7 +53,7 @@ func (r *FolderShareRepository) GetSharedFoldersByUserID(ctx context.Context, us
 }
 
 // DeleteFolderShare removes a folder share
-func (r *FolderShareRepository) DeleteFolderShare(ctx context.Context, folderID uint, sharedWithID uint, ownerID uint) error {
+func (r *FolderShareRepository) DeleteFolderShare(ctx context.Context, folderID uint, sharedWithID int32, ownerID int32) error {
 	result := r.db.WithContext(ctx).
 		Where("folder_id = ? AND shared_with_id = ? AND owner_id = ? AND deleted_at IS NULL", folderID, sharedWithID, ownerID).
 		Delete(&entity.FolderShare{})

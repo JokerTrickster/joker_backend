@@ -36,7 +36,7 @@ func NewFileShareUseCase(
 func (u *FileShareUseCase) ShareFile(
 	c context.Context,
 	fileID uint,
-	ownerID uint,
+	ownerID int32,
 	req *request.ShareFileRequestDTO,
 ) (*response.ShareFileResponseDTO, error) {
 	ctx, cancel := context.WithTimeout(c, u.ContextTimeout)
@@ -100,7 +100,7 @@ func (u *FileShareUseCase) ShareFile(
 func (u *FileShareUseCase) GetFileShares(
 	c context.Context,
 	fileID uint,
-	ownerID uint,
+	ownerID int32,
 ) (*response.FileShareListResponseDTO, error) {
 	ctx, cancel := context.WithTimeout(c, u.ContextTimeout)
 	defer cancel()
@@ -146,8 +146,8 @@ func (u *FileShareUseCase) GetFileShares(
 func (u *FileShareUseCase) RevokeFileShare(
 	c context.Context,
 	fileID uint,
-	sharedWithID uint,
-	ownerID uint,
+	sharedWithID int32,
+	ownerID int32,
 ) (*response.RevokeShareResponseDTO, error) {
 	ctx, cancel := context.WithTimeout(c, u.ContextTimeout)
 	defer cancel()
@@ -172,7 +172,7 @@ func (u *FileShareUseCase) RevokeFileShare(
 // GetSharedWithMeFiles retrieves all files shared with the current user
 func (u *FileShareUseCase) GetSharedWithMeFiles(
 	c context.Context,
-	userID uint,
+	userID int32,
 ) (*response.SharedWithMeFilesResponseDTO, error) {
 	ctx, cancel := context.WithTimeout(c, u.ContextTimeout)
 	defer cancel()

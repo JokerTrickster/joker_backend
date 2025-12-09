@@ -64,15 +64,15 @@ type IFolderUseCase interface {
 }
 
 type IFolderShareUseCase interface {
-	ShareFolder(ctx context.Context, folderID uint, ownerID uint, req *request.ShareFolderRequestDTO) (*response.ShareFolderResponseDTO, error)
-	GetFolderShares(ctx context.Context, folderID uint, ownerID uint) (*response.FolderShareListResponseDTO, error)
-	RevokeFolderShare(ctx context.Context, folderID uint, sharedWithID uint, ownerID uint) (*response.RevokeShareResponseDTO, error)
-	GetSharedWithMeFolders(ctx context.Context, userID uint) (*response.SharedWithMeFoldersResponseDTO, error)
+	ShareFolder(ctx context.Context, folderID uint, ownerID int32, req *request.ShareFolderRequestDTO) (*response.ShareFolderResponseDTO, error)
+	GetFolderShares(ctx context.Context, folderID uint, ownerID int32) (*response.FolderShareListResponseDTO, error)
+	RevokeFolderShare(ctx context.Context, folderID uint, sharedWithID int32, ownerID int32) (*response.RevokeShareResponseDTO, error)
+	GetSharedWithMeFolders(ctx context.Context, userID int32) (*response.SharedWithMeFoldersResponseDTO, error)
 }
 
 type IFileShareUseCase interface {
-	ShareFile(ctx context.Context, fileID uint, ownerID uint, req *request.ShareFileRequestDTO) (*response.ShareFileResponseDTO, error)
-	GetFileShares(ctx context.Context, fileID uint, ownerID uint) (*response.FileShareListResponseDTO, error)
-	RevokeFileShare(ctx context.Context, fileID uint, sharedWithID uint, ownerID uint) (*response.RevokeShareResponseDTO, error)
-	GetSharedWithMeFiles(ctx context.Context, userID uint) (*response.SharedWithMeFilesResponseDTO, error)
+	ShareFile(ctx context.Context, fileID uint, ownerID int32, req *request.ShareFileRequestDTO) (*response.ShareFileResponseDTO, error)
+	GetFileShares(ctx context.Context, fileID uint, ownerID int32) (*response.FileShareListResponseDTO, error)
+	RevokeFileShare(ctx context.Context, fileID uint, sharedWithID int32, ownerID int32) (*response.RevokeShareResponseDTO, error)
+	GetSharedWithMeFiles(ctx context.Context, userID int32) (*response.SharedWithMeFilesResponseDTO, error)
 }

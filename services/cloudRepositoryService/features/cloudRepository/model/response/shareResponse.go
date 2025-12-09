@@ -4,14 +4,14 @@ import "time"
 
 // UserInfoDTO represents basic user information
 type UserInfoDTO struct {
-	ID    uint   `json:"id"`
+	ID    int32  `json:"id"`
 	Name  string `json:"name"`
 	Email string `json:"email"`
 }
 
 // ShareUserDTO represents a user who has access to a shared resource
 type ShareUserDTO struct {
-	ID       uint      `json:"id"`
+	ID       int32     `json:"id"`
 	Name     string    `json:"name"`
 	Email    string    `json:"email"`
 	SharedAt time.Time `json:"shared_at"`

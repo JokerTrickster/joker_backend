@@ -79,7 +79,7 @@ func (h *ShareHandler) ShareFolder(c echo.Context) error {
 	}
 
 	// Share folder
-	resp, err := h.FolderShareUseCase.ShareFolder(ctx, uint(folderID), userID, &req)
+	resp, err := h.FolderShareUseCase.ShareFolder(ctx, uint(folderID), int32(userID), &req)
 	if err != nil {
 		if err.Error() == "folder not found or access denied: record not found" {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "folder not found"})
@@ -118,7 +118,7 @@ func (h *ShareHandler) GetFolderShares(c echo.Context) error {
 	}
 
 	// Get shares
-	resp, err := h.FolderShareUseCase.GetFolderShares(ctx, uint(folderID), userID)
+	resp, err := h.FolderShareUseCase.GetFolderShares(ctx, uint(folderID), int32(userID))
 	if err != nil {
 		if err.Error() == "folder not found or access denied: record not found" {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "folder not found"})
@@ -164,7 +164,7 @@ func (h *ShareHandler) RevokeFolderShare(c echo.Context) error {
 	}
 
 	// Revoke share
-	resp, err := h.FolderShareUseCase.RevokeFolderShare(ctx, uint(folderID), uint(sharedWithID), ownerID)
+	resp, err := h.FolderShareUseCase.RevokeFolderShare(ctx, uint(folderID), int32(sharedWithID), int32(ownerID))
 	if err != nil {
 		if err.Error() == "folder not found or access denied: record not found" {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "folder not found"})
@@ -195,7 +195,7 @@ func (h *ShareHandler) GetSharedWithMeFolders(c echo.Context) error {
 	}
 
 	// Get shared folders
-	resp, err := h.FolderShareUseCase.GetSharedWithMeFolders(ctx, userID)
+	resp, err := h.FolderShareUseCase.GetSharedWithMeFolders(ctx, int32(userID))
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
@@ -243,7 +243,7 @@ func (h *ShareHandler) ShareFile(c echo.Context) error {
 	}
 
 	// Share file
-	resp, err := h.FileShareUseCase.ShareFile(ctx, uint(fileID), userID, &req)
+	resp, err := h.FileShareUseCase.ShareFile(ctx, uint(fileID), int32(userID), &req)
 	if err != nil {
 		if err.Error() == "file not found or access denied" {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "file not found"})
@@ -282,7 +282,7 @@ func (h *ShareHandler) GetFileShares(c echo.Context) error {
 	}
 
 	// Get shares
-	resp, err := h.FileShareUseCase.GetFileShares(ctx, uint(fileID), userID)
+	resp, err := h.FileShareUseCase.GetFileShares(ctx, uint(fileID), int32(userID))
 	if err != nil {
 		if err.Error() == "file not found or access denied" {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "file not found"})
@@ -328,7 +328,7 @@ func (h *ShareHandler) RevokeFileShare(c echo.Context) error {
 	}
 
 	// Revoke share
-	resp, err := h.FileShareUseCase.RevokeFileShare(ctx, uint(fileID), uint(sharedWithID), ownerID)
+	resp, err := h.FileShareUseCase.RevokeFileShare(ctx, uint(fileID), int32(sharedWithID), int32(ownerID))
 	if err != nil {
 		if err.Error() == "file not found or access denied" {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "file not found"})
@@ -359,7 +359,7 @@ func (h *ShareHandler) GetSharedWithMeFiles(c echo.Context) error {
 	}
 
 	// Get shared files
-	resp, err := h.FileShareUseCase.GetSharedWithMeFiles(ctx, userID)
+	resp, err := h.FileShareUseCase.GetSharedWithMeFiles(ctx, int32(userID))
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
