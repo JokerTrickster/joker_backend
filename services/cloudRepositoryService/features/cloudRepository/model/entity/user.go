@@ -4,7 +4,7 @@ import "time"
 
 // User represents a user in the system (partial fields for sharing purposes)
 type User struct {
-	ID        uint       `gorm:"type:int;primaryKey" json:"id"`
+	ID        int32      `gorm:"primaryKey" json:"id"`
 	Name      string     `gorm:"size:255;not null" json:"name"`
 	Email     string     `gorm:"size:255;not null;uniqueIndex" json:"email"`
 	Provider  string     `gorm:"size:50;not null;default:local" json:"provider"`
