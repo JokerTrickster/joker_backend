@@ -6,8 +6,8 @@ import "time"
 type FileShare struct {
 	ID           uint       `gorm:"primaryKey" json:"id"`
 	FileID       uint       `gorm:"not null;index" json:"file_id"`
-	OwnerID      uint       `gorm:"not null;index" json:"owner_id"`
-	SharedWithID uint       `gorm:"not null;index" json:"shared_with_id"`
+	OwnerID      uint       `gorm:"type:int;not null;index" json:"owner_id"`
+	SharedWithID uint       `gorm:"type:int;not null;index" json:"shared_with_id"`
 	File         *CloudFile `gorm:"foreignKey:FileID" json:"file,omitempty"`
 	Owner        *User      `gorm:"foreignKey:OwnerID" json:"owner,omitempty"`
 	SharedWith   *User      `gorm:"foreignKey:SharedWithID" json:"shared_with,omitempty"`
