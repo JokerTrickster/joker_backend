@@ -54,7 +54,7 @@ func (u *FolderUseCase) CreateFolder(
 	}
 
 	// Get file count (should be 0 for new folder)
-	fileCount, err := u.FolderRepo.GetFolderFileCount(ctx, folder.ID, userID)
+	fileCount, err := u.FolderRepo.GetFolderFileCount(ctx, folder.ID, int32(userID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get file count: %w", err)
 	}
@@ -78,7 +78,7 @@ func (u *FolderUseCase) GetFolders(
 	defer cancel()
 
 	// Get all folders
-	folders, err := u.FolderRepo.GetFoldersByUserID(ctx, userID)
+	folders, err := u.FolderRepo.GetFoldersByUserID(ctx, int32(userID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get folders: %w", err)
 	}
@@ -86,7 +86,7 @@ func (u *FolderUseCase) GetFolders(
 	// Build folder map and get file counts
 	folderMap := make(map[uint]*response.FolderTreeResponseDTO)
 	for _, folder := range folders {
-		fileCount, err := u.FolderRepo.GetFolderFileCount(ctx, folder.ID, userID)
+		fileCount, err := u.FolderRepo.GetFolderFileCount(ctx, folder.ID, int32(userID))
 		if err != nil {
 			return nil, fmt.Errorf("failed to get file count: %w", err)
 		}
@@ -130,7 +130,7 @@ func (u *FolderUseCase) GetFolderByID(
 	defer cancel()
 
 	// Check if user has access (owner or shared)
-	hasAccess, err := u.FolderShareRepo.HasFolderAccess(ctx, userID, folderID)
+	hasAccess, err := u.FolderShareRepo.HasFolderAccess(ctx, int32(userID), folderID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check folder access: %w", err)
 	}
@@ -145,7 +145,7 @@ func (u *FolderUseCase) GetFolderByID(
 	}
 
 	// Get file count
-	fileCount, err := u.FolderRepo.GetFolderFileCount(ctx, folder.ID, folder.UserID)
+	fileCount, err := u.FolderRepo.GetFolderFileCount(ctx, folder.ID, int32(folder.UserID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get file count: %w", err)
 	}
@@ -171,7 +171,7 @@ func (u *FolderUseCase) UpdateFolder(
 	defer cancel()
 
 	// Get existing folder
-	folder, err := u.FolderRepo.GetFolderByID(ctx, folderID, userID)
+	folder, err := u.FolderRepo.GetFolderByID(ctx, folderID, int32(userID))
 	if err != nil {
 		return nil, fmt.Errorf("folder not found: %w", err)
 	}
@@ -190,7 +190,7 @@ func (u *FolderUseCase) UpdateFolder(
 	}
 
 	// Get file count
-	fileCount, err := u.FolderRepo.GetFolderFileCount(ctx, folder.ID, userID)
+	fileCount, err := u.FolderRepo.GetFolderFileCount(ctx, folder.ID, int32(userID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get file count: %w", err)
 	}
@@ -215,7 +215,7 @@ func (u *FolderUseCase) DeleteFolder(
 	defer cancel()
 
 	// Delete folder (repository handles moving files to root)
-	if err := u.FolderRepo.DeleteFolder(ctx, folderID, userID); err != nil {
+	if err := u.FolderRepo.DeleteFolder(ctx, folderID, int32(userID)); err != nil {
 		return fmt.Errorf("failed to delete folder: %w", err)
 	}
 
@@ -232,13 +232,13 @@ func (u *FolderUseCase) GetFolderFiles(
 	defer cancel()
 
 	// Verify folder exists
-	_, err := u.FolderRepo.GetFolderByID(ctx, folderID, userID)
+	_, err := u.FolderRepo.GetFolderByID(ctx, folderID, int32(userID))
 	if err != nil {
 		return nil, fmt.Errorf("folder not found: %w", err)
 	}
 
 	// Get files
-	files, err := u.FolderRepo.GetFilesByFolderID(ctx, &folderID, userID)
+	files, err := u.FolderRepo.GetFilesByFolderID(ctx, &folderID, int32(userID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get folder files: %w", err)
 	}
@@ -313,7 +313,7 @@ func (u *FolderUseCase) MoveFiles(
 	defer cancel()
 
 	// Move files
-	movedCount, err := u.FolderRepo.MoveFilesToFolder(ctx, req.FileIDs, req.TargetFolderID, userID)
+	movedCount, err := u.FolderRepo.MoveFilesToFolder(ctx, req.FileIDs, req.TargetFolderID, int32(userID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to move files: %w", err)
 	}

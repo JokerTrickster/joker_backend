@@ -68,14 +68,14 @@ type IMultipartUploadRepository interface {
 
 type IFolderRepository interface {
 	CreateFolder(ctx context.Context, folder *entity.Folder) error
-	GetFolderByID(ctx context.Context, id uint, userID uint) (*entity.Folder, error)
+	GetFolderByID(ctx context.Context, id uint, userID int32) (*entity.Folder, error)
 	GetFolderByIDWithoutUserCheck(ctx context.Context, id uint) (*entity.Folder, error)
-	GetFoldersByUserID(ctx context.Context, userID uint) ([]entity.Folder, error)
+	GetFoldersByUserID(ctx context.Context, userID int32) ([]entity.Folder, error)
 	UpdateFolder(ctx context.Context, folder *entity.Folder) error
-	DeleteFolder(ctx context.Context, id uint, userID uint) error
-	GetFolderFileCount(ctx context.Context, folderID uint, userID uint) (int, error)
-	GetFilesByFolderID(ctx context.Context, folderID *uint, userID uint) ([]entity.CloudFile, error)
-	MoveFilesToFolder(ctx context.Context, fileIDs []uint, folderID *uint, userID uint) (int, error)
+	DeleteFolder(ctx context.Context, id uint, userID int32) error
+	GetFolderFileCount(ctx context.Context, folderID uint, userID int32) (int, error)
+	GetFilesByFolderID(ctx context.Context, folderID *uint, userID int32) ([]entity.CloudFile, error)
+	MoveFilesToFolder(ctx context.Context, fileIDs []uint, folderID *uint, userID int32) (int, error)
 }
 
 type IFolderShareRepository interface {
@@ -83,7 +83,7 @@ type IFolderShareRepository interface {
 	GetFolderSharesByFolderID(ctx context.Context, folderID uint) ([]entity.FolderShare, error)
 	GetSharedFoldersByUserID(ctx context.Context, userID int32) ([]entity.FolderShare, error)
 	DeleteFolderShare(ctx context.Context, folderID uint, sharedWithID int32, ownerID int32) error
-	HasFolderAccess(ctx context.Context, userID uint, folderID uint) (bool, error)
+	HasFolderAccess(ctx context.Context, userID int32, folderID uint) (bool, error)
 	GetUsersByEmails(ctx context.Context, emails []string) ([]entity.User, error)
 }
 
@@ -92,7 +92,7 @@ type IFileShareRepository interface {
 	GetFileSharesByFileID(ctx context.Context, fileID uint) ([]entity.FileShare, error)
 	GetSharedFilesByUserID(ctx context.Context, userID int32) ([]entity.FileShare, error)
 	DeleteFileShare(ctx context.Context, fileID uint, sharedWithID int32, ownerID int32) error
-	HasFileAccess(ctx context.Context, userID uint, fileID uint) (bool, error)
+	HasFileAccess(ctx context.Context, userID int32, fileID uint) (bool, error)
 }
 
 type CompletedPart struct {

@@ -43,7 +43,7 @@ func (r *FolderRepository) CreateFolder(ctx context.Context, folder *entity.Fold
 }
 
 // GetFolderByID retrieves a folder by ID (owner only)
-func (r *FolderRepository) GetFolderByID(ctx context.Context, id uint, userID uint) (*entity.Folder, error) {
+func (r *FolderRepository) GetFolderByID(ctx context.Context, id uint, userID int32) (*entity.Folder, error) {
 	var folder entity.Folder
 	if err := r.db.WithContext(ctx).
 		Where("id = ? AND user_id = ? AND deleted_at IS NULL", id, userID).
@@ -65,7 +65,7 @@ func (r *FolderRepository) GetFolderByIDWithoutUserCheck(ctx context.Context, id
 }
 
 // GetFoldersByUserID retrieves all folders for a user
-func (r *FolderRepository) GetFoldersByUserID(ctx context.Context, userID uint) ([]entity.Folder, error) {
+func (r *FolderRepository) GetFoldersByUserID(ctx context.Context, userID int32) ([]entity.Folder, error) {
 	var folders []entity.Folder
 	if err := r.db.WithContext(ctx).
 		Where("user_id = ? AND deleted_at IS NULL", userID).
@@ -110,7 +110,7 @@ func (r *FolderRepository) UpdateFolder(ctx context.Context, folder *entity.Fold
 }
 
 // DeleteFolder soft deletes a folder (sets deleted_at)
-func (r *FolderRepository) DeleteFolder(ctx context.Context, id uint, userID uint) error {
+func (r *FolderRepository) DeleteFolder(ctx context.Context, id uint, userID int32) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Check if folder exists and belongs to user
 		var folder entity.Folder
@@ -150,7 +150,7 @@ func (r *FolderRepository) DeleteFolder(ctx context.Context, id uint, userID uin
 }
 
 // GetFolderFileCount returns the number of files in a folder
-func (r *FolderRepository) GetFolderFileCount(ctx context.Context, folderID uint, userID uint) (int, error) {
+func (r *FolderRepository) GetFolderFileCount(ctx context.Context, folderID uint, userID int32) (int, error) {
 	var count int64
 	if err := r.db.WithContext(ctx).
 		Model(&entity.CloudFile{}).
@@ -162,7 +162,7 @@ func (r *FolderRepository) GetFolderFileCount(ctx context.Context, folderID uint
 }
 
 // GetFilesByFolderID retrieves all files in a folder
-func (r *FolderRepository) GetFilesByFolderID(ctx context.Context, folderID *uint, userID uint) ([]entity.CloudFile, error) {
+func (r *FolderRepository) GetFilesByFolderID(ctx context.Context, folderID *uint, userID int32) ([]entity.CloudFile, error) {
 	var files []entity.CloudFile
 	query := r.db.WithContext(ctx).
 		Where("user_id = ? AND deleted_at IS NULL", userID)
@@ -182,7 +182,7 @@ func (r *FolderRepository) GetFilesByFolderID(ctx context.Context, folderID *uin
 }
 
 // MoveFilesToFolder moves multiple files to a folder (or root if folderID is nil)
-func (r *FolderRepository) MoveFilesToFolder(ctx context.Context, fileIDs []uint, folderID *uint, userID uint) (int, error) {
+func (r *FolderRepository) MoveFilesToFolder(ctx context.Context, fileIDs []uint, folderID *uint, userID int32) (int, error) {
 	// If folderID is provided, verify folder exists and belongs to user
 	if folderID != nil {
 		var folder entity.Folder

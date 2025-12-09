@@ -70,7 +70,7 @@ func (r *FileShareRepository) DeleteFileShare(ctx context.Context, fileID uint, 
 }
 
 // HasFileAccess checks if a user has access to a file (owner, shared, or folder shared)
-func (r *FileShareRepository) HasFileAccess(ctx context.Context, userID uint, fileID uint) (bool, error) {
+func (r *FileShareRepository) HasFileAccess(ctx context.Context, userID int32, fileID uint) (bool, error) {
 	// Get the file
 	var file entity.CloudFile
 	err := r.db.WithContext(ctx).
@@ -85,7 +85,7 @@ func (r *FileShareRepository) HasFileAccess(ctx context.Context, userID uint, fi
 	}
 
 	// Check if user is the owner
-	if file.UserID == userID {
+	if file.UserID == uint(userID) {
 		return true, nil
 	}
 

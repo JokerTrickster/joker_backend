@@ -70,7 +70,7 @@ func (r *FolderShareRepository) DeleteFolderShare(ctx context.Context, folderID 
 }
 
 // HasFolderAccess checks if a user has access to a folder (either as owner or shared)
-func (r *FolderShareRepository) HasFolderAccess(ctx context.Context, userID uint, folderID uint) (bool, error) {
+func (r *FolderShareRepository) HasFolderAccess(ctx context.Context, userID int32, folderID uint) (bool, error) {
 	// Check if user is the owner
 	var folder entity.Folder
 	err := r.db.WithContext(ctx).
