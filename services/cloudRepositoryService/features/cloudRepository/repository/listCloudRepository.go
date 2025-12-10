@@ -32,6 +32,21 @@ func (r *ListCloudRepositoryRepository) GetFilesByUserID(ctx context.Context, us
 		Preload("Tags"). // Eager load tags
 		Where("user_id = ? AND deleted_at IS NULL", userID)
 
+	// Filter by folder (important for showing files in correct location)
+	// If folder_id is provided in query params, filter by it
+	// - folder_id=0: root folder (folder_id IS NULL in DB)
+	// - folder_id=N: specific folder N
+	// - folder_id not provided: return all files (no folder filter)
+	if filter.FolderID != nil {
+		if *filter.FolderID == 0 {
+			// Root folder: files with folder_id IS NULL
+			query = query.Where("folder_id IS NULL")
+		} else {
+			// Specific folder
+			query = query.Where("folder_id = ?", *filter.FolderID)
+		}
+	}
+
 	// Apply filters
 	if filter.FileType != "" {
 		query = query.Where("file_type = ?", filter.FileType)

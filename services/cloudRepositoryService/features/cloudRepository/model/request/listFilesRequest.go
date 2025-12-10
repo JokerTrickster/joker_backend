@@ -2,6 +2,7 @@ package request
 
 // ListFilesRequestDTO for filtering and pagination
 type ListFilesRequestDTO struct {
+	FolderID  *uint    `query:"folder_id"` // Filter by folder (null = root folder)
 	FileType  string   `query:"file_type" validate:"omitempty,oneof=image video"`
 	Keyword   string   `query:"keyword"` // Search in filename or tags
 	Tags      []string `query:"tags"`    // Filter by specific tags
