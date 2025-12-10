@@ -126,3 +126,37 @@ func (r *FolderShareRepository) GetFoldersSharedByUserID(ctx context.Context, ow
 	}
 	return shares, nil
 }
+
+// HasFolderWritePermission checks if a user has write permission for a folder
+// Returns true if user is owner or has share with write permission
+func (r *FolderShareRepository) HasFolderWritePermission(ctx context.Context, userID int32, folderID uint) (bool, error) {
+	// Check if user is the owner
+	var folder entity.Folder
+	err := r.db.WithContext(ctx).
+		Where("id = ? AND user_id = ? AND deleted_at IS NULL", folderID, userID).
+		First(&folder).Error
+
+	if err == nil {
+		return true, nil // User is the owner, has write permission
+	}
+
+	if err != gorm.ErrRecordNotFound {
+		return false, fmt.Errorf("failed to check folder ownership: %w", err)
+	}
+
+	// Check if folder is shared with user with write permission
+	var share entity.FolderShare
+	err = r.db.WithContext(ctx).
+		Where("folder_id = ? AND shared_with_id = ? AND permission = ? AND deleted_at IS NULL", folderID, userID, entity.SharePermissionWrite).
+		First(&share).Error
+
+	if err == nil {
+		return true, nil // User has write permission via share
+	}
+
+	if err == gorm.ErrRecordNotFound {
+		return false, nil // No write permission
+	}
+
+	return false, fmt.Errorf("failed to check folder write permission: %w", err)
+}

@@ -72,15 +72,21 @@ func (u *FolderShareUseCase) ShareFolder(
 		return nil, fmt.Errorf("유효한 사용자를 찾을 수 없습니다")
 	}
 
+	// Get permission from request, default to "read"
+	permission := entity.SharePermissionRead
+	if req.Permission != "" {
+		permission = entity.SharePermission(req.Permission)
+	}
+
 	// Get existing shares to prevent duplicates
 	existingShares, err := u.FolderShareRepo.GetFolderSharesByFolderID(ctx, folderID)
 	if err != nil {
 		return nil, fmt.Errorf("기존 공유 정보 조회 실패: %w", err)
 	}
 
-	existingShareMap := make(map[int32]bool)
+	existingShareMap := make(map[int32]*entity.FolderShare)
 	for _, share := range existingShares {
-		existingShareMap[share.SharedWithID] = true
+		existingShareMap[share.SharedWithID] = &share
 	}
 
 	// Create shares for each user
@@ -94,12 +100,13 @@ func (u *FolderShareUseCase) ShareFolder(
 		}
 
 		// Skip if already shared (duplicate)
-		if existingShareMap[user.ID] {
+		if existingShare, exists := existingShareMap[user.ID]; exists {
 			// Still add to response for frontend consistency
 			sharedUsers = append(sharedUsers, response.ShareUserDTO{
-				ID:    user.ID,
-				Name:  user.Name,
-				Email: user.Email,
+				ID:         user.ID,
+				Name:       user.Name,
+				Email:      user.Email,
+				Permission: string(existingShare.Permission),
 			})
 			continue
 		}
@@ -108,6 +115,7 @@ func (u *FolderShareUseCase) ShareFolder(
 			FolderID:     folderID,
 			OwnerID:      ownerID,
 			SharedWithID: user.ID,
+			Permission:   permission,
 		}
 
 		// Create share
@@ -120,10 +128,11 @@ func (u *FolderShareUseCase) ShareFolder(
 
 		newShareCount++
 		sharedUsers = append(sharedUsers, response.ShareUserDTO{
-			ID:       user.ID,
-			Name:     user.Name,
-			Email:    user.Email,
-			SharedAt: share.CreatedAt,
+			ID:         user.ID,
+			Name:       user.Name,
+			Email:      user.Email,
+			Permission: string(share.Permission),
+			SharedAt:   share.CreatedAt,
 		})
 	}
 
@@ -166,10 +175,11 @@ func (u *FolderShareUseCase) GetFolderShares(
 	for _, share := range shares {
 		if share.SharedWith != nil {
 			sharedUsers = append(sharedUsers, response.ShareUserDTO{
-				ID:       share.SharedWith.ID,
-				Name:     share.SharedWith.Name,
-				Email:    share.SharedWith.Email,
-				SharedAt: share.CreatedAt,
+				ID:         share.SharedWith.ID,
+				Name:       share.SharedWith.Name,
+				Email:      share.SharedWith.Email,
+				Permission: string(share.Permission),
+				SharedAt:   share.CreatedAt,
 			})
 		}
 	}
@@ -243,6 +253,7 @@ func (u *FolderShareUseCase) GetSharedWithMeFolders(
 				ID:         share.Folder.ID,
 				FolderName: share.Folder.FolderName,
 				Owner:      ownerInfo,
+				Permission: string(share.Permission),
 				FileCount:  fileCount,
 				SharedAt:   share.CreatedAt,
 				CreatedAt:  share.Folder.CreatedAt,
@@ -297,10 +308,11 @@ func (u *FolderShareUseCase) GetFoldersSharedByMe(
 		for _, share := range folderShares {
 			if share.SharedWith != nil {
 				sharedWith = append(sharedWith, response.ShareUserDTO{
-					ID:       share.SharedWith.ID,
-					Name:     share.SharedWith.Name,
-					Email:    share.SharedWith.Email,
-					SharedAt: share.CreatedAt,
+					ID:         share.SharedWith.ID,
+					Name:       share.SharedWith.Name,
+					Email:      share.SharedWith.Email,
+					Permission: string(share.Permission),
+					SharedAt:   share.CreatedAt,
 				})
 			}
 		}

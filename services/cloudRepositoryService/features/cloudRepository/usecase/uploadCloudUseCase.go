@@ -77,6 +77,35 @@ func (u *UploadCloudRepositoryUseCase) RequestUploadURL(c context.Context, userI
 		return nil, fmt.Errorf("invalid video content type: %s", req.ContentType)
 	}
 
+	// Check folder write permission if folder_id is provided
+	if req.FolderID != nil {
+		// Check if user is the folder owner
+		var folder entity.Folder
+		err := u.DB.WithContext(ctx).
+			Where("id = ? AND user_id = ? AND deleted_at IS NULL", *req.FolderID, int32(userID)).
+			First(&folder).Error
+
+		if err == nil {
+			// User is owner, has write permission
+		} else if err == gorm.ErrRecordNotFound {
+			// User is not owner, check if they have write permission via share
+			var share entity.FolderShare
+			err = u.DB.WithContext(ctx).
+				Where("folder_id = ? AND shared_with_id = ? AND permission = ? AND deleted_at IS NULL",
+					*req.FolderID, int32(userID), entity.SharePermissionWrite).
+				First(&share).Error
+
+			if err != nil {
+				if err == gorm.ErrRecordNotFound {
+					return nil, fmt.Errorf("업로드 권한이 없습니다")
+				}
+				return nil, fmt.Errorf("failed to check folder write permission: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("failed to check folder ownership: %w", err)
+		}
+	}
+
 	// Generate S3 keys for original and thumbnail
 	s3Key := u.generateS3Key(userID, fileType, req.FileName)
 	thumbnailKey := ""
@@ -120,6 +149,7 @@ func (u *UploadCloudRepositoryUseCase) RequestUploadURL(c context.Context, userI
 	// Create file record in database
 	file := &entity.CloudFile{
 		UserID:       userID,
+		FolderID:     req.FolderID, // Set folder_id if provided
 		FileName:     req.FileName,
 		S3Key:        s3Key,
 		ThumbnailKey: thumbnailKey,

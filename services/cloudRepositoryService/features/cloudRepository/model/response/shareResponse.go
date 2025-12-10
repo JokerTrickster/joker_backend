@@ -11,10 +11,11 @@ type UserInfoDTO struct {
 
 // ShareUserDTO represents a user who has access to a shared resource
 type ShareUserDTO struct {
-	ID       int32     `json:"id"`
-	Name     string    `json:"name"`
-	Email    string    `json:"email"`
-	SharedAt time.Time `json:"shared_at"`
+	ID         int32     `json:"id"`
+	Name       string    `json:"name"`
+	Email      string    `json:"email"`
+	Permission string    `json:"permission"` // "read" or "write"
+	SharedAt   time.Time `json:"shared_at"`
 }
 
 // ShareFolderResponseDTO for folder share operation response
@@ -48,6 +49,7 @@ type SharedFolderDTO struct {
 	ID         uint        `json:"id"`
 	FolderName string      `json:"folder_name"`
 	Owner      UserInfoDTO `json:"owner"`
+	Permission string      `json:"permission"` // "read" or "write"
 	FileCount  int         `json:"file_count"`
 	SharedAt   time.Time   `json:"shared_at"`
 	CreatedAt  time.Time   `json:"created_at"`
@@ -61,6 +63,7 @@ type SharedFileDTO struct {
 	ContentType  string      `json:"content_type"`
 	FileSize     int64       `json:"file_size"`
 	Owner        UserInfoDTO `json:"owner"`
+	Permission   string      `json:"permission"` // "read" or "write"
 	DownloadURL  string      `json:"download_url"`
 	ThumbnailURL *string     `json:"thumbnail_url,omitempty"`
 	SharedAt     time.Time   `json:"shared_at"`

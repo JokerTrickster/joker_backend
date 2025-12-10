@@ -85,6 +85,7 @@ type IFolderShareRepository interface {
 	GetFoldersSharedByUserID(ctx context.Context, ownerID int32) ([]entity.FolderShare, error)
 	DeleteFolderShare(ctx context.Context, folderID uint, sharedWithID int32, ownerID int32) error
 	HasFolderAccess(ctx context.Context, userID int32, folderID uint) (bool, error)
+	HasFolderWritePermission(ctx context.Context, userID int32, folderID uint) (bool, error)
 	GetUsersByEmails(ctx context.Context, emails []string) ([]entity.User, error)
 }
 
