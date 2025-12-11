@@ -7,8 +7,9 @@ Image and video file management service using AWS S3 with presigned URLs for dir
 - 📤 **Presigned Upload URLs**: Front-end directly uploads files to S3
 - 📦 **Batch Upload**: Upload up to 30 files at once
 - 📥 **Presigned Download URLs**: Secure temporary download links
-- 🖼️ **Image Support**: JPEG, PNG, GIF, WebP
-- 🎥 **Video Support**: MP4, WebM, AVI, MOV
+- 🖼️ **Image Support**: All image/* MIME types (JPEG, PNG, GIF, WebP, HEIC, HEIF, etc.)
+- 🎥 **Video Support**: All video/* MIME types (MP4, WebM, AVI, MOV, QuickTime, M4V, etc.)
+- 📱 **iPhone Compatible**: Supports HEIC/HEIF photos and MOV/M4V videos natively
 - 📊 **File Management**: List, delete files with pagination
 - 🔐 **User Isolation**: Each user can only access their own files
 - 🗄️ **Database Tracking**: Metadata stored in MySQL
@@ -74,16 +75,46 @@ The `GET /api/v1/files` endpoint supports the following query parameters:
          "file_size": 1024000
        },
        {
+         "file_name": "iphone_photo.heic",
+         "content_type": "image/heic",
+         "file_type": "image",
+         "file_size": 2048000
+       },
+       {
          "file_name": "video1.mp4",
          "content_type": "video/mp4",
          "file_type": "video",
          "file_size": 5024000
+       },
+       {
+         "file_name": "iphone_video.mov",
+         "content_type": "video/quicktime",
+         "file_type": "video",
+         "file_size": 8192000
        }
      ]
    }
    ```
 2. **Server** → Returns array of presigned upload URLs
 3. **Client** → Uploads each file to S3 in parallel using presigned URLs
+
+### Supported MIME Types
+
+**Images** (all `image/*` MIME types):
+- Standard formats: JPEG, PNG, GIF, WebP, BMP, TIFF
+- iPhone formats: HEIC, HEIF, HEIC-sequence, HEIF-sequence
+- Any other image/* MIME type
+
+**Videos** (all `video/*` MIME types):
+- Standard formats: MP4, WebM, AVI
+- iPhone formats: MOV (QuickTime), M4V
+- Any other video/* MIME type
+
+**Validation Logic**:
+- Uses prefix-based validation (`strings.HasPrefix`)
+- All `image/*` content types are accepted for image uploads
+- All `video/*` content types are accepted for video uploads
+- Invalid MIME types (PDF, text, JSON, etc.) are rejected with clear error messages
 
 ## Download Flow
 

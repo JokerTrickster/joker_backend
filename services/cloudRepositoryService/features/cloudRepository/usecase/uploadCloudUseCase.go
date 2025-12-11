@@ -23,26 +23,6 @@ const (
 	DefaultUploadExpiration = 12 * time.Hour
 )
 
-var (
-	AllowedImageTypes = map[string]bool{
-		"image/jpeg": true,
-		"image/png":  true,
-		"image/gif":  true,
-		"image/webp": true,
-	}
-	AllowedVideoTypes = map[string]bool{
-		"video/mp4":        true,
-		"video/webm":       true,
-		"video/avi":        true,
-		"video/x-msvideo":  true, // Alternative AVI MIME
-		"video/mov":        true,
-		"video/quicktime":  true, // Alternative MOV MIME
-		"video/mpeg":       true, // MPEG files
-		"video/x-matroska": true, // MKV files
-		"video/3gpp":       true, // 3GP mobile video
-	}
-)
-
 type UploadCloudRepositoryUseCase struct {
 	Repo           _interface.IUploadCloudRepositoryRepository
 	StatsRepo      _interface.IUserStatsCloudRepositoryRepository
@@ -68,13 +48,13 @@ func (u *UploadCloudRepositoryUseCase) RequestUploadURL(c context.Context, userI
 	ctx, cancel := context.WithTimeout(c, u.ContextTimeout)
 	defer cancel()
 
-	// Validate content type
+	// Validate content type - allow all image/* and video/* MIME types
 	fileType := entity.FileType(req.FileType)
-	if fileType == entity.FileTypeImage && !AllowedImageTypes[req.ContentType] {
-		return nil, fmt.Errorf("invalid image content type: %s", req.ContentType)
+	if fileType == entity.FileTypeImage && !strings.HasPrefix(req.ContentType, "image/") {
+		return nil, fmt.Errorf("이미지 파일만 업로드할 수 있습니다 (현재: %s)", req.ContentType)
 	}
-	if fileType == entity.FileTypeVideo && !AllowedVideoTypes[req.ContentType] {
-		return nil, fmt.Errorf("invalid video content type: %s", req.ContentType)
+	if fileType == entity.FileTypeVideo && !strings.HasPrefix(req.ContentType, "video/") {
+		return nil, fmt.Errorf("동영상 파일만 업로드할 수 있습니다 (현재: %s)", req.ContentType)
 	}
 
 	// Check folder write permission if folder_id is provided

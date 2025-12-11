@@ -69,13 +69,13 @@ func (u *MultipartUploadUseCase) InitiateMultipartUpload(
 	ctx, cancel := context.WithTimeout(c, u.ContextTimeout)
 	defer cancel()
 
-	// Validate file type
+	// Validate file type - allow all image/* and video/* MIME types
 	fileType := entity.FileType(req.FileType)
-	if fileType == entity.FileTypeImage && !AllowedImageTypes[req.ContentType] {
-		return nil, fmt.Errorf("invalid image content type: %s", req.ContentType)
+	if fileType == entity.FileTypeImage && !strings.HasPrefix(req.ContentType, "image/") {
+		return nil, fmt.Errorf("이미지 파일만 업로드할 수 있습니다 (현재: %s)", req.ContentType)
 	}
-	if fileType == entity.FileTypeVideo && !AllowedVideoTypes[req.ContentType] {
-		return nil, fmt.Errorf("invalid video content type: %s", req.ContentType)
+	if fileType == entity.FileTypeVideo && !strings.HasPrefix(req.ContentType, "video/") {
+		return nil, fmt.Errorf("동영상 파일만 업로드할 수 있습니다 (현재: %s)", req.ContentType)
 	}
 
 	// Generate S3 key
@@ -254,7 +254,7 @@ func (u *MultipartUploadUseCase) CompleteMultipartUpload(
 
 	// Determine file type from content type
 	fileType := entity.FileTypeVideo
-	if AllowedImageTypes[upload.ContentType] {
+	if strings.HasPrefix(upload.ContentType, "image/") {
 		fileType = entity.FileTypeImage
 	}
 
