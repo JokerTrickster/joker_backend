@@ -151,7 +151,29 @@ $env:GOOGLE_CLIENT_ID="123456789-abcdefghijklmnop.apps.googleusercontent.com"
 - https://yourdomain.com/auth/google/callback
 ```
 
-## 6. 문제 해결
+## 6. 계정 복원 동작
+
+### Soft-Delete된 계정의 자동 복원
+
+구글 OAuth를 통해 로그인 시, 이전에 삭제(Soft-Delete)된 계정이 자동으로 복원됩니다:
+
+**동작 방식:**
+- 사용자가 구글 로그인을 시도하면 시스템이 이메일로 계정을 조회
+- 삭제된 계정(deleted_at이 NULL이 아닌 계정)이 발견되면 자동으로 복원
+- 복원 시 `deleted_at` 필드를 NULL로 설정하여 계정 재활성화
+- 기존 사용자 데이터(user ID, created_at 등)는 모두 유지됨
+
+**사용자 경험:**
+- 삭제된 계정으로 다시 로그인 시도 시 에러 없이 정상 로그인
+- 새 계정이 생성되지 않고 기존 계정이 복원됨
+- 모든 과정이 투명하게 처리되어 사용자는 특별한 조치 불필요
+
+**보안 고려사항:**
+- 구글 ID 토큰의 이메일이 정확히 일치해야 복원됨
+- 복원 후 새로운 JWT 토큰이 발급됨
+- 복원된 계정의 provider는 'google'로 유지됨
+
+## 7. 문제 해결
 
 ### "Invalid Google ID token" 에러
 - 클라이언트 ID가 올바른지 확인
@@ -173,7 +195,7 @@ $env:GOOGLE_CLIENT_ID="123456789-abcdefghijklmnop.apps.googleusercontent.com"
 - **승인된 JavaScript 원본**에 프론트엔드 도메인이 정확히 추가되었는지 확인
 - 프로토콜(http/https)과 포트 번호가 정확한지 확인
 
-## 7. 참고 자료
+## 8. 참고 자료
 
 - [Google OAuth 2.0 문서](https://developers.google.com/identity/protocols/oauth2)
 - [Google Identity Platform](https://developers.google.com/identity)

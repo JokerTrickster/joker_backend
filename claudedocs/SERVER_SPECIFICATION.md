@@ -361,8 +361,50 @@ shared/
 - JWT 기반 인증 (Access Token + Refresh Token)
 - bcrypt 비밀번호 해싱
 - Google OAuth 통합
+  - 신규 사용자 자동 생성
+  - 삭제된 계정 자동 복원 (Soft-Delete 복구)
 - 이메일 검증
 - Soft Delete 지원
+
+#### 4.1.2 Google OAuth 동작 상세
+
+**인증 플로우:**
+```
+1. Client → Google OAuth 로그인
+2. Google → ID Token 발급
+3. Client → POST /v0.1/auth/google/signin (ID Token 전송)
+4. Server → ID Token 검증
+5. Server → 사용자 조회/생성/복원
+6. Server → JWT 토큰 발급 (Access + Refresh)
+7. Server → Client에 토큰 반환
+```
+
+**사용자 상태별 처리:**
+
+| 상태 | 조건 | 동작 | 결과 |
+|------|------|------|------|
+| 신규 사용자 | 이메일이 DB에 없음 | 새 사용자 생성 (provider='google') | 201 Created + JWT 토큰 |
+| 기존 사용자 | 이메일 존재, deleted_at=NULL | 기존 사용자 조회 | 200 OK + JWT 토큰 |
+| 삭제된 사용자 | 이메일 존재, deleted_at!=NULL | 계정 복원 (deleted_at=NULL) | 200 OK + JWT 토큰 |
+
+**계정 복원 동작:**
+- 삭제된 계정(Soft-Delete)으로 Google 로그인 시 자동 복원
+- 기존 사용자 데이터 완전 보존:
+  - User ID 유지 (외래 키 관계 유지)
+  - created_at 타임스탬프 유지 (감사 추적)
+  - 모든 사용자 메타데이터 유지
+- 복원 프로세스:
+  1. `.Unscoped()` 쿼리로 삭제된 사용자 조회
+  2. `deleted_at` 필드를 NULL로 설정
+  3. 데이터베이스에 업데이트
+  4. 정상 로그인 플로우 진행
+- 사용자 경험: 투명하게 처리 (에러 없이 정상 로그인)
+- 보안: Google ID Token 검증으로 본인 인증 보장
+
+**관련 문서:**
+- [Google OAuth 설정 가이드](../GOOGLE_OAUTH_SETUP.md)
+- [Google 로그인 테스트](../GOOGLE_LOGIN_TEST.md)
+- [Soft-Delete 복원 기술 문서](./google_oauth_soft_delete_fix.md)
 
 ---
 
