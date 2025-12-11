@@ -181,6 +181,25 @@ func (r *FolderRepository) GetFilesByFolderID(ctx context.Context, folderID *uin
 	return files, nil
 }
 
+// GetFilesByFolderIDWithoutUserCheck retrieves files in a folder without user check
+// Use this AFTER permission validation in UseCase
+func (r *FolderRepository) GetFilesByFolderIDWithoutUserCheck(ctx context.Context, folderID *uint) ([]entity.CloudFile, error) {
+	var files []entity.CloudFile
+	query := r.db.WithContext(ctx).
+		Where("deleted_at IS NULL")
+
+	if folderID == nil {
+		query = query.Where("folder_id IS NULL")
+	} else {
+		query = query.Where("folder_id = ?", *folderID)
+	}
+
+	if err := query.Order("created_at DESC").Find(&files).Error; err != nil {
+		return nil, err
+	}
+	return files, nil
+}
+
 // MoveFilesToFolder moves multiple files to a folder (or root if folderID is nil)
 func (r *FolderRepository) MoveFilesToFolder(ctx context.Context, fileIDs []uint, folderID *uint, userID int32) (int, error) {
 	// If folderID is provided, verify folder exists and belongs to user

@@ -231,14 +231,23 @@ func (u *FolderUseCase) GetFolderFiles(
 	ctx, cancel := context.WithTimeout(c, u.ContextTimeout)
 	defer cancel()
 
-	// Verify folder exists
-	_, err := u.FolderRepo.GetFolderByID(ctx, folderID, int32(userID))
+	// Step 1: Check folder access permission
+	hasAccess, err := u.FolderShareRepo.HasFolderAccess(ctx, int32(userID), folderID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check folder access: %w", err)
+	}
+	if !hasAccess {
+		return nil, fmt.Errorf("folder not found or no access")
+	}
+
+	// Step 2: Get folder info without user check (already validated access)
+	folder, err := u.FolderRepo.GetFolderByIDWithoutUserCheck(ctx, folderID)
 	if err != nil {
 		return nil, fmt.Errorf("folder not found: %w", err)
 	}
 
-	// Get files
-	files, err := u.FolderRepo.GetFilesByFolderID(ctx, &folderID, int32(userID))
+	// Step 3: Get files using folder owner's ID, not requester's ID
+	files, err := u.FolderRepo.GetFilesByFolderID(ctx, &folderID, int32(folder.UserID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get folder files: %w", err)
 	}

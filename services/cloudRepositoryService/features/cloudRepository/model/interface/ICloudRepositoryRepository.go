@@ -75,6 +75,7 @@ type IFolderRepository interface {
 	DeleteFolder(ctx context.Context, id uint, userID int32) error
 	GetFolderFileCount(ctx context.Context, folderID uint, userID int32) (int, error)
 	GetFilesByFolderID(ctx context.Context, folderID *uint, userID int32) ([]entity.CloudFile, error)
+	GetFilesByFolderIDWithoutUserCheck(ctx context.Context, folderID *uint) ([]entity.CloudFile, error)
 	MoveFilesToFolder(ctx context.Context, fileIDs []uint, folderID *uint, userID int32) (int, error)
 }
 
