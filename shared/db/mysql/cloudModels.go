@@ -8,9 +8,9 @@ import (
 
 // User extension (partial struct for GORM)
 type User struct {
-	ID           uint   `gorm:"primaryKey"`
-	StorageUsed  int64  `gorm:"default:0"`
-	StorageLimit int64  `gorm:"default:16106127360"` // 15GB
+	ID           uint  `gorm:"primaryKey"`
+	StorageUsed  int64 `gorm:"default:0"`
+	StorageLimit int64 `gorm:"default:16106127360"` // 15GB
 }
 
 // File represents the files table

@@ -2,8 +2,8 @@ package response
 
 // StorageInfoDTO represents storage usage information
 type StorageInfoDTO struct {
-	Used       int64   `json:"used"`       // Bytes
-	Total      int64   `json:"total"`      // Bytes
+	Used       int64   `json:"used"`  // Bytes
+	Total      int64   `json:"total"` // Bytes
 	Percentage float64 `json:"percentage"`
 }
 

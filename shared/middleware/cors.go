@@ -3,9 +3,9 @@ package middleware
 import (
 	"strings"
 
+	"github.com/JokerTrickster/joker_backend/shared/logger"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/JokerTrickster/joker_backend/shared/logger"
 	"go.uber.org/zap"
 )
 

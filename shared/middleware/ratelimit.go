@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/labstack/echo/v4"
 	"github.com/JokerTrickster/joker_backend/shared/logger"
+	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 )

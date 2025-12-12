@@ -20,13 +20,9 @@ type Config struct {
 	DatabaseName   string // Database name for migration tracking
 }
 
-// Run executes database migrations
-func Run(db *sql.DB, config Config) error {
-	logger.Info("Starting database migration",
-		zap.String("migrations_path", config.MigrationsPath),
-		zap.String("database", config.DatabaseName),
-	)
-
+// newMigrateInstance creates a new migrate instance with proper configuration
+// This helper reduces code duplication across Run, Down, and Version functions
+func newMigrateInstance(db *sql.DB, config Config) (*migrate.Migrate, error) {
 	// Create MySQL driver instance
 	driver, err := mysql.WithInstance(db, &mysql.Config{
 		DatabaseName: config.DatabaseName,
@@ -34,14 +30,14 @@ func Run(db *sql.DB, config Config) error {
 	})
 	if err != nil {
 		logger.Error("Failed to create migration driver", zap.Error(err))
-		return fmt.Errorf("failed to create migration driver: %w", err)
+		return nil, fmt.Errorf("failed to create migration driver: %w", err)
 	}
 
 	// Get absolute path to migrations
 	absPath, err := filepath.Abs(config.MigrationsPath)
 	if err != nil {
 		logger.Error("Failed to get absolute path", zap.Error(err))
-		return fmt.Errorf("failed to get absolute path: %w", err)
+		return nil, fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
 	// Create migrate instance
@@ -52,7 +48,23 @@ func Run(db *sql.DB, config Config) error {
 	)
 	if err != nil {
 		logger.Error("Failed to create migrate instance", zap.Error(err))
-		return fmt.Errorf("failed to create migrate instance: %w", err)
+		return nil, fmt.Errorf("failed to create migrate instance: %w", err)
+	}
+
+	return m, nil
+}
+
+// Run executes database migrations
+func Run(db *sql.DB, config Config) error {
+	logger.Info("Starting database migration",
+		zap.String("migrations_path", config.MigrationsPath),
+		zap.String("database", config.DatabaseName),
+	)
+
+	// Create migrate instance
+	m, err := newMigrateInstance(db, config)
+	if err != nil {
+		return err
 	}
 	// Don't defer m.Close() to avoid closing the database connection
 
@@ -110,26 +122,9 @@ func Down(db *sql.DB, config Config) error {
 		zap.String("database", config.DatabaseName),
 	)
 
-	driver, err := mysql.WithInstance(db, &mysql.Config{
-		DatabaseName: config.DatabaseName,
-		NoLock:       true,
-	})
+	m, err := newMigrateInstance(db, config)
 	if err != nil {
-		return fmt.Errorf("failed to create migration driver: %w", err)
-	}
-
-	absPath, err := filepath.Abs(config.MigrationsPath)
-	if err != nil {
-		return fmt.Errorf("failed to get absolute path: %w", err)
-	}
-
-	m, err := migrate.NewWithDatabaseInstance(
-		fmt.Sprintf("file://%s", absPath),
-		config.DatabaseName,
-		driver,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create migrate instance: %w", err)
+		return err
 	}
 
 	if err := m.Steps(-1); err != nil {
@@ -146,26 +141,9 @@ func Down(db *sql.DB, config Config) error {
 
 // Version returns the current migration version
 func Version(db *sql.DB, config Config) (uint, bool, error) {
-	driver, err := mysql.WithInstance(db, &mysql.Config{
-		DatabaseName: config.DatabaseName,
-		NoLock:       true,
-	})
+	m, err := newMigrateInstance(db, config)
 	if err != nil {
-		return 0, false, fmt.Errorf("failed to create migration driver: %w", err)
-	}
-
-	absPath, err := filepath.Abs(config.MigrationsPath)
-	if err != nil {
-		return 0, false, fmt.Errorf("failed to get absolute path: %w", err)
-	}
-
-	m, err := migrate.NewWithDatabaseInstance(
-		fmt.Sprintf("file://%s", absPath),
-		config.DatabaseName,
-		driver,
-	)
-	if err != nil {
-		return 0, false, fmt.Errorf("failed to create migrate instance: %w", err)
+		return 0, false, err
 	}
 
 	version, dirty, err := m.Version()

@@ -4,12 +4,12 @@ import "time"
 
 // FolderResponseDTO represents a folder with file count
 type FolderResponseDTO struct {
-	ID             uint       `json:"id"`
-	FolderName     string     `json:"folder_name"`
-	ParentFolderID *uint      `json:"parent_folder_id,omitempty"`
-	FileCount      int        `json:"file_count"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	ID             uint      `json:"id"`
+	FolderName     string    `json:"folder_name"`
+	ParentFolderID *uint     `json:"parent_folder_id,omitempty"`
+	FileCount      int       `json:"file_count"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 // FolderTreeResponseDTO represents a folder with sub-folders

@@ -11,7 +11,7 @@ type ListFavoritesRequestDTO struct {
 	Size  int    `query:"size" validate:"omitempty,min=1,max=100"`
 	Sort  string `query:"sort" validate:"omitempty,oneof=uploadDate fileName"`
 	Order string `query:"order" validate:"omitempty,oneof=asc desc"`
-	Q     string `query:"q" validate:"omitempty,max=255"`     // Filename search
-	Ext   string `query:"ext" validate:"omitempty,max=10"`    // File extension filter
-	Tag   string `query:"tag" validate:"omitempty,max=50"`    // Tag filter
+	Q     string `query:"q" validate:"omitempty,max=255"`  // Filename search
+	Ext   string `query:"ext" validate:"omitempty,max=10"` // File extension filter
+	Tag   string `query:"tag" validate:"omitempty,max=50"` // Tag filter
 }

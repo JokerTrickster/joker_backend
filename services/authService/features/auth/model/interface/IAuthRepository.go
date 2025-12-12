@@ -27,6 +27,6 @@ type IRefreshTokenAuthRepository interface {
 	FindOneByUserIDAndDeleteToken(ctx context.Context, userID uint) error
 }
 
-type IGoogleSigninAuthRepository interface{
+type IGoogleSigninAuthRepository interface {
 	FindOrCreateUserByGoogleEmail(ctx context.Context, email string, name string) (uint, error)
 }

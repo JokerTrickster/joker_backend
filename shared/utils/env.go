@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -14,6 +15,14 @@ type CtxValues struct {
 	StartTime time.Time
 	RequestID string
 	Email     string
+}
+
+// GetEnv retrieves an environment variable with a fallback default value
+func GetEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
 
 func TimeToEpochMillis(time time.Time) int64 {

@@ -3,7 +3,7 @@ package request
 // InitiateMultipartUploadRequestDTO for initiating multipart upload
 type InitiateMultipartUploadRequestDTO struct {
 	FileName    string `json:"file_name" validate:"required"`
-	FileSize    int64  `json:"file_size" validate:"required,min=5242880"`       // Minimum 5MB for multipart
+	FileSize    int64  `json:"file_size" validate:"required,min=5242880"` // Minimum 5MB for multipart
 	ContentType string `json:"content_type" validate:"required"`
 	FileType    string `json:"file_type" validate:"required,oneof=image video"` // Still track file type
 }

@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labstack/echo/v4"
-	"github.com/JokerTrickster/joker_backend/shared/logger"
 	"github.com/JokerTrickster/joker_backend/shared/jwt"
+	"github.com/JokerTrickster/joker_backend/shared/logger"
+	"github.com/JokerTrickster/joker_backend/shared/utils"
+	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 )
 
@@ -24,7 +25,7 @@ func RequestLogger() echo.MiddlewareFunc {
 			// Generate request ID if not exists
 			reqID := c.Request().Header.Get(echo.HeaderXRequestID)
 			if reqID == "" {
-				reqID = fmt.Sprintf("%d", time.Now().UnixNano())
+				reqID = utils.GenerateRequestID()
 				c.Request().Header.Set(echo.HeaderXRequestID, reqID)
 			}
 			c.Response().Header().Set(echo.HeaderXRequestID, reqID)
@@ -102,7 +103,7 @@ func RequestID() echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			reqID := c.Request().Header.Get(echo.HeaderXRequestID)
 			if reqID == "" {
-				reqID = fmt.Sprintf("%d", time.Now().UnixNano())
+				reqID = utils.GenerateRequestID()
 			}
 			c.Request().Header.Set(echo.HeaderXRequestID, reqID)
 			c.Response().Header().Set(echo.HeaderXRequestID, reqID)

@@ -71,18 +71,40 @@ e.Use(customMiddleware.Timeout(30 * time.Second))
 
 Returns HTTP 408 when timeout is exceeded.
 
+### BodySizeLimit
+Prevents DoS attacks by limiting request body size:
+
+```go
+// Default 10MB limit for standard API requests
+e.Use(customMiddleware.DefaultBodySizeLimit())
+
+// 100MB limit for file uploads
+uploadGroup := e.Group("/upload")
+uploadGroup.Use(customMiddleware.FileUploadBodySizeLimit())
+
+// Custom limit (5MB)
+e.Use(customMiddleware.BodySizeLimit(5 << 20))
+```
+
+Features:
+- Protects against large request body DoS attacks
+- Configurable limits per route or globally
+- Returns HTTP 413 Request Entity Too Large when exceeded
+- Constants: `DefaultMaxBodySize` (10MB), `MaxFileUploadSize` (100MB)
+
 ## Middleware Order
 
 The order of middleware matters! Recommended order:
 
 ```go
-e.Use(customMiddleware.RequestID())     // 1. Generate request ID
-e.Use(customMiddleware.Recovery())      // 2. Catch panics
-e.Use(customMiddleware.RequestLogger()) // 3. Log requests
-e.Use(customMiddleware.CORS())          // 4. CORS headers
+e.Use(customMiddleware.RequestID())                // 1. Generate request ID
+e.Use(customMiddleware.Recovery())                 // 2. Catch panics
+e.Use(customMiddleware.RequestLogger())            // 3. Log requests
+e.Use(customMiddleware.DefaultBodySizeLimit())     // 4. Limit body size
+e.Use(customMiddleware.CORS())                     // 5. CORS headers
 rateLimiter := customMiddleware.NewRateLimiter(10, 20)
-e.Use(rateLimiter.Middleware())         // 5. Rate limiting
-e.Use(customMiddleware.Timeout(30 * time.Second)) // 6. Request timeout
+e.Use(rateLimiter.Middleware())                    // 6. Rate limiting
+e.Use(customMiddleware.Timeout(30 * time.Second))  // 7. Request timeout
 ```
 
 ## Testing

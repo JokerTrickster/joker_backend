@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/labstack/echo/v4"
 	"github.com/JokerTrickster/joker_backend/shared/logger"
+	"github.com/labstack/echo/v4"
 )
 
 func init() {

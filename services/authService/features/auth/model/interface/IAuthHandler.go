@@ -22,6 +22,6 @@ type ICheckEmailAuthHandler interface {
 	CheckEmail(c echo.Context) error
 }
 
-type IGoogleSigninAuthHandler interface{
+type IGoogleSigninAuthHandler interface {
 	GoogleSignin(c echo.Context) error
 }

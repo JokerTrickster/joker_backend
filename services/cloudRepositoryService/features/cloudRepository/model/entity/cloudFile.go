@@ -24,13 +24,13 @@ const (
 type ProcessingStage string
 
 const (
-	ProcessingStageNone               ProcessingStage = ""
-	ProcessingStageValidating         ProcessingStage = "validating_file"
-	ProcessingStageExtractingMetadata ProcessingStage = "extracting_metadata"
+	ProcessingStageNone                ProcessingStage = ""
+	ProcessingStageValidating          ProcessingStage = "validating_file"
+	ProcessingStageExtractingMetadata  ProcessingStage = "extracting_metadata"
 	ProcessingStageGeneratingThumbnail ProcessingStage = "generating_thumbnail"
-	ProcessingStageUploadingThumbnail ProcessingStage = "uploading_thumbnail"
-	ProcessingStageFinalizing         ProcessingStage = "finalizing"
-	ProcessingStageDone               ProcessingStage = "done"
+	ProcessingStageUploadingThumbnail  ProcessingStage = "uploading_thumbnail"
+	ProcessingStageFinalizing          ProcessingStage = "finalizing"
+	ProcessingStageDone                ProcessingStage = "done"
 )
 
 // CloudFile represents a file stored in cloud storage
@@ -46,7 +46,7 @@ type CloudFile struct {
 	FileSize              int64            `gorm:"not null" json:"file_size"`
 	Duration              *float64         `gorm:"type:decimal(10,2)" json:"duration,omitempty"` // Video duration in seconds
 	ProcessingStatus      ProcessingStatus `gorm:"size:20;default:'pending';index" json:"processing_status"`
-	ProcessingProgress    int              `gorm:"default:0" json:"processing_progress"`         // 0-100
+	ProcessingProgress    int              `gorm:"default:0" json:"processing_progress"` // 0-100
 	ProcessingStage       ProcessingStage  `gorm:"size:50" json:"processing_stage,omitempty"`
 	ProcessingError       string           `gorm:"size:512" json:"processing_error,omitempty"`
 	ProcessingStartedAt   *time.Time       `json:"processing_started_at,omitempty"`
