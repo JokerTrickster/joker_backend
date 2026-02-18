@@ -23,6 +23,7 @@ type ITDGameRepository interface {
 	GetByID(ctx context.Context, id uint) (*entity.TDGameResult, error)
 	GetHistory(ctx context.Context, userID uint, gameMode string, limit, offset int) ([]entity.TDGameResult, int64, error)
 	GetHighestRound(ctx context.Context, userID uint, gameMode string) (uint, error)
+	GetWeeklyRankings(ctx context.Context, gameMode string, limit int) ([]entity.TDGameResult, error)
 }
 
 type ITDQuestRepository interface {

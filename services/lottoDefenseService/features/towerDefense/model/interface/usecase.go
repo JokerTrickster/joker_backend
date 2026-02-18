@@ -17,6 +17,7 @@ type ITDGameUseCase interface {
 	SaveSingleResult(ctx context.Context, userID uint, req *request.SaveGameResultRequest) (*response.GameResultResponse, error)
 	GetGameHistory(ctx context.Context, userID uint, req *request.GameHistoryRequest) (*response.GameHistoryResponse, error)
 	GetUserStats(ctx context.Context, userID uint) (*response.UserStatsResponse, error)
+	GetWeeklyRankings(ctx context.Context, gameMode string) (*response.RankingResponse, error)
 }
 
 type ITDQuestUseCase interface {

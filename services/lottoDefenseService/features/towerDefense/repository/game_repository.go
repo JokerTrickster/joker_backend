@@ -68,3 +68,22 @@ func (r *TDGameRepository) GetHighestRound(ctx context.Context, userID uint, gam
 
 	return result.MaxRound, nil
 }
+
+func (r *TDGameRepository) GetWeeklyRankings(ctx context.Context, gameMode string, limit int) ([]entity.TDGameResult, error) {
+	var results []entity.TDGameResult
+
+	// Get results from last 7 days
+	// Order by: rounds_reached DESC, survival_time_seconds ASC (faster clear time = higher rank)
+	err := r.db.WithContext(ctx).
+		Preload("User"). // Join with td_users table to get username
+		Where("game_mode = ? AND played_at >= NOW() - INTERVAL 7 DAY", gameMode).
+		Order("rounds_reached DESC, survival_time_seconds ASC").
+		Limit(limit).
+		Find(&results).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}

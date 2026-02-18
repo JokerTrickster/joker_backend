@@ -159,3 +159,48 @@ func (u *TDGameUseCase) GetUserStats(ctx context.Context, userID uint) (*respons
 		},
 	}, nil
 }
+
+func (u *TDGameUseCase) GetWeeklyRankings(ctx context.Context, gameMode string) (*response.RankingResponse, error) {
+	// Get top 10 results from last 7 days
+	results, err := u.gameRepo.GetWeeklyRankings(ctx, gameMode, 10)
+	if err != nil {
+		return nil, err
+	}
+
+	rankings := make([]response.RankingItem, len(results))
+	for i, result := range results {
+		item := response.RankingItem{
+			Rank:                i + 1,
+			UserID:              result.UserID,
+			RoundsReached:       result.RoundsReached,
+			SurvivalTimeSeconds: result.SurvivalTimeSeconds,
+			PlayedAt:            result.PlayedAt.Format("2006-01-02 15:04:05"),
+		}
+
+		// Calculate survival minutes
+		if result.SurvivalTimeSeconds != nil {
+			minutes := float64(*result.SurvivalTimeSeconds) / 60.0
+			item.SurvivalMinutes = minutes
+		}
+
+		// Get username from User relation
+		if result.User != nil {
+			item.Username = result.User.Username
+		}
+
+		// For co-op mode, get player 2 info from room
+		if gameMode == "coop" && result.Room != nil {
+			// Find the other player in the room
+			// This would require a more complex query or additional repository method
+			// For now, we'll handle it simply
+			// TODO: Implement proper co-op player 2 lookup
+		}
+
+		rankings[i] = item
+	}
+
+	return &response.RankingResponse{
+		GameMode: gameMode,
+		Rankings: rankings,
+	}, nil
+}

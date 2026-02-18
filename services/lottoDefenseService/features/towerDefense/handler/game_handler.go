@@ -17,6 +17,7 @@ func NewTDGameHandler(g *echo.Group, uc _interface.ITDGameUseCase) {
 	h := &TDGameHandler{uc: uc}
 	g.POST("/game/single/result", h.SaveSingleResult)
 	g.GET("/game/history", h.GetHistory)
+	g.GET("/rankings/:mode", h.GetRankings)
 }
 
 func (h *TDGameHandler) SaveSingleResult(c echo.Context) error {
@@ -72,6 +73,25 @@ func (h *TDGameHandler) GetHistory(c echo.Context) error {
 	}
 
 	resp, err := h.uc.GetGameHistory(ctx, userID, &req)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success": true,
+		"data":    resp,
+	})
+}
+
+func (h *TDGameHandler) GetRankings(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	gameMode := c.Param("mode")
+	if gameMode != "single" && gameMode != "coop" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid game mode (use 'single' or 'coop')"})
+	}
+
+	resp, err := h.uc.GetWeeklyRankings(ctx, gameMode)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
