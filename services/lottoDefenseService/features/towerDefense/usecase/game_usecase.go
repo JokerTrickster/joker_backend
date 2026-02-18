@@ -189,11 +189,15 @@ func (u *TDGameUseCase) GetWeeklyRankings(ctx context.Context, gameMode string) 
 		}
 
 		// For co-op mode, get player 2 info from room
-		if gameMode == "coop" && result.Room != nil {
-			// Find the other player in the room
-			// This would require a more complex query or additional repository method
-			// For now, we'll handle it simply
-			// TODO: Implement proper co-op player 2 lookup
+		if gameMode == "coop" && result.Room != nil && len(result.Room.Players) > 0 {
+			// Find the other player in the room (not the current user)
+			for _, player := range result.Room.Players {
+				if player.UserID != result.UserID && player.User != nil {
+					item.Player2ID = &player.UserID
+					item.Player2Username = &player.User.Username
+					break
+				}
+			}
 		}
 
 		rankings[i] = item

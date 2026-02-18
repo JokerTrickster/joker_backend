@@ -74,13 +74,21 @@ func (r *TDGameRepository) GetWeeklyRankings(ctx context.Context, gameMode strin
 
 	// Get results from last 7 days
 	// Order by: rounds_reached DESC, survival_time_seconds ASC (faster clear time = higher rank)
-	err := r.db.WithContext(ctx).
+	query := r.db.WithContext(ctx).
 		Preload("User"). // Join with td_users table to get username
 		Where("game_mode = ? AND played_at >= NOW() - INTERVAL 7 DAY", gameMode).
 		Order("rounds_reached DESC, survival_time_seconds ASC").
-		Limit(limit).
-		Find(&results).Error
+		Limit(limit)
 
+	// For co-op mode, preload room and room players to get player 2 info
+	if gameMode == "coop" {
+		query = query.
+			Preload("Room").
+			Preload("Room.Players").
+			Preload("Room.Players.User")
+	}
+
+	err := query.Find(&results).Error
 	if err != nil {
 		return nil, err
 	}
