@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `services/authService/` and `services/cloudRepositoryService/`: independent Go services (Echo) with `cmd/` entrypoints and `features/` split into `handler`, `usecase`, `repository`, and `model`.
+- `services/authService/`, `services/cloudRepositoryService/`, and `services/lottoDefenseService/`: independent Go services (Echo) with `cmd/` entrypoints and `features/` split into `handler`, `usecase`, `repository`, and `model`.
 - `shared/`: common config, logger, middleware, errors, AWS helpers, and utilities consumed by all services.
 - `migrations/`: SQL migrations (see `scripts/migrate.sh`), plus service-specific schemas in `services/*/DB_SCHEMA.md`.
 - `docs/` and `services/*/docs/`: Swagger artifacts; regenerate per service when endpoints change.
@@ -10,6 +10,7 @@
 ## Build, Test, and Development Commands
 - Auth Service: `cd services/authService`; `make run` (local), `make build`, `make test` or `make test-e2e`, `make test-coverage`, `make fmt`, `make lint`, `make swagger-init`. `make docker-up`/`docker-down` use the root compose for MySQL/S3 mocks.
 - Cloud Repository Service: `cd services/cloudRepositoryService`; `make run`, `make build`, `make test`, `make dev` (air hot reload), `make docker-build`, `make docker-run`.
+- Lotto Defense Service: `cd services/lottoDefenseService`; `make run`, `make build`, `make test`; port 18082; JWT required for `/api/v1/game/*`.
 - Migrations: from repo root `./scripts/migrate.sh up|down|create <name>` (requires `migrate` CLI and DB env vars).
 - Docker: `docker-compose.yml` for local stack; `docker-compose.prod.yml` for production-like runs.
 

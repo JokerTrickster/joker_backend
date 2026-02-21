@@ -67,12 +67,12 @@ services:
       - joker_network
     restart: unless-stopped
 
-  # Game Service (Port 8081)
-  game-service:
+  # Lotto Defense Game Service (Port 18082)
+  lotto-defense-service:
     build:
-      context: ./services/gameService
-      dockerfile: Dockerfile
-    container_name: joker_game_service
+      context: .
+      dockerfile: services/lottoDefenseService/Dockerfile
+    container_name: joker_lotto_defense_service
     environment:
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
@@ -80,12 +80,13 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-joker_password}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-backend_dev}
       LOG_LEVEL: ${LOG_LEVEL:-info}
-      PORT: 8081
+      PORT: 18082
       ENV: ${ENV:-production}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-*}
       IS_LOCAL: "true"
+      JWT_SECRET: ${JWT_SECRET:-joker-jwt-secret-key}
     ports:
-      - "8081:8081"
+      - "18082:18082"
     depends_on:
       mysql:
         condition: service_healthy

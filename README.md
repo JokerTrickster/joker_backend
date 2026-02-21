@@ -77,14 +77,20 @@ joker_backend/
 │   │   │       └── model/         # 데이터 모델
 │   │   └── .env.example           # 환경변수 예제
 │   │
-│   └── cloudRepositoryService/     # 클라우드 저장소 서비스
-│       ├── cmd/                   # 애플리케이션 진입점
-│       └── features/
-│           └── cloudRepository/
-│               ├── handler/       # HTTP 핸들러
-│               ├── usecase/       # 비즈니스 로직
-│               ├── repository/    # 데이터 액세스
-│               └── model/         # 데이터 모델
+│   ├── cloudRepositoryService/     # 클라우드 저장소 서비스
+│   │   ├── cmd/
+│   │   └── features/
+│   │       └── cloudRepository/
+│   │
+│   └── lottoDefenseService/        # 로또 디펜스 게임 서비스
+│       ├── cmd/
+│       ├── features/
+│       │   └── lottoDefense/
+│       │       ├── handler/
+│       │       ├── usecase/
+│       │       ├── repository/
+│       │       └── model/
+│       └── pkg/lotto/
 │
 ├── shared/                         # 공통 모듈
 │   ├── database/                  # DB 연결 관리
@@ -172,6 +178,10 @@ go run cmd/main.go
 # Cloud Repository Service 실행
 cd services/cloudRepositoryService
 go run cmd/main.go
+
+# Lotto Defense Service 실행
+cd services/lottoDefenseService
+go run cmd/main.go
 ```
 
 ## 📚 API Documentation
@@ -197,6 +207,16 @@ go run cmd/main.go
 | GET | `/api/v1/user/activity` | 활동 내역 조회 | ✅ |
 | POST | `/api/v1/tags` | 태그 생성 | ✅ |
 | POST | `/api/v1/files/{id}/tags` | 파일에 태그 추가 | ✅ |
+
+### Lotto Defense Service (Port: 18082)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/v1/game/rounds` | 라운드 시작 | ✅ |
+| PATCH | `/api/v1/game/rounds/:id/end` | 라운드 종료 (점수 제출, 로또 번호 생성) | ✅ |
+| GET | `/api/v1/game/rounds` | 내 라운드 목록 | ✅ |
+| GET | `/api/v1/game/rounds/:id` | 라운드 상세 (완료 시 로또 번호 포함) | ✅ |
+| GET | `/api/v1/game/leaderboard` | 랭킹 (best score per user) | ✅ |
 
 ### API 사용 예시
 
