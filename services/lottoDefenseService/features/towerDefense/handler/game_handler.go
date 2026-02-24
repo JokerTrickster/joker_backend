@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	_interface "github.com/JokerTrickster/joker_backend/services/lottoDefenseService/features/towerDefense/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/lottoDefenseService/features/towerDefense/model/request"
@@ -22,82 +21,63 @@ func NewTDGameHandler(g *echo.Group, uc _interface.ITDGameUseCase) {
 
 func (h *TDGameHandler) SaveSingleResult(c echo.Context) error {
 	ctx := c.Request().Context()
+	
 	userID, err := getUserIDFromContext(c)
 	if err != nil {
 		return err
 	}
 
 	var req request.SaveGameResultRequest
-	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
-	}
-
-	if err := c.Validate(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
 	}
 
 	resp, err := h.uc.SaveSingleResult(ctx, userID, &req)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return errorResponse(c, http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusCreated, map[string]interface{}{
-		"success": true,
-		"data":    resp,
-	})
+	return successResponse(c, http.StatusCreated, resp)
 }
 
 func (h *TDGameHandler) GetHistory(c echo.Context) error {
 	ctx := c.Request().Context()
+	
 	userID, err := getUserIDFromContext(c)
 	if err != nil {
 		return err
 	}
 
 	req := request.GameHistoryRequest{
-		GameMode: c.QueryParam("mode"),
-		Limit:    10,
-		Offset:   0,
-	}
-
-	if limitStr := c.QueryParam("limit"); limitStr != "" {
-		if limit, err := strconv.Atoi(limitStr); err == nil {
-			req.Limit = limit
-		}
-	}
-
-	if offsetStr := c.QueryParam("offset"); offsetStr != "" {
-		if offset, err := strconv.Atoi(offsetStr); err == nil {
-			req.Offset = offset
-		}
+		GameMode: getQueryString(c, "mode", ""),
+		Limit:    getQueryInt(c, "limit", 10),
+		Offset:   getQueryInt(c, "offset", 0),
 	}
 
 	resp, err := h.uc.GetGameHistory(ctx, userID, &req)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return errorResponse(c, http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"success": true,
-		"data":    resp,
-	})
+	return successResponse(c, http.StatusOK, resp)
 }
 
 func (h *TDGameHandler) GetRankings(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	gameMode := c.Param("mode")
-	if gameMode != "single" && gameMode != "coop" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid game mode (use 'single' or 'coop')"})
+	if !isValidGameMode(gameMode) {
+		return errorResponse(c, http.StatusBadRequest, "invalid game mode (use 'single' or 'coop')")
 	}
 
 	resp, err := h.uc.GetWeeklyRankings(ctx, gameMode)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return errorResponse(c, http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"success": true,
-		"data":    resp,
-	})
+	return successResponse(c, http.StatusOK, resp)
+}
+
+func isValidGameMode(mode string) bool {
+	return mode == "single" || mode == "coop"
 }

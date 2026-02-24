@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	_interface "github.com/JokerTrickster/joker_backend/services/lottoDefenseService/features/towerDefense/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/lottoDefenseService/features/towerDefense/model/request"
@@ -22,6 +21,7 @@ func NewTDQuestHandler(g *echo.Group, uc _interface.ITDQuestUseCase) {
 
 func (h *TDQuestHandler) GetActiveQuests(c echo.Context) error {
 	ctx := c.Request().Context()
+	
 	userID, err := getUserIDFromContext(c)
 	if err != nil {
 		return err
@@ -29,79 +29,70 @@ func (h *TDQuestHandler) GetActiveQuests(c echo.Context) error {
 
 	resp, err := h.uc.GetActiveQuests(ctx, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return errorResponse(c, http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"success": true,
-		"data": map[string]interface{}{
-			"quests": resp,
-		},
+	return successResponse(c, http.StatusOK, map[string]interface{}{
+		"quests": resp,
 	})
 }
 
 func (h *TDQuestHandler) UpdateProgress(c echo.Context) error {
 	ctx := c.Request().Context()
+	
 	userID, err := getUserIDFromContext(c)
 	if err != nil {
 		return err
 	}
 
-	idStr := c.Param("id")
-	questID, err := strconv.ParseUint(idStr, 10, 32)
+	questID, err := getParamUint(c, "id")
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid quest id"})
+		return err
 	}
 
 	var req request.UpdateQuestProgressRequest
-	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
 	}
 
-	if err := c.Validate(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
-	}
-
-	resp, err := h.uc.UpdateQuestProgress(ctx, userID, uint(questID), &req)
+	resp, err := h.uc.UpdateQuestProgress(ctx, userID, questID, &req)
 	if err != nil {
-		if err.Error() == "quest not found" {
-			return c.JSON(http.StatusNotFound, map[string]string{"error": err.Error()})
-		}
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return h.handleQuestError(c, err)
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"success": true,
-		"data":    resp,
-	})
+	return successResponse(c, http.StatusOK, resp)
 }
 
 func (h *TDQuestHandler) ClaimReward(c echo.Context) error {
 	ctx := c.Request().Context()
+	
 	userID, err := getUserIDFromContext(c)
 	if err != nil {
 		return err
 	}
 
-	idStr := c.Param("id")
-	questID, err := strconv.ParseUint(idStr, 10, 32)
+	questID, err := getParamUint(c, "id")
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid quest id"})
+		return err
 	}
 
-	resp, err := h.uc.ClaimReward(ctx, userID, uint(questID))
+	resp, err := h.uc.ClaimReward(ctx, userID, questID)
 	if err != nil {
-		if err.Error() == "quest not found" {
-			return c.JSON(http.StatusNotFound, map[string]string{"error": err.Error()})
-		}
-		if err.Error() == "quest not completed" {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
-		}
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return h.handleQuestError(c, err)
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"success": true,
-		"data":    resp,
-	})
+	return successResponse(c, http.StatusOK, resp)
+}
+
+func (h *TDQuestHandler) handleQuestError(c echo.Context, err error) error {
+	errMsg := err.Error()
+	
+	switch errMsg {
+	case "quest not found":
+		return errorResponse(c, http.StatusNotFound, errMsg)
+	case "quest not completed":
+		return errorResponse(c, http.StatusBadRequest, errMsg)
+	default:
+		return errorResponse(c, http.StatusInternalServerError, errMsg)
+	}
 }

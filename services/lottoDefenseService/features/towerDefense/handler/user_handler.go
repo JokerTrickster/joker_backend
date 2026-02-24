@@ -23,6 +23,7 @@ func NewTDUserHandler(g *echo.Group, authUC _interface.ITDAuthUseCase, gameUC _i
 
 func (h *TDUserHandler) GetMe(c echo.Context) error {
 	ctx := c.Request().Context()
+	
 	userID, err := getUserIDFromContext(c)
 	if err != nil {
 		return err
@@ -30,17 +31,15 @@ func (h *TDUserHandler) GetMe(c echo.Context) error {
 
 	resp, err := h.authUC.GetUserInfo(ctx, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return errorResponse(c, http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"success": true,
-		"data":    resp,
-	})
+	return successResponse(c, http.StatusOK, resp)
 }
 
 func (h *TDUserHandler) GetStats(c echo.Context) error {
 	ctx := c.Request().Context()
+	
 	userID, err := getUserIDFromContext(c)
 	if err != nil {
 		return err
@@ -48,11 +47,8 @@ func (h *TDUserHandler) GetStats(c echo.Context) error {
 
 	resp, err := h.gameUC.GetUserStats(ctx, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return errorResponse(c, http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"success": true,
-		"data":    resp,
-	})
+	return successResponse(c, http.StatusOK, resp)
 }
