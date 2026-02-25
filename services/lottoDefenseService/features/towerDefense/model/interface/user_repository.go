@@ -45,4 +45,6 @@ type ITDRoomRepository interface {
 	RemovePlayer(ctx context.Context, roomID, userID uint) error
 	GetPlayers(ctx context.Context, roomID uint) ([]entity.TDRoomPlayer, error)
 	UpdatePlayerReady(ctx context.Context, roomID, userID uint, isReady bool) error
+	UpdatePlayerState(ctx context.Context, roomID, userID uint, stateJSON string) error
+	GetOpponentState(ctx context.Context, roomID, userID uint) (stateJSON string, opponentID uint, opponentName string, err error)
 }

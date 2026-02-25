@@ -13,7 +13,12 @@ type TDRoom struct {
 	Status         string          `gorm:"size:20;default:waiting" json:"status"` // 'waiting' | 'playing' | 'finished'
 	CurrentRound   uint            `gorm:"default:1" json:"current_round"`
 	SharedGold     uint            `gorm:"default:100" json:"shared_gold"`
+	Player1State   string          `gorm:"type:json" json:"player1_state,omitempty"` // JSON: {round, hp, gold, kills, timestamp, is_alive}
+	Player2State   string          `gorm:"type:json" json:"player2_state,omitempty"` // JSON: {round, hp, gold, kills, timestamp, is_alive}
+	LastP1Update   *time.Time      `json:"last_p1_update,omitempty"`
+	LastP2Update   *time.Time      `json:"last_p2_update,omitempty"`
 	Players        []TDRoomPlayer  `gorm:"foreignKey:RoomID" json:"players,omitempty"` // For Preload
+	HostUser       *TDUser         `gorm:"foreignKey:HostUserID" json:"host_user,omitempty"` // For Preload
 	CreatedAt      time.Time       `gorm:"autoCreateTime" json:"created_at"`
 	StartedAt      *time.Time      `json:"started_at,omitempty"`
 	FinishedAt     *time.Time      `json:"finished_at,omitempty"`

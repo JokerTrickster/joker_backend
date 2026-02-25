@@ -8,11 +8,12 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// TDCoopStateHandler handles real-time co-op game state sync
+// TDCoopStateHandler handles co-op game state sync via REST polling
 type TDCoopStateHandler struct {
 	uc _interface.ITDRoomUseCase
 }
 
+// NewTDCoopStateHandler registers co-op state sync routes
 func NewTDCoopStateHandler(g *echo.Group, uc _interface.ITDRoomUseCase) {
 	h := &TDCoopStateHandler{uc: uc}
 	

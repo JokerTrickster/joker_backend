@@ -31,4 +31,5 @@ func RegisterRoutes(g *echo.Group, db *gorm.DB, jwtSecret string) {
 	NewTDGameHandler(g, gameUC)              // /game/single/result, /game/history
 	NewTDQuestHandler(g, questUC)            // /quests, /quests/:id/progress, /quests/:id/claim
 	NewTDRoomHandler(g, roomUC)              // /coop/rooms, /coop/rooms/join, /coop/rooms/:id, etc
+	NewTDCoopStateHandler(g, roomUC)         // /coop/rooms/:id/state, /coop/rooms/:id/opponent-state
 }

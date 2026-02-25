@@ -32,4 +32,6 @@ type ITDRoomUseCase interface {
 	GetRoom(ctx context.Context, roomID uint) (*response.RoomDetailResponse, error)
 	LeaveRoom(ctx context.Context, userID uint, roomID uint) error
 	SetReady(ctx context.Context, userID uint, roomID uint, isReady bool) (*response.RoomDetailResponse, error)
+	UpdatePlayerState(ctx context.Context, roomID, userID uint, req *request.UpdateGameStateRequest) error
+	GetOpponentState(ctx context.Context, roomID, userID uint) (*response.OpponentStateResponse, error)
 }

@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -170,6 +171,50 @@ func (u *TDRoomUseCase) SetReady(ctx context.Context, userID uint, roomID uint, 
 	}
 
 	return u.GetRoom(ctx, roomID)
+}
+
+func (u *TDRoomUseCase) UpdatePlayerState(ctx context.Context, roomID, userID uint, req *request.UpdateGameStateRequest) error {
+	// Convert request to JSON string
+	stateJSON := fmt.Sprintf(`{"round":%d,"hp":%d,"gold":%d,"kills":%d,"timestamp":%d,"is_alive":%t}`,
+		req.Round, req.HP, req.Gold, req.Kills, req.Timestamp, req.HP > 0)
+	
+	return u.roomRepo.UpdatePlayerState(ctx, roomID, userID, stateJSON)
+}
+
+func (u *TDRoomUseCase) GetOpponentState(ctx context.Context, roomID, userID uint) (*response.OpponentStateResponse, error) {
+	stateJSON, opponentID, opponentName, err := u.roomRepo.GetOpponentState(ctx, roomID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if stateJSON == "" {
+		return nil, errors.New("opponent not found")
+	}
+
+	// Parse JSON state
+	var state struct {
+		Round     int   `json:"round"`
+		HP        int   `json:"hp"`
+		Gold      int   `json:"gold"`
+		Kills     int   `json:"kills"`
+		Timestamp int64 `json:"timestamp"`
+		IsAlive   bool  `json:"is_alive"`
+	}
+
+	if err := json.Unmarshal([]byte(stateJSON), &state); err != nil {
+		return nil, fmt.Errorf("failed to parse opponent state: %w", err)
+	}
+
+	return &response.OpponentStateResponse{
+		OpponentID:   opponentID,
+		OpponentName: opponentName,
+		Round:        state.Round,
+		HP:           state.HP,
+		Gold:         state.Gold,
+		Kills:        state.Kills,
+		LastUpdate:   state.Timestamp,
+		IsAlive:      state.IsAlive,
+	}, nil
 }
 
 func generateRoomCode() string {
