@@ -2,6 +2,8 @@ package websocket
 
 import (
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/JokerTrickster/joker_backend/shared/jwt"
 	"github.com/JokerTrickster/joker_backend/shared/logger"
@@ -10,13 +12,36 @@ import (
 	"go.uber.org/zap"
 )
 
+var allowedOrigins []string
+
+func init() {
+	env := os.Getenv("ENV")
+	origins := os.Getenv("CORS_ALLOWED_ORIGINS")
+
+	if origins != "" {
+		for _, o := range strings.Split(origins, ",") {
+			allowedOrigins = append(allowedOrigins, strings.TrimSpace(o))
+		}
+	}
+
+	isDev := env == "" || env == "development" || env == "dev"
+	if isDev && len(allowedOrigins) == 0 {
+		allowedOrigins = []string{"*"}
+	}
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		// Allow all origins in development
-		// In production, you should validate the origin
-		return true
+		origin := r.Header.Get("Origin")
+		for _, allowed := range allowedOrigins {
+			if allowed == "*" || allowed == origin {
+				return true
+			}
+		}
+		logger.Warn("WebSocket origin rejected", zap.String("origin", origin))
+		return false
 	},
 }
 

@@ -8,7 +8,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -23,13 +22,11 @@ import (
 	"github.com/JokerTrickster/joker_backend/shared"
 	"github.com/JokerTrickster/joker_backend/shared/aws"
 	"github.com/JokerTrickster/joker_backend/shared/db/mysql"
-	"github.com/JokerTrickster/joker_backend/shared/jwt"
 	"github.com/JokerTrickster/joker_backend/shared/logger"
+	sharedMiddleware "github.com/JokerTrickster/joker_backend/shared/middleware"
 	"github.com/hibiken/asynq"
-	"github.com/labstack/echo/v4"
 	echoSwagger "github.com/swaggo/echo-swagger"
 	"go.uber.org/zap"
-	"gorm.io/gorm"
 )
 
 func main() {
@@ -112,30 +109,9 @@ func main() {
 
 	// Register routes
 	api := e.Group("/api/v1")
-
-	// Add JWT middleware for development testing
-	if os.Getenv("IS_LOCAL") == "true" {
-		api.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-			return func(c echo.Context) error {
-				// Extract token from Authorization header
-				authHeader := c.Request().Header.Get("Authorization")
-				if authHeader != "" && len(authHeader) > 7 && authHeader[:7] == "Bearer " {
-					tokenString := authHeader[7:]
-					// Parse token to get userID
-					userID, _, err := jwt.ParseToken(tokenString)
-					if err == nil {
-						c.Set("userID", userID)
-					}
-				}
-				return next(c)
-			}
-		})
-	}
+	api.Use(sharedMiddleware.JWTAuth())
 
 	handler.RegisterRoutes(api, database, bucket, queueClient)
-
-	// WebSocket endpoint
-	e.GET("/ws/", wsHandler.HandleWebSocket)
 
 	// Swagger
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
@@ -174,15 +150,4 @@ func main() {
 	}
 
 	logger.Info("Server exited gracefully")
-}
-
-func migrateDatabase(database *gorm.DB) error {
-	logger.Info("Starting database migration...")
-
-	if err := database.AutoMigrate(&entity.CloudFile{}); err != nil {
-		return fmt.Errorf("failed to migrate CloudFile model: %w", err)
-	}
-
-	logger.Info("Database migration completed successfully")
-	return nil
 }

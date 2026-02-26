@@ -7,6 +7,7 @@ import (
 	_interface "github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/interface"
 	"github.com/JokerTrickster/joker_backend/shared/db/mysql"
 
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -15,7 +16,6 @@ func NewSignupAuthRepository(gormDB *gorm.DB) _interface.ISignupAuthRepository {
 }
 
 func (r *SignupAuthRepository) CreateUser(ctx context.Context, name string, email string, password string, provider string) (uint, error) {
-	// 이메일 중복 체크
 	var count int64
 	if err := r.GormDB.WithContext(ctx).
 		Model(&mysql.Users{}).
@@ -28,11 +28,15 @@ func (r *SignupAuthRepository) CreateUser(ctx context.Context, name string, emai
 		return 0, fmt.Errorf("email already exists")
 	}
 
-	// 유저 생성
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return 0, fmt.Errorf("failed to hash password: %w", err)
+	}
+
 	user := &mysql.Users{
 		Name:     name,
 		Email:    email,
-		Password: password,
+		Password: string(hashedPassword),
 		Provider: provider,
 	}
 

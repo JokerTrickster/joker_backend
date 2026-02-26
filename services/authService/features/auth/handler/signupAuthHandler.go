@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 
 	_interface "github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/interface"
@@ -43,7 +42,7 @@ func NewSignupAuthHandler(c *echo.Echo, useCase _interface.ISignupAuthUseCase) _
 // @Failure 500 {object} error
 // @Tags auth
 func (d *SignupAuthHandler) Signup(c echo.Context) error {
-	ctx := context.Background()
+	ctx := c.Request().Context()
 	req := &request.ReqSignUp{}
 	if err := c.Bind(req); err != nil {
 		return err

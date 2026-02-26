@@ -4,29 +4,12 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/JokerTrickster/joker_backend/shared/utils"
 	"github.com/labstack/echo/v4"
 )
 
-// getUserIDFromContext extracts user ID from Echo context
 func getUserIDFromContext(c echo.Context) (uint, error) {
-	userIDValue := c.Get("userID")
-	if userIDValue == nil {
-		return 0, echo.NewHTTPError(http.StatusUnauthorized, "user not found in context")
-	}
-	userID, ok := userIDValue.(uint)
-	if !ok {
-		switch v := userIDValue.(type) {
-		case int:
-			return uint(v), nil
-		case int64:
-			return uint(v), nil
-		case float64:
-			return uint(v), nil
-		default:
-			return 0, echo.NewHTTPError(http.StatusUnauthorized, "invalid user ID type")
-		}
-	}
-	return userID, nil
+	return utils.GetUserIDFromContext(c)
 }
 
 // bindAndValidate binds request body and validates it

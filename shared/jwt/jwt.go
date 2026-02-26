@@ -3,6 +3,7 @@ package jwt
 import (
 	"context"
 	"fmt"
+	"os"
 	"runtime"
 	"time"
 
@@ -51,9 +52,34 @@ func ErrorMsg(ctx context.Context, code string, trace string, msg string, errTyp
 }
 
 func InitJwt() error {
-	secret := "secret"
-	AccessTokenSecretKey = []byte(secret)
-	RefreshTokenSecretKey = []byte(secret)
+	accessSecret := os.Getenv("JWT_ACCESS_SECRET")
+	refreshSecret := os.Getenv("JWT_REFRESH_SECRET")
+
+	if accessSecret == "" {
+		accessSecret = os.Getenv("JWT_SECRET")
+	}
+	if refreshSecret == "" {
+		refreshSecret = os.Getenv("JWT_SECRET")
+	}
+
+	isLocal := os.Getenv("IS_LOCAL")
+	if accessSecret == "" {
+		if isLocal == "true" {
+			accessSecret = "local-dev-secret-do-not-use-in-production"
+		} else {
+			return fmt.Errorf("JWT_SECRET or JWT_ACCESS_SECRET must be set in production")
+		}
+	}
+	if refreshSecret == "" {
+		if isLocal == "true" {
+			refreshSecret = "local-dev-refresh-secret-do-not-use-in-production"
+		} else {
+			return fmt.Errorf("JWT_SECRET or JWT_REFRESH_SECRET must be set in production")
+		}
+	}
+
+	AccessTokenSecretKey = []byte(accessSecret)
+	RefreshTokenSecretKey = []byte(refreshSecret)
 	return nil
 }
 
@@ -128,22 +154,19 @@ func VerifyToken(tokenString string) error {
 	return nil
 }
 func ParseToken(tokenString string) (uint, string, error) {
-	token, _ := jwt.ParseWithClaims(tokenString, &JwtCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &JwtCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return AccessTokenSecretKey, nil
 	})
-	// if err != nil {
-	// 	return 0, "", ErrorMsg(context.TODO(), ErrBadToken, Trace(), fmt.Sprintf("failed to parse token - %v", token), ErrFromClient)
-	// }
-	// Extract claims
+	if err != nil {
+		return 0, "", ErrorMsg(context.TODO(), ErrBadToken, Trace(), fmt.Sprintf("failed to parse token - %v", err), ErrFromClient)
+	}
+
 	claims, ok := token.Claims.(*JwtCustomClaims)
 	if !ok {
 		return 0, "", ErrorMsg(context.TODO(), ErrBadToken, Trace(), fmt.Sprintf("failed to extract claims - %v", token), ErrFromClient)
 	}
-	fmt.Println("claims: ", claims)
-	// Extract email and userID
-	email := claims.Email
-	userID := claims.UserID
-	return userID, email, nil
+
+	return claims.UserID, claims.Email, nil
 }
 
 func VerifyRefreshToken(tokenString string) (uint, string, error) {

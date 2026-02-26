@@ -14,9 +14,8 @@ import (
 	tdEntity "github.com/JokerTrickster/joker_backend/services/lottoDefenseService/features/towerDefense/model/entity"
 	"github.com/JokerTrickster/joker_backend/shared"
 	"github.com/JokerTrickster/joker_backend/shared/db/mysql"
-	"github.com/JokerTrickster/joker_backend/shared/jwt"
 	"github.com/JokerTrickster/joker_backend/shared/logger"
-	"github.com/labstack/echo/v4"
+	sharedMiddleware "github.com/JokerTrickster/joker_backend/shared/middleware"
 	"go.uber.org/zap"
 )
 
@@ -61,20 +60,20 @@ func main() {
 
 	// API groups
 	api := e.Group("/api/v1/game")
+	api.Use(sharedMiddleware.JWTAuth())
+
 	tdApi := e.Group("/api/v1/td")
-	
-	// JWT middleware for local development
-	if os.Getenv("IS_LOCAL") == "true" {
-		api.Use(jwtMiddleware())
-		tdApi.Use(jwtMiddleware())
-	}
 	
 	// Register routes
 	lottoHandler.RegisterRoutes(api, database)
 	
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		jwtSecret = "tower-defense-secret-key-change-in-production"
+		if os.Getenv("IS_LOCAL") == "true" {
+			jwtSecret = "local-dev-td-secret-do-not-use-in-production"
+		} else {
+			logger.Fatal("JWT_SECRET must be set in production")
+		}
 	}
 	tdHandler.RegisterRoutes(tdApi, database, jwtSecret)
 
@@ -103,18 +102,3 @@ func main() {
 	logger.Info("Server exited gracefully")
 }
 
-func jwtMiddleware() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			authHeader := c.Request().Header.Get("Authorization")
-			if authHeader != "" && len(authHeader) > 7 && authHeader[:7] == "Bearer " {
-				tokenString := authHeader[7:]
-				userID, _, err := jwt.ParseToken(tokenString)
-				if err == nil {
-					c.Set("userID", userID)
-				}
-			}
-			return next(c)
-		}
-	}
-}

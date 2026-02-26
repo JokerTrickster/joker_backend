@@ -23,7 +23,6 @@ func NewRefreshTokenUseCase(repo _interface.IRefreshTokenAuthRepository, timeout
 func (d *RefreshTokenUseCase) RefreshToken(c context.Context, req *request.ReqRefreshToken) (response.ResRefreshToken, error) {
 	ctx, cancel := context.WithTimeout(c, d.ContextTimeout)
 	defer cancel()
-	_ = ctx
 
 	// 리프레시 토큰 검증
 	userID, email, err := jwt.VerifyRefreshToken(req.RefreshToken)
@@ -44,7 +43,7 @@ func (d *RefreshTokenUseCase) RefreshToken(c context.Context, req *request.ReqRe
 
 	// db에 리프레시 토큰 저장
 	tokenDTO := createTokenDTO(userID, accessToken, refreshToken)
-	err = d.Repository.FindUserIDByRefreshToken(ctx, tokenDTO)
+	err = d.Repository.CreateToken(ctx, tokenDTO)
 	if err != nil {
 		return response.ResRefreshToken{}, fmt.Errorf("failed to store refresh token: %w", err)
 	}

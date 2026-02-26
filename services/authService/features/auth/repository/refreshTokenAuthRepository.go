@@ -12,7 +12,7 @@ func NewRefreshTokenAuthRepository(gormDB *gorm.DB) _interface.IRefreshTokenAuth
 	return &RefreshTokenAuthRepository{GormDB: gormDB}
 }
 
-func (r *RefreshTokenAuthRepository) FindUserIDByRefreshToken(ctx context.Context, tokenDTO *mysql.Tokens) error {
+func (r *RefreshTokenAuthRepository) CreateToken(ctx context.Context, tokenDTO *mysql.Tokens) error {
 	result := r.GormDB.WithContext(ctx).Create(tokenDTO)
 	if result.Error != nil {
 		return result.Error

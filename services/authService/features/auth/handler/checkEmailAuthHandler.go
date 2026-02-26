@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 
 	_interface "github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/interface"
@@ -40,7 +39,7 @@ func NewCheckEmailAuthHandler(c *echo.Echo, useCase _interface.ICheckEmailAuthUs
 // @Failure 500 {object} error
 // @Tags auth
 func (h *CheckEmailAuthHandler) CheckEmail(c echo.Context) error {
-	ctx := context.Background()
+	ctx := c.Request().Context()
 
 	req := &request.ReqCheckEmail{}
 	if err := c.Bind(req); err != nil {

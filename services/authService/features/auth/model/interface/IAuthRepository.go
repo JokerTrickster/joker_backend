@@ -23,7 +23,7 @@ type ICheckEmailAuthRepository interface {
 }
 
 type IRefreshTokenAuthRepository interface {
-	FindUserIDByRefreshToken(ctx context.Context, tokenDTO *mysql.Tokens) error
+	CreateToken(ctx context.Context, tokenDTO *mysql.Tokens) error
 	FindOneByUserIDAndDeleteToken(ctx context.Context, userID uint) error
 }
 

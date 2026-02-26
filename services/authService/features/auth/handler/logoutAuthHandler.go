@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 
 	_interface "github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/interface"
+	"github.com/JokerTrickster/joker_backend/shared/middleware"
 
 	"github.com/labstack/echo/v4"
 )
@@ -17,7 +17,7 @@ func NewLogoutAuthHandler(c *echo.Echo, useCase _interface.ILogoutAuthUseCase) _
 	handler := &LogoutAuthHandler{
 		UseCase: useCase,
 	}
-	c.POST("/v0.1/auth/logout", handler.Logout)
+	c.POST("/v0.1/auth/logout", handler.Logout, middleware.JWTAuth())
 	return handler
 }
 
@@ -38,9 +38,17 @@ func NewLogoutAuthHandler(c *echo.Echo, useCase _interface.ILogoutAuthUseCase) _
 // @Failure 500 {object} error
 // @Tags auth
 func (d *LogoutAuthHandler) Logout(c echo.Context) error {
-	ctx := context.Background()
-	//토큰에서 유저 정보 추출
-	uID := uint(0) //추출한 유저ID로 변경
+	ctx := c.Request().Context()
+
+	userIDValue := c.Get("userID")
+	if userIDValue == nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "user not found in context")
+	}
+	uID, ok := userIDValue.(uint)
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "invalid user ID type")
+	}
+
 	err := d.UseCase.Logout(ctx, uID)
 	if err != nil {
 		return err

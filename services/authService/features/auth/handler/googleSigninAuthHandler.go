@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 
 	_interface "github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/interface"
@@ -43,7 +42,7 @@ func NewGoogleSigninAuthHandler(c *echo.Echo, useCase _interface.IGoogleSigninAu
 // @Failure 500 {object} error
 // @Tags auth
 func (d *GoogleSigninAuthHandler) GoogleSignin(c echo.Context) error {
-	ctx := context.Background()
+	ctx := c.Request().Context()
 	req := &request.ReqGoogleSignin{}
 	if err := c.Bind(req); err != nil {
 		return err

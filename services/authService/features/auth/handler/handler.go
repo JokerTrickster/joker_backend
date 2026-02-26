@@ -15,4 +15,5 @@ func NewAuthHandler(c *echo.Echo) {
 	NewRefreshTokenHandler(c, usecase.NewRefreshTokenUseCase(repository.NewRefreshTokenAuthRepository(mysql.GormMysqlDB), mysql.DBTimeOut))
 	NewLogoutAuthHandler(c, usecase.NewLogoutAuthUseCase(repository.NewLogoutAuthRepository(mysql.GormMysqlDB), mysql.DBTimeOut))
 	NewGoogleSigninAuthHandler(c, usecase.NewGoogleSigninAuthUseCase(repository.NewGoogleSigninAuthRepository(mysql.GormMysqlDB), mysql.DBTimeOut))
+	NewCheckEmailAuthHandler(c, usecase.NewCheckEmailAuthUseCase(repository.NewCheckEmailAuthRepository(mysql.GormMysqlDB), mysql.DBTimeOut))
 }

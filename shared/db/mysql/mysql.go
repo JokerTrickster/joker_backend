@@ -7,9 +7,11 @@ import (
 	"time"
 
 	_aws "github.com/JokerTrickster/joker_backend/shared/aws"
+	"github.com/JokerTrickster/joker_backend/shared/logger"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -24,14 +26,15 @@ func InitMySQL() error {
 	var err error
 	isLocal := os.Getenv("IS_LOCAL")
 
-	fmt.Printf("IS_LOCAL: %s\n", isLocal)
-	fmt.Printf("MYSQL_HOST: %s\n", os.Getenv("MYSQL_HOST"))
-	fmt.Printf("MYSQL_PORT: %s\n", os.Getenv("MYSQL_PORT"))
-	fmt.Printf("MYSQL_USER: %s\n", os.Getenv("MYSQL_USER"))
-	fmt.Printf("MYSQL_DATABASE: %s\n", os.Getenv("MYSQL_DATABASE"))
+	logger.Info("MySQL init",
+		zap.String("IS_LOCAL", isLocal),
+		zap.String("MYSQL_HOST", os.Getenv("MYSQL_HOST")),
+		zap.String("MYSQL_PORT", os.Getenv("MYSQL_PORT")),
+		zap.String("MYSQL_USER", os.Getenv("MYSQL_USER")),
+		zap.String("MYSQL_DATABASE", os.Getenv("MYSQL_DATABASE")),
+	)
 
 	if isLocal == "true" {
-		// MySQL 연결 문자열
 		connectionString = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
 			os.Getenv("MYSQL_USER"),
 			os.Getenv("MYSQL_PASSWORD"),
@@ -39,14 +42,8 @@ func InitMySQL() error {
 			os.Getenv("MYSQL_PORT"),
 			os.Getenv("MYSQL_DATABASE"),
 		)
-		fmt.Printf("Local MySQL connection string (password hidden): %s:***@tcp(%s:%s)/%s?parseTime=true\n",
-			os.Getenv("MYSQL_USER"),
-			os.Getenv("MYSQL_HOST"),
-			os.Getenv("MYSQL_PORT"),
-			os.Getenv("MYSQL_DATABASE"),
-		)
 	} else {
-		fmt.Println("Using AWS SSM parameters for database connection...")
+		logger.Info("Using AWS SSM parameters for database connection")
 		dbInfos, err := _aws.AwsSsmGetParams([]string{"dev_backend_mysql_user", "dev_backend_mysql_password", "dev_backend_mysql_host", "dev_backend_mysql_port", "dev_backend_mysql_db"})
 		if err != nil {
 			return err
@@ -59,34 +56,23 @@ func InitMySQL() error {
 			dbInfos[3], //db
 		)
 	}
-	// MySQL에 연결
+
 	MysqlDB, err = sql.Open("mysql", connectionString)
 	if err != nil {
-		fmt.Println("Failed to connect to MySQL!")
-		fmt.Printf("에러 메시지 %s\n", err)
+		return fmt.Errorf("failed to connect to MySQL: %w", err)
 	}
-	fmt.Println("Connected to MySQL!")
+	logger.Info("Connected to MySQL")
 
-	/*
-		GORM perform write (create/update/delete) operations run inside a transaction to ensure data consistency,
-		you can disable it during initialization if it is not required, you will gain about 30%+ performance improvement after that
-	*/
 	GormMysqlDB, err = gorm.Open(mysql.New(mysql.Config{
 		Conn: MysqlDB,
 	}), &gorm.Config{
 		SkipDefaultTransaction: false,
 	})
 	if err != nil {
-		fmt.Println("Failed to connect to Gorm MySQL!")
-		fmt.Printf("에러 메시지 %s\n", err)
 		return fmt.Errorf("failed to initialize Gorm MySQL: %w", err)
 	}
 
-	fmt.Println("Gorm MySQL connected successfully!")
-
-	// gen 패키지를 사용하여 쿼리를 생성할 때 사용할 DB를 설정
-	// SetDefault(GormMysqlDB)
-
+	logger.Info("Gorm MySQL connected successfully")
 	return nil
 }
 
