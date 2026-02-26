@@ -67,24 +67,24 @@ services:
       - joker_network
     restart: unless-stopped
 
-  # Lotto Defense Game Service (Port 18082)
-  lotto-defense-service:
+  # Tower Defense Game Service (Port 18082)
+  td-service:
     build:
       context: .
-      dockerfile: services/lottoDefenseService/Dockerfile
-    container_name: joker_lotto_defense_service
+      dockerfile: services/tdService/Dockerfile
+    container_name: joker_td_service
     environment:
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-      MYSQL_USER: ${MYSQL_USER:-joker_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-joker_password}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-backend_dev}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER:-joker_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-joker_password}
+      DB_NAME: ${TD_DATABASE:-td_service}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       PORT: 18082
       ENV: ${ENV:-production}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-*}
-      IS_LOCAL: "true"
       JWT_SECRET: ${JWT_SECRET:-joker-jwt-secret-key}
+      WS_BASE_URL: ${WS_BASE_URL:-ws://localhost:18082/ws}
     ports:
       - "18082:18082"
     depends_on:

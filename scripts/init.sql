@@ -13,3 +13,6 @@ INSERT INTO users (name, email) VALUES
     ('Admin User', 'admin@example.com'),
     ('Test User', 'test@example.com')
 ON DUPLICATE KEY UPDATE name = name;
+
+-- Create TD Service database
+CREATE DATABASE IF NOT EXISTS td_service CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
