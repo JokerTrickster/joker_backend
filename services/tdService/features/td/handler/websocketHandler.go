@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/JokerTrickster/joker_backend/services/tdService/features/td/usecase"
 	"github.com/JokerTrickster/joker_backend/services/tdService/pkg/websocket"
@@ -79,7 +78,7 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 	}
 
 	// Register client
-	h.hub.register <- client
+	h.hub.Register <- client
 
 	// Start client pumps
 	go client.WritePump()

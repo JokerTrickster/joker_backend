@@ -24,7 +24,7 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	}
 	db, err := gorm.Open(mysqlDriver.Open(dsn), &gorm.Config{})
 	if err != nil {
-		t.Fatalf("Failed to connect to test database: %v", err)
+		t.Skipf("Integration test: requires test database: %v", err)
 	}
 	return db
 }

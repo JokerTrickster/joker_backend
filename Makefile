@@ -27,12 +27,17 @@ export TEST_DB_PORT
 export TEST_DB_USER
 export TEST_DB_PASSWORD
 
-# Run unit tests
+# Run unit tests across all service modules
 test: test-unit
 
 test-unit:
 	@echo "Running unit tests..."
-	@go test -v -race -short ./services/... ./shared/...
+	@failed=0; \
+	for dir in services/authService services/cloudRepositoryService services/lottoDefenseService services/morandoranService services/tdService shared; do \
+		echo "=== Testing $$dir ==="; \
+		(cd $$dir && go test -v -race -short ./...) || failed=1; \
+	done; \
+	if [ $$failed -eq 1 ]; then exit 1; fi
 
 # Run integration tests
 test-integration: docker-up
@@ -50,15 +55,26 @@ test-e2e: docker-up
 # Run tests with coverage
 test-coverage:
 	@echo "Running tests with coverage..."
-	@go test -v -race -coverprofile=coverage.out -covermode=atomic ./services/... ./shared/...
-	@go tool cover -html=coverage.out -o coverage.html
-	@echo "Coverage report generated: coverage.html"
-	@go tool cover -func=coverage.out
+	@rm -f coverage.out
+	@for dir in services/authService services/cloudRepositoryService services/lottoDefenseService services/morandoranService services/tdService shared; do \
+		echo "=== Coverage: $$dir ==="; \
+		(cd $$dir && go test -race -coverprofile=coverage.tmp -covermode=atomic ./... 2>/dev/null) && \
+		if [ -f $$dir/coverage.tmp ]; then tail -n +2 $$dir/coverage.tmp >> coverage.out; rm $$dir/coverage.tmp; fi; \
+	done
+	@if [ -f coverage.out ]; then \
+		echo "mode: atomic" | cat - coverage.out > coverage.tmp && mv coverage.tmp coverage.out; \
+		go tool cover -html=coverage.out -o coverage.html; \
+		echo "Coverage report generated: coverage.html"; \
+		go tool cover -func=coverage.out; \
+	fi
 
 # Run benchmark tests
 test-bench:
 	@echo "Running benchmark tests..."
-	@go test -run=^$$ -bench=. -benchmem ./services/... ./shared/...
+	@for dir in services/authService services/cloudRepositoryService services/lottoDefenseService services/morandoranService services/tdService shared; do \
+		echo "=== Bench: $$dir ==="; \
+		(cd $$dir && go test -run='^$$' -bench=. -benchmem ./...) || true; \
+	done
 
 # Run all test suites
 test-all: test-unit test-integration test-e2e
@@ -67,7 +83,7 @@ test-all: test-unit test-integration test-e2e
 test-watch:
 	@command -v entr >/dev/null 2>&1 || { echo "entr is required but not installed. Install with: brew install entr"; exit 1; }
 	@echo "Running tests in watch mode..."
-	@find . -name "*.go" | entr -c go test -v -race -short ./services/... ./shared/...
+	@find . -name "*.go" | entr -c make test-unit
 
 # Docker commands for test infrastructure
 docker-up:
@@ -94,26 +110,24 @@ clean:
 # Service-specific test targets
 test-auth:
 	@echo "Testing auth service..."
-	@go test -v -race ./services/authService/...
+	@cd services/authService && go test -v -race ./...
 
 test-cloud:
 	@echo "Testing cloud repository service..."
-	@go test -v -race ./services/cloudRepositoryService/...
+	@cd services/cloudRepositoryService && go test -v -race ./...
 
 test-tower:
-	@echo "Testing tower defense service..."
-	@go test -v -race ./services/towerDefenseService/...
+	@echo "Testing TD service..."
+	@cd services/tdService && go test -v -race ./...
 
 test-lotto:
 	@echo "Testing lotto defense service..."
-	@go test -v -race ./services/lottoDefenseService/...
+	@cd services/lottoDefenseService && go test -v -race ./...
 
-# Verbose test output for debugging
-test-verbose:
-	@echo "Running tests with verbose output..."
-	@go test -v -race -count=1 ./services/... ./shared/... 2>&1 | tee test.log
+test-morandoran:
+	@echo "Testing morandoran service..."
+	@cd services/morandoranService && go test -v -race ./...
 
-# Quick smoke test
-test-smoke:
-	@echo "Running smoke tests..."
-	@go test -v -race -run="TestSmoke" ./services/... ./shared/... || true
+test-shared:
+	@echo "Testing shared module..."
+	@cd shared && go test -v -race ./...

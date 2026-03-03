@@ -6,18 +6,18 @@ import (
 	"time"
 
 	"github.com/JokerTrickster/joker_backend/services/tdService/features/td/model/entity"
+	iface "github.com/JokerTrickster/joker_backend/services/tdService/features/td/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/tdService/features/td/model/request"
 	"github.com/JokerTrickster/joker_backend/services/tdService/features/td/model/response"
-	"github.com/JokerTrickster/joker_backend/services/tdService/features/td/repository"
 )
 
 type GameUseCase struct {
-	sessionRepo *repository.GameSessionRepository
-	playerRepo  *repository.PlayerRepository
+	sessionRepo iface.GameSessionRepository
+	playerRepo  iface.PlayerRepository
 	wsBaseURL   string
 }
 
-func NewGameUseCase(sessionRepo *repository.GameSessionRepository, playerRepo *repository.PlayerRepository, wsBaseURL string) *GameUseCase {
+func NewGameUseCase(sessionRepo iface.GameSessionRepository, playerRepo iface.PlayerRepository, wsBaseURL string) *GameUseCase {
 	return &GameUseCase{
 		sessionRepo: sessionRepo,
 		playerRepo:  playerRepo,

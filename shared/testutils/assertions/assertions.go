@@ -31,7 +31,7 @@ func AssertEventuallyTrue(t *testing.T, fn func() bool, timeout time.Duration, m
 			if len(msg) > 0 {
 				message = strings.Join(msg, " ")
 			}
-			t.Fatalf(message)
+			t.Fatalf("%s", message)
 		}
 	}
 }
@@ -116,7 +116,7 @@ func AssertPanic(t *testing.T, fn func(), msg ...string) {
 			if len(msg) > 0 {
 				message = strings.Join(msg, " ")
 			}
-			t.Errorf(message)
+			t.Errorf("%s", message)
 		}
 	}()
 

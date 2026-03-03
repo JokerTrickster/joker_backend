@@ -24,10 +24,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	testUserID = uint(1)
-	testDBPort = "3307"
-)
+const testDBPort = "3307"
 
 func setupTestDB(t *testing.T) *gorm.DB {
 	// Get DB credentials from environment or use defaults
@@ -51,7 +48,7 @@ func setupTestDB(t *testing.T) *gorm.DB {
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		t.Fatalf("Failed to connect to test database: %v", err)
+		t.Skipf("Integration test: requires test database: %v", err)
 	}
 
 	return db

@@ -5,20 +5,19 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/JokerTrickster/joker_backend/services/tdService/features/td/model/entity"
+	iface "github.com/JokerTrickster/joker_backend/services/tdService/features/td/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/tdService/features/td/model/request"
 	"github.com/JokerTrickster/joker_backend/services/tdService/features/td/model/response"
-	"github.com/JokerTrickster/joker_backend/services/tdService/features/td/repository"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthUseCase struct {
-	playerRepo *repository.PlayerRepository
+	playerRepo iface.PlayerRepository
 	jwtSecret  string
 }
 
-func NewAuthUseCase(playerRepo *repository.PlayerRepository, jwtSecret string) *AuthUseCase {
+func NewAuthUseCase(playerRepo iface.PlayerRepository, jwtSecret string) *AuthUseCase {
 	return &AuthUseCase{
 		playerRepo: playerRepo,
 		jwtSecret:  jwtSecret,
