@@ -8,10 +8,19 @@ import (
 	"github.com/JokerTrickster/joker_backend/shared/db/mysql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
+
+func requireTokensTable(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	if !db.Migrator().HasTable(&mysql.Tokens{}) {
+		t.Skipf("Integration test: requires 'tokens' table in test database")
+	}
+}
 
 func TestLogoutAuthRepository_DeleteTokenByUserID_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTokensTable(t, db)
 	repo := NewLogoutAuthRepository(db)
 	ctx := context.Background()
 
@@ -48,6 +57,7 @@ func TestLogoutAuthRepository_DeleteTokenByUserID_Success(t *testing.T) {
 
 func TestLogoutAuthRepository_DeleteTokenByUserID_NoTokensFound(t *testing.T) {
 	db := setupTestDB(t)
+	requireTokensTable(t, db)
 	repo := NewLogoutAuthRepository(db)
 	ctx := context.Background()
 

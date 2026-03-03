@@ -14,6 +14,7 @@ import (
 
 func TestRefreshTokenUseCase_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTokensTable(t, db)
 	initJWTForTest(t)
 
 	// Sign up a user to get initial tokens
@@ -60,6 +61,7 @@ func TestRefreshTokenUseCase_Success(t *testing.T) {
 
 func TestRefreshTokenUseCase_InvalidToken(t *testing.T) {
 	db := setupTestDB(t)
+	requireTokensTable(t, db)
 	initJWTForTest(t)
 
 	refreshRepo := repository.NewRefreshTokenAuthRepository(db)

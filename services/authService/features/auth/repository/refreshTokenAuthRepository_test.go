@@ -12,6 +12,7 @@ import (
 
 func TestRefreshTokenAuthRepository_CreateToken(t *testing.T) {
 	db := setupTestDB(t)
+	requireTokensTable(t, db)
 	repo := NewRefreshTokenAuthRepository(db)
 	ctx := context.Background()
 
@@ -49,6 +50,7 @@ func TestRefreshTokenAuthRepository_CreateToken(t *testing.T) {
 
 func TestRefreshTokenAuthRepository_FindOneByUserIDAndDeleteToken_DeletesTokens(t *testing.T) {
 	db := setupTestDB(t)
+	requireTokensTable(t, db)
 	repo := NewRefreshTokenAuthRepository(db)
 	ctx := context.Background()
 
@@ -79,6 +81,7 @@ func TestRefreshTokenAuthRepository_FindOneByUserIDAndDeleteToken_DeletesTokens(
 
 func TestRefreshTokenAuthRepository_FindOneByUserIDAndDeleteToken_NoErrorWhenNoTokens(t *testing.T) {
 	db := setupTestDB(t)
+	requireTokensTable(t, db)
 	repo := NewRefreshTokenAuthRepository(db)
 	ctx := context.Background()
 

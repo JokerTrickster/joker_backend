@@ -29,6 +29,13 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	return db
 }
 
+func requireTokensTable(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	if !db.Migrator().HasTable(&mysql.Tokens{}) {
+		t.Skipf("Integration test: requires 'tokens' table in test database")
+	}
+}
+
 func initJWTForTest(t *testing.T) {
 	t.Helper()
 	os.Setenv("IS_LOCAL", "true")

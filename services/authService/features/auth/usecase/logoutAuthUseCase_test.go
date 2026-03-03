@@ -14,6 +14,7 @@ import (
 
 func TestLogoutAuthUseCase_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTokensTable(t, db)
 	initJWTForTest(t)
 
 	// Sign up a user
@@ -72,6 +73,7 @@ func TestLogoutAuthUseCase_Success(t *testing.T) {
 
 func TestLogoutAuthUseCase_NoTokens(t *testing.T) {
 	db := setupTestDB(t)
+	requireTokensTable(t, db)
 	initJWTForTest(t)
 
 	logoutRepo := repository.NewLogoutAuthRepository(db)

@@ -122,6 +122,10 @@ func Timeout(duration time.Duration) echo.MiddlewareFunc {
 
 			c.SetRequest(c.Request().WithContext(timeoutCtx))
 
+			requestID := c.Response().Header().Get(echo.HeaderXRequestID)
+			method := c.Request().Method
+			uri := c.Request().RequestURI
+
 			done := make(chan error, 1)
 			go func() {
 				done <- next(c)
@@ -132,9 +136,9 @@ func Timeout(duration time.Duration) echo.MiddlewareFunc {
 				return err
 			case <-timeoutCtx.Done():
 				logger.Warn("Request timeout",
-					zap.String("request_id", c.Response().Header().Get(echo.HeaderXRequestID)),
-					zap.String("method", c.Request().Method),
-					zap.String("uri", c.Request().RequestURI),
+					zap.String("request_id", requestID),
+					zap.String("method", method),
+					zap.String("uri", uri),
 					zap.Duration("timeout", duration),
 				)
 				return echo.NewHTTPError(408, "Request timeout")
