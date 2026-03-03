@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS rankings;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS news;
+DROP TABLE IF EXISTS morandoran_users;

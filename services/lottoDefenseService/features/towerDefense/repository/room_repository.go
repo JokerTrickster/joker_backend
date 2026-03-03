@@ -117,7 +117,7 @@ func (r *TDRoomRepository) GetOpponentState(ctx context.Context, roomID, userID 
 		if len(room.Players) > 0 {
 			opponentID = room.Players[0].UserID
 			if room.Players[0].User != nil {
-				opponentName = room.Players[0].User.Name
+				opponentName = room.Players[0].User.Username
 			}
 		}
 	} else {
@@ -125,7 +125,7 @@ func (r *TDRoomRepository) GetOpponentState(ctx context.Context, roomID, userID 
 		opponentState = room.Player1State
 		opponentID = room.HostUserID
 		if room.HostUser != nil {
-			opponentName = room.HostUser.Name
+			opponentName = room.HostUser.Username
 		}
 	}
 

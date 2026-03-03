@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	echojwt "github.com/labstack/echo-jwt"
 )
 
 type JwtCustomClaims struct {
@@ -20,7 +19,6 @@ type JwtCustomClaims struct {
 
 var AccessTokenSecretKey []byte
 var RefreshTokenSecretKey []byte
-var JwtConfig echojwt.Config
 
 const (
 	AccessTokenExpiredTime  = 24         //hours

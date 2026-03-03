@@ -3,9 +3,11 @@ package middleware
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
+	jwtPkg "github.com/JokerTrickster/joker_backend/shared/jwt"
 	"github.com/JokerTrickster/joker_backend/shared/logger"
 	"github.com/labstack/echo/v4"
 )
@@ -139,4 +141,135 @@ func TestTimeoutSuccess(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
+}
+
+func initJWTForMiddlewareTest(t *testing.T) {
+	t.Helper()
+	os.Setenv("IS_LOCAL", "true")
+	os.Unsetenv("JWT_ACCESS_SECRET")
+	os.Unsetenv("JWT_REFRESH_SECRET")
+	os.Unsetenv("JWT_SECRET")
+	if err := jwtPkg.InitJwt(); err != nil {
+		t.Fatalf("JWT init failed: %v", err)
+	}
+}
+
+func TestJWTAuth_ValidToken(t *testing.T) {
+	initJWTForMiddlewareTest(t)
+
+	email := "middleware@test.com"
+	userID := uint(42)
+
+	accessToken, _, _, _, err := jwtPkg.GenerateToken(email, userID)
+	if err != nil {
+		t.Fatalf("Token generation failed: %v", err)
+	}
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	var capturedUserID uint
+	var capturedEmail string
+
+	handler := JWTAuth()(func(c echo.Context) error {
+		capturedUserID = c.Get("userID").(uint)
+		capturedEmail = c.Get("email").(string)
+		return c.String(http.StatusOK, "ok")
+	})
+
+	err = handler(c)
+	if err != nil {
+		t.Fatalf("JWTAuth with valid token should not error: %v", err)
+	}
+
+	if capturedUserID != userID {
+		t.Errorf("Expected userID %d, got %d", userID, capturedUserID)
+	}
+	if capturedEmail != email {
+		t.Errorf("Expected email %s, got %s", email, capturedEmail)
+	}
+	t.Logf("Valid token: userID=%d, email=%s", capturedUserID, capturedEmail)
+}
+
+func TestJWTAuth_MissingHeader(t *testing.T) {
+	initJWTForMiddlewareTest(t)
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	handler := JWTAuth()(func(c echo.Context) error {
+		return c.String(http.StatusOK, "should not reach")
+	})
+
+	err := handler(c)
+	if err == nil {
+		t.Fatal("JWTAuth without Authorization header should fail")
+	}
+	httpErr, ok := err.(*echo.HTTPError)
+	if !ok {
+		t.Fatalf("Expected *echo.HTTPError, got %T", err)
+	}
+	if httpErr.Code != http.StatusUnauthorized {
+		t.Errorf("Expected 401, got %d", httpErr.Code)
+	}
+	t.Logf("Missing header correctly rejected: %v", err)
+}
+
+func TestJWTAuth_InvalidFormat(t *testing.T) {
+	initJWTForMiddlewareTest(t)
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req.Header.Set("Authorization", "NotBearer sometoken")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	handler := JWTAuth()(func(c echo.Context) error {
+		return c.String(http.StatusOK, "should not reach")
+	})
+
+	err := handler(c)
+	if err == nil {
+		t.Fatal("JWTAuth with invalid format should fail")
+	}
+	httpErr, ok := err.(*echo.HTTPError)
+	if !ok {
+		t.Fatalf("Expected *echo.HTTPError, got %T", err)
+	}
+	if httpErr.Code != http.StatusUnauthorized {
+		t.Errorf("Expected 401, got %d", httpErr.Code)
+	}
+	t.Logf("Invalid format correctly rejected: %v", err)
+}
+
+func TestJWTAuth_InvalidToken(t *testing.T) {
+	initJWTForMiddlewareTest(t)
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req.Header.Set("Authorization", "Bearer invalid.token.value")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	handler := JWTAuth()(func(c echo.Context) error {
+		return c.String(http.StatusOK, "should not reach")
+	})
+
+	err := handler(c)
+	if err == nil {
+		t.Fatal("JWTAuth with invalid token should fail")
+	}
+	httpErr, ok := err.(*echo.HTTPError)
+	if !ok {
+		t.Fatalf("Expected *echo.HTTPError, got %T", err)
+	}
+	if httpErr.Code != http.StatusUnauthorized {
+		t.Errorf("Expected 401, got %d", httpErr.Code)
+	}
+	t.Logf("Invalid token correctly rejected: %v", err)
 }

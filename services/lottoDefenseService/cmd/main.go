@@ -62,11 +62,13 @@ func main() {
 	api := e.Group("/api/v1/game")
 	api.Use(sharedMiddleware.JWTAuth())
 
-	tdApi := e.Group("/api/v1/td")
-	
+	tdPublic := e.Group("/api/v1/td")
+	tdProtected := e.Group("/api/v1/td")
+	tdProtected.Use(sharedMiddleware.JWTAuth())
+
 	// Register routes
 	lottoHandler.RegisterRoutes(api, database)
-	
+
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		if os.Getenv("IS_LOCAL") == "true" {
@@ -75,7 +77,7 @@ func main() {
 			logger.Fatal("JWT_SECRET must be set in production")
 		}
 	}
-	tdHandler.RegisterRoutes(tdApi, database, jwtSecret)
+	tdHandler.RegisterRoutes(tdPublic, tdProtected, database, jwtSecret)
 
 	port := os.Getenv("PORT")
 	if port == "" {

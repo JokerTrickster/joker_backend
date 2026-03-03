@@ -9,8 +9,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// RegisterRoutes registers all Tower Defense game routes
-func RegisterRoutes(g *echo.Group, db *gorm.DB, jwtSecret string) {
+// RegisterRoutes registers all Tower Defense game routes.
+// publicGroup is for unauthenticated routes (auth/register, auth/login).
+// protectedGroup has JWTAuth middleware applied for authenticated routes.
+func RegisterRoutes(publicGroup *echo.Group, protectedGroup *echo.Group, db *gorm.DB, jwtSecret string) {
 	timeout := 30 * time.Second
 
 	// Repositories
@@ -25,11 +27,13 @@ func RegisterRoutes(g *echo.Group, db *gorm.DB, jwtSecret string) {
 	questUC := usecase.NewTDQuestUseCase(questRepo, userRepo, timeout)
 	roomUC := usecase.NewTDRoomUseCase(roomRepo, userRepo, timeout)
 
-	// Handlers
-	NewTDAuthHandler(g, authUC)              // /auth/register, /auth/login
-	NewTDUserHandler(g, authUC, gameUC)      // /users/me, /users/me/stats
-	NewTDGameHandler(g, gameUC)              // /game/single/result, /game/history
-	NewTDQuestHandler(g, questUC)            // /quests, /quests/:id/progress, /quests/:id/claim
-	NewTDRoomHandler(g, roomUC)              // /coop/rooms, /coop/rooms/join, /coop/rooms/:id, etc
-	NewTDCoopStateHandler(g, roomUC)         // /coop/rooms/:id/state, /coop/rooms/:id/opponent-state
+	// Public routes (no auth required)
+	NewTDAuthHandler(publicGroup, authUC)
+
+	// Protected routes (JWT auth required)
+	NewTDUserHandler(protectedGroup, authUC, gameUC)
+	NewTDGameHandler(protectedGroup, gameUC)
+	NewTDQuestHandler(protectedGroup, questUC)
+	NewTDRoomHandler(protectedGroup, roomUC)
+	NewTDCoopStateHandler(protectedGroup, roomUC)
 }
