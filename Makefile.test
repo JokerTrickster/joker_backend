@@ -1,0 +1,111 @@
+# Test-related Makefile commands
+
+# Install test dependencies
+.PHONY: test-deps
+test-deps:
+	go install github.com/golang/mock/mockgen@latest
+	go get github.com/DATA-DOG/go-sqlmock
+	go get github.com/stretchr/testify
+
+# Generate mocks for all interfaces
+.PHONY: mocks
+mocks:
+	@echo "Generating mocks..."
+	# Auth service mocks
+	mockgen -source=services/authService/features/auth/repository/interface.go \
+		-destination=services/authService/features/auth/repository/mocks/mock_repository.go \
+		-package=mocks
+
+	# TD service mocks
+	mockgen -source=services/tdService/features/td/repository/interface.go \
+		-destination=services/tdService/features/td/repository/mocks/mock_repository.go \
+		-package=mocks
+
+	# Add more services as needed
+	@echo "Mocks generated successfully"
+
+# Run all tests
+.PHONY: test
+test:
+	@echo "Running all tests..."
+	go test -v -race -coverprofile=coverage.out ./...
+
+# Run tests with coverage
+.PHONY: test-coverage
+test-coverage:
+	@echo "Running tests with coverage..."
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+
+# Run only unit tests (exclude integration)
+.PHONY: test-unit
+test-unit:
+	@echo "Running unit tests..."
+	go test -v -race -short ./...
+
+# Run integration tests
+.PHONY: test-integration
+test-integration:
+	@echo "Running integration tests..."
+	go test -v -race -run Integration ./...
+
+# Run security tests
+.PHONY: test-security
+test-security:
+	@echo "Running security tests..."
+	go test -v ./test/security/...
+
+# Run benchmarks
+.PHONY: test-bench
+test-bench:
+	@echo "Running benchmarks..."
+	go test -bench=. -benchmem ./...
+
+# Run tests for specific service
+.PHONY: test-service
+test-service:
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "Usage: make test-service SERVICE=authService"; \
+		exit 1; \
+	fi
+	@echo "Running tests for $(SERVICE)..."
+	go test -v -race ./services/$(SERVICE)/...
+
+# Check test coverage threshold
+.PHONY: test-check-coverage
+test-check-coverage: test-coverage
+	@echo "Checking coverage threshold..."
+	@coverage=$$(go tool cover -func=coverage.out | grep total | awk '{print $$3}' | sed 's/%//'); \
+	threshold=80; \
+	if [ $$(echo "$$coverage < $$threshold" | bc -l) -eq 1 ]; then \
+		echo "❌ Coverage $$coverage% is below threshold $$threshold%"; \
+		exit 1; \
+	else \
+		echo "✅ Coverage $$coverage% meets threshold $$threshold%"; \
+	fi
+
+# Clean test artifacts
+.PHONY: test-clean
+test-clean:
+	@echo "Cleaning test artifacts..."
+	rm -f coverage.out coverage.html
+	find . -name "*.test" -delete
+	find . -name "*_test.log" -delete
+
+# Run tests in Docker (for CI/CD)
+.PHONY: test-docker
+test-docker:
+	@echo "Running tests in Docker..."
+	docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
+	docker-compose -f docker-compose.test.yml down
+
+# Watch mode - rerun tests on file changes
+.PHONY: test-watch
+test-watch:
+	@echo "Starting test watch mode..."
+	@if ! command -v entr > /dev/null; then \
+		echo "Please install entr first: brew install entr"; \
+		exit 1; \
+	fi
+	find . -name "*.go" | entr -c go test -v ./...
