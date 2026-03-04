@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/auth/model/entity"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/auth/usecase"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/auth/model/entity"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/auth/usecase"
 	"github.com/JokerTrickster/joker_backend/shared/utils"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
@@ -30,6 +30,14 @@ func (m *mockMeAuthRepository) FindUserByID(ctx context.Context, userID uint) (*
 	return nil, nil
 }
 
+func (m *mockMeAuthRepository) FindOrCreateByOAuth(ctx context.Context, email, nickname, provider string, profileImage *string) (*entity.MorandoranUser, error) {
+	return nil, nil
+}
+
+func (m *mockMeAuthRepository) UpdateNickname(ctx context.Context, userID uint, nickname string) (*entity.MorandoranUser, error) {
+	return nil, nil
+}
+
 func setupMeEcho() *echo.Echo {
 	e := echo.New()
 	e.Validator = utils.NewValidator()
@@ -46,20 +54,23 @@ func TestMeHandler_Me(t *testing.T) {
 		checkErrReturn bool
 	}{
 		{
-			name: "success: valid userID returns 200 and user info",
+			name: "success: valid userID returns 200 with profileImage and provider",
 			setUserID: func(c echo.Context) {
 				c.Set("userID", uint(1))
 			},
 			mockFindByID: func(ctx context.Context, userID uint) (*entity.MorandoranUser, error) {
+				pic := "https://example.com/pic.jpg"
 				return &entity.MorandoranUser{
-					ID:       1,
-					Nickname: "testuser",
-					Email:    "user@example.com",
-					Role:     "user",
+					ID:           1,
+					Nickname:     "testuser",
+					Email:        "user@example.com",
+					Role:         "user",
+					Provider:     "google",
+					ProfileImage: &pic,
 				}, nil
 			},
 			wantStatus:  http.StatusOK,
-			wantBodyHas: "testuser",
+			wantBodyHas: "profileImage",
 		},
 		{
 			name:           "no userID in context returns 401",

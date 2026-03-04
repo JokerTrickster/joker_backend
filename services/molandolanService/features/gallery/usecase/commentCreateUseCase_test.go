@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/entity"
-	_interface "github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/interface"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/request"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/entity"
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/interface"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/request"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -56,6 +56,16 @@ func (m *mockCommentCreateGalleryRepository) GetAuthorNickname(ctx context.Conte
 		return m.getAuthorNickname(ctx, userID)
 	}
 	return "user", nil
+}
+func (m *mockCommentCreateGalleryRepository) GetAuthorInfo(ctx context.Context, userID uint) (string, *string, error) {
+	if m.getAuthorNickname != nil {
+		nick, _ := m.getAuthorNickname(ctx, userID)
+		return nick, nil, nil
+	}
+	return "user", nil, nil
+}
+func (m *mockCommentCreateGalleryRepository) IsLikedBatch(ctx context.Context, userID uint, galleryIDs []uint) (map[uint]bool, error) {
+	return map[uint]bool{}, nil
 }
 
 var _ _interface.IGalleryRepository = (*mockCommentCreateGalleryRepository)(nil)

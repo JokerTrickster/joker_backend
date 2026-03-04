@@ -3,7 +3,7 @@ package _interface
 import (
 	"context"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/ranking/model/entity"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/ranking/model/entity"
 )
 
 type IRankingRepository interface {

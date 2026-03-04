@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/entity"
-	_interface "github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/interface"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/request"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/response"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/entity"
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/interface"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/request"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/response"
 )
 
 type CreateUseCase struct {
@@ -48,6 +48,7 @@ func (uc *CreateUseCase) Create(c context.Context, userID uint, req *request.Req
 		Caption:      created.Caption,
 		LikeCount:    0,
 		CommentCount: 0,
+		IsLiked:      false,
 		CreatedAt:    created.CreatedAt,
 	}, nil
 }

@@ -3,7 +3,7 @@ package _interface
 import (
 	"context"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/news/model/entity"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/news/model/entity"
 )
 
 type INewsRepository interface {

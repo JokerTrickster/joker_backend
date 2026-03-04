@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	authEntity "github.com/JokerTrickster/joker_backend/services/morandoranService/features/auth/model/entity"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/entity"
-	_interface "github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/interface"
+	authEntity "github.com/JokerTrickster/joker_backend/services/molandolanService/features/auth/model/entity"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/entity"
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/interface"
 	"gorm.io/gorm"
 )
 
@@ -155,4 +155,29 @@ func (r *GalleryRepository) GetAuthorNickname(ctx context.Context, userID uint) 
 		return "", fmt.Errorf("user not found")
 	}
 	return user.Nickname, nil
+}
+
+func (r *GalleryRepository) GetAuthorInfo(ctx context.Context, userID uint) (string, *string, error) {
+	var user authEntity.MorandoranUser
+	if err := r.db.WithContext(ctx).Select("nickname", "profile_image").First(&user, userID).Error; err != nil {
+		return "", nil, fmt.Errorf("user not found")
+	}
+	return user.Nickname, user.ProfileImage, nil
+}
+
+func (r *GalleryRepository) IsLikedBatch(ctx context.Context, userID uint, galleryIDs []uint) (map[uint]bool, error) {
+	result := make(map[uint]bool)
+	if userID == 0 || len(galleryIDs) == 0 {
+		return result, nil
+	}
+	var likes []entity.GalleryLike
+	if err := r.db.WithContext(ctx).
+		Where("user_id = ? AND gallery_id IN ?", userID, galleryIDs).
+		Find(&likes).Error; err != nil {
+		return nil, err
+	}
+	for _, like := range likes {
+		result[like.GalleryID] = true
+	}
+	return result, nil
 }

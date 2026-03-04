@@ -18,6 +18,7 @@ func TestDownloadCloudRepository_GetFileByID_Found(t *testing.T) {
 	t.Logf("TestDownloadCloudRepository_GetFileByID_Found: insert CloudFile, get by ID, verify returned")
 
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
 	ctx := context.Background()
 
 	require.NoError(t, db.AutoMigrate(&entity.CloudFile{}))
@@ -53,6 +54,7 @@ func TestDownloadCloudRepository_GetFileByID_NotFound(t *testing.T) {
 	t.Logf("TestDownloadCloudRepository_GetFileByID_NotFound: get non-existent ID, expect error")
 
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
 	ctx := context.Background()
 
 	repo := NewDownloadCloudRepositoryRepository(db, "test-bucket")
@@ -67,6 +69,7 @@ func TestDownloadCloudRepository_GetFileByID_Deleted(t *testing.T) {
 	t.Logf("TestDownloadCloudRepository_GetFileByID_Deleted: insert with deleted_at set, GetFileByID should not find it")
 
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
 	ctx := context.Background()
 
 	require.NoError(t, db.AutoMigrate(&entity.CloudFile{}))

@@ -33,7 +33,7 @@ test: test-unit
 test-unit:
 	@echo "Running unit tests..."
 	@failed=0; \
-	for dir in services/authService services/cloudRepositoryService services/lottoDefenseService services/morandoranService services/tdService shared; do \
+	for dir in services/authService services/cloudRepositoryService services/lottoDefenseService services/molandolanService services/tdService shared; do \
 		echo "=== Testing $$dir ==="; \
 		(cd $$dir && go test -v -race -short ./...) || failed=1; \
 	done; \
@@ -56,7 +56,7 @@ test-e2e: docker-up
 test-coverage:
 	@echo "Running tests with coverage..."
 	@rm -f coverage.out
-	@for dir in services/authService services/cloudRepositoryService services/lottoDefenseService services/morandoranService services/tdService shared; do \
+	@for dir in services/authService services/cloudRepositoryService services/lottoDefenseService services/molandolanService services/tdService shared; do \
 		echo "=== Coverage: $$dir ==="; \
 		(cd $$dir && go test -race -coverprofile=coverage.tmp -covermode=atomic ./... 2>/dev/null) && \
 		if [ -f $$dir/coverage.tmp ]; then tail -n +2 $$dir/coverage.tmp >> coverage.out; rm $$dir/coverage.tmp; fi; \
@@ -71,7 +71,7 @@ test-coverage:
 # Run benchmark tests
 test-bench:
 	@echo "Running benchmark tests..."
-	@for dir in services/authService services/cloudRepositoryService services/lottoDefenseService services/morandoranService services/tdService shared; do \
+	@for dir in services/authService services/cloudRepositoryService services/lottoDefenseService services/molandolanService services/tdService shared; do \
 		echo "=== Bench: $$dir ==="; \
 		(cd $$dir && go test -run='^$$' -bench=. -benchmem ./...) || true; \
 	done
@@ -124,9 +124,9 @@ test-lotto:
 	@echo "Testing lotto defense service..."
 	@cd services/lottoDefenseService && go test -v -race ./...
 
-test-morandoran:
-	@echo "Testing morandoran service..."
-	@cd services/morandoranService && go test -v -race ./...
+test-molandolan:
+	@echo "Testing molandolan service..."
+	@cd services/molandolanService && go test -v -race ./...
 
 test-shared:
 	@echo "Testing shared module..."

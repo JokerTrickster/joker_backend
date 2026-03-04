@@ -12,6 +12,7 @@ import (
 
 func TestUserStatsCloudRepository_GetTotalStorageUsed_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
 	ctx := context.Background()
 
 	userID := uint(973)
@@ -36,6 +37,7 @@ func TestUserStatsCloudRepository_GetTotalStorageUsed_Success(t *testing.T) {
 
 func TestUserStatsCloudRepository_GetTotalStorageUsed_Zero(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
 	ctx := context.Background()
 
 	repo := NewUserStatsCloudRepositoryRepository(db)
@@ -47,6 +49,7 @@ func TestUserStatsCloudRepository_GetTotalStorageUsed_Zero(t *testing.T) {
 
 func TestUserStatsCloudRepository_LogActivity_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "activity_logs")
 	ctx := context.Background()
 
 	repo := NewUserStatsCloudRepositoryRepository(db)
@@ -65,6 +68,7 @@ func TestUserStatsCloudRepository_LogActivity_Success(t *testing.T) {
 
 func TestUserStatsCloudRepository_GetMonthlyUploadCount_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "activity_logs")
 	ctx := context.Background()
 
 	repo := NewUserStatsCloudRepositoryRepository(db)

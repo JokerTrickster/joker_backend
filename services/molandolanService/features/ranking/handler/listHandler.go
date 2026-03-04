@@ -3,8 +3,8 @@ package handler
 import (
 	"net/http"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/ranking/model/request"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/ranking/usecase"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/ranking/model/request"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/ranking/usecase"
 	"github.com/labstack/echo/v4"
 )
 

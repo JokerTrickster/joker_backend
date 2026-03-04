@@ -17,6 +17,7 @@ func TestListCloudRepository_GeneratePresignedDownloadURL_SkipsWithoutS3(t *test
 
 func TestListCloudRepository_GetFilesByUserID_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
 	ctx := context.Background()
 
 	userID := uint(995)
@@ -52,6 +53,7 @@ func TestListCloudRepository_GetFilesByUserID_Success(t *testing.T) {
 
 func TestListCloudRepository_GetFilesByUserID_Empty(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
 	ctx := context.Background()
 
 	repo := NewListCloudRepositoryRepository(db, "test-bucket")

@@ -22,7 +22,7 @@ func setupGameTestDB(t *testing.T) *gorm.DB {
 		t.Skipf("Skipping: test database unavailable: %v", err)
 	}
 	if err := db.AutoMigrate(&entity.TDUser{}, &entity.TDUserStats{}, &entity.TDGameResult{}); err != nil {
-		t.Skip("Skipping: migration failed:", err)
+		t.Skipf("Skipping: migration failed: %v", err)
 	}
 	return db
 }
@@ -40,6 +40,8 @@ func createGameTestUser(t *testing.T, db *gorm.DB) *entity.TDUser {
 
 func TestTDGameRepository_Create(t *testing.T) {
 	db := setupGameTestDB(t)
+	requireTable(t, db, "td_users")
+	requireTable(t, db, "td_game_results")
 	ctx := context.Background()
 	repo := NewTDGameRepository(db)
 	user := createGameTestUser(t, db)
@@ -60,6 +62,8 @@ func TestTDGameRepository_Create(t *testing.T) {
 
 func TestTDGameRepository_GetHistory(t *testing.T) {
 	db := setupGameTestDB(t)
+	requireTable(t, db, "td_users")
+	requireTable(t, db, "td_game_results")
 	ctx := context.Background()
 	repo := NewTDGameRepository(db)
 	user := createGameTestUser(t, db)
@@ -84,6 +88,8 @@ func TestTDGameRepository_GetHistory(t *testing.T) {
 
 func TestTDGameRepository_GetHighestRound(t *testing.T) {
 	db := setupGameTestDB(t)
+	requireTable(t, db, "td_users")
+	requireTable(t, db, "td_game_results")
 	ctx := context.Background()
 	repo := NewTDGameRepository(db)
 	user := createGameTestUser(t, db)

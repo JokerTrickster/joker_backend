@@ -14,30 +14,30 @@ import (
 	"github.com/JokerTrickster/joker_backend/shared/logger"
 	sharedMiddleware "github.com/JokerTrickster/joker_backend/shared/middleware"
 
-	authHandler "github.com/JokerTrickster/joker_backend/services/morandoranService/features/auth/handler"
-	authRepo "github.com/JokerTrickster/joker_backend/services/morandoranService/features/auth/repository"
-	authUseCase "github.com/JokerTrickster/joker_backend/services/morandoranService/features/auth/usecase"
+	authHandler "github.com/JokerTrickster/joker_backend/services/molandolanService/features/auth/handler"
+	authRepo "github.com/JokerTrickster/joker_backend/services/molandolanService/features/auth/repository"
+	authUseCase "github.com/JokerTrickster/joker_backend/services/molandolanService/features/auth/usecase"
 
-	newsHandler "github.com/JokerTrickster/joker_backend/services/morandoranService/features/news/handler"
-	newsRepo "github.com/JokerTrickster/joker_backend/services/morandoranService/features/news/repository"
-	newsUseCase "github.com/JokerTrickster/joker_backend/services/morandoranService/features/news/usecase"
+	newsHandler "github.com/JokerTrickster/joker_backend/services/molandolanService/features/news/handler"
+	newsRepo "github.com/JokerTrickster/joker_backend/services/molandolanService/features/news/repository"
+	newsUseCase "github.com/JokerTrickster/joker_backend/services/molandolanService/features/news/usecase"
 
-	productHandler "github.com/JokerTrickster/joker_backend/services/morandoranService/features/product/handler"
-	productRepo "github.com/JokerTrickster/joker_backend/services/morandoranService/features/product/repository"
-	productUseCase "github.com/JokerTrickster/joker_backend/services/morandoranService/features/product/usecase"
+	productHandler "github.com/JokerTrickster/joker_backend/services/molandolanService/features/product/handler"
+	productRepo "github.com/JokerTrickster/joker_backend/services/molandolanService/features/product/repository"
+	productUseCase "github.com/JokerTrickster/joker_backend/services/molandolanService/features/product/usecase"
 
-	rankingHandler "github.com/JokerTrickster/joker_backend/services/morandoranService/features/ranking/handler"
-	rankingRepo "github.com/JokerTrickster/joker_backend/services/morandoranService/features/ranking/repository"
-	rankingUseCase "github.com/JokerTrickster/joker_backend/services/morandoranService/features/ranking/usecase"
+	rankingHandler "github.com/JokerTrickster/joker_backend/services/molandolanService/features/ranking/handler"
+	rankingRepo "github.com/JokerTrickster/joker_backend/services/molandolanService/features/ranking/repository"
+	rankingUseCase "github.com/JokerTrickster/joker_backend/services/molandolanService/features/ranking/usecase"
 
-	galleryHandler "github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/handler"
-	galleryRepo "github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/repository"
-	galleryUseCase "github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/usecase"
+	galleryHandler "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/handler"
+	galleryRepo "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/repository"
+	galleryUseCase "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/usecase"
 
-	uploadHandler "github.com/JokerTrickster/joker_backend/services/morandoranService/features/upload/handler"
-	uploadUseCase "github.com/JokerTrickster/joker_backend/services/morandoranService/features/upload/usecase"
+	uploadHandler "github.com/JokerTrickster/joker_backend/services/molandolanService/features/upload/handler"
+	uploadUseCase "github.com/JokerTrickster/joker_backend/services/molandolanService/features/upload/usecase"
 
-	morandoranMiddleware "github.com/JokerTrickster/joker_backend/services/morandoranService/middleware"
+	molandolanMiddleware "github.com/JokerTrickster/joker_backend/services/molandolanService/middleware"
 
 	"go.uber.org/zap"
 )
@@ -52,7 +52,7 @@ func main() {
 	}
 	defer shared.Cleanup()
 
-	logger.Info("Starting Morandoran Service",
+	logger.Info("Starting Molandolan Service",
 		zap.String("environment", shared.AppConfig.Env),
 	)
 
@@ -61,11 +61,13 @@ func main() {
 
 	// Auth
 	authRepository := authRepo.NewAuthRepository(db)
-	loginUC := authUseCase.NewLoginUseCase(authRepository, timeout)
+	oauthUC := authUseCase.NewOAuthUseCase(authRepository, timeout)
 	meUC := authUseCase.NewMeUseCase(authRepository, timeout)
-	loginH := authHandler.NewLoginHandler(loginUC)
+	updateMeUC := authUseCase.NewUpdateMeUseCase(authRepository, timeout)
+	oauthH := authHandler.NewOAuthHandler(oauthUC)
 	logoutH := authHandler.NewLogoutHandler()
 	meH := authHandler.NewMeHandler(meUC)
+	updateMeH := authHandler.NewUpdateMeHandler(updateMeUC)
 
 	// News
 	newsRepository := newsRepo.NewNewsRepository(db)
@@ -127,21 +129,23 @@ func main() {
 	uploadUC := uploadUseCase.NewUploadUseCase(timeout)
 	uploadH := uploadHandler.NewUploadHandler(uploadUC)
 
-	// Public routes
-	e.POST("/api/auth/login", loginH.Login)
+	// Public routes (OAuth)
+	e.GET("/api/auth/:provider", oauthH.Redirect)
+	e.GET("/api/auth/:provider/callback", oauthH.Callback)
 	e.GET("/api/news", newsListH.List)
 	e.GET("/api/news/:id", newsDetailH.Detail)
 	e.GET("/api/products", productListH.List)
 	e.GET("/api/products/:id", productDetailH.Detail)
 	e.GET("/api/rankings/:gameType", rankingListH.List)
-	e.GET("/api/gallery", galleryListH.List)
-	e.GET("/api/gallery/:id", galleryDetailH.Detail, morandoranMiddleware.OptionalAuth())
+	e.GET("/api/gallery", galleryListH.List, molandolanMiddleware.OptionalAuth())
+	e.GET("/api/gallery/:id", galleryDetailH.Detail, molandolanMiddleware.OptionalAuth())
 	e.GET("/api/gallery/:id/comments", galleryCommentListH.List)
 
 	// User routes (JWT required)
 	userGroup := e.Group("", sharedMiddleware.JWTAuth())
 	userGroup.POST("/api/auth/logout", logoutH.Logout)
 	userGroup.GET("/api/auth/me", meH.Me)
+	userGroup.PUT("/api/auth/me", updateMeH.UpdateMe)
 	userGroup.GET("/api/rankings/:gameType/me", rankingMeH.MyRanking)
 	userGroup.POST("/api/rankings/:gameType", rankingSubmitH.Submit)
 	userGroup.POST("/api/gallery", galleryCreateH.Create)
@@ -151,7 +155,7 @@ func main() {
 	userGroup.DELETE("/api/gallery/:id/comments/:commentId", galleryCommentDeleteH.Delete)
 
 	// Admin routes (JWT + Admin required)
-	adminGroup := e.Group("", sharedMiddleware.JWTAuth(), morandoranMiddleware.AdminAuth(db))
+	adminGroup := e.Group("", sharedMiddleware.JWTAuth(), molandolanMiddleware.AdminAuth(db))
 	adminGroup.POST("/api/news", newsCreateH.Create)
 	adminGroup.PUT("/api/news/:id", newsUpdateH.Update)
 	adminGroup.DELETE("/api/news/:id", newsDeleteH.Delete)

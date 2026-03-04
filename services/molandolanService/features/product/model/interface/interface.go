@@ -3,7 +3,7 @@ package _interface
 import (
 	"context"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/product/model/entity"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/product/model/entity"
 )
 
 type IProductRepository interface {

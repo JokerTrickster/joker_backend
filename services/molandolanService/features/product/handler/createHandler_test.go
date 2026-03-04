@@ -6,9 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/product/model/entity"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/product/model/request"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/product/usecase"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/product/model/entity"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/product/model/request"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/product/usecase"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

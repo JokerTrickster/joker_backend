@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	_interface "github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/interface"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/response"
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/interface"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/response"
 )
 
 type DetailUseCase struct {
@@ -27,7 +27,7 @@ func (uc *DetailUseCase) Detail(c context.Context, id uint, userID *uint) (*resp
 		return nil, err
 	}
 
-	nickname, _ := uc.Repo.GetAuthorNickname(ctx, post.AuthorID)
+	nickname, profileImage, _ := uc.Repo.GetAuthorInfo(ctx, post.AuthorID)
 
 	isLiked := false
 	if userID != nil {
@@ -35,8 +35,12 @@ func (uc *DetailUseCase) Detail(c context.Context, id uint, userID *uint) (*resp
 	}
 
 	return &response.ResGalleryDetail{
-		ID:           fmt.Sprintf("gallery-%03d", post.ID),
-		Author:       response.ResAuthor{ID: fmt.Sprintf("user-%03d", post.AuthorID), Nickname: nickname},
+		ID: fmt.Sprintf("gallery-%03d", post.ID),
+		Author: response.ResAuthor{
+			ID:           fmt.Sprintf("user-%03d", post.AuthorID),
+			Nickname:     nickname,
+			ProfileImage: profileImage,
+		},
 		MediaType:    post.MediaType,
 		MediaURL:     post.MediaURL,
 		ThumbnailURL: post.ThumbnailURL,

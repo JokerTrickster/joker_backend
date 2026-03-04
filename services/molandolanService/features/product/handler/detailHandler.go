@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/product/usecase"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/product/usecase"
 	"github.com/labstack/echo/v4"
 )
 

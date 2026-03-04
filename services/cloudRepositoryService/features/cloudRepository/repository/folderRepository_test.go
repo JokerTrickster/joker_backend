@@ -12,6 +12,7 @@ import (
 
 func TestFolderRepository_CreateFolder_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "folders")
 	ctx := context.Background()
 
 	repo := NewFolderRepository(db)
@@ -31,6 +32,7 @@ func TestFolderRepository_CreateFolder_Success(t *testing.T) {
 
 func TestFolderRepository_GetFolderByID_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "folders")
 	ctx := context.Background()
 
 	folder := &entity.Folder{UserID: 988, FolderName: "test_get_folder"}
@@ -48,6 +50,7 @@ func TestFolderRepository_GetFolderByID_Success(t *testing.T) {
 
 func TestFolderRepository_GetFoldersByUserID_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "folders")
 	ctx := context.Background()
 
 	userID := int32(987)
@@ -65,6 +68,7 @@ func TestFolderRepository_GetFoldersByUserID_Success(t *testing.T) {
 
 func TestFolderRepository_DeleteFolder_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "folders")
 	ctx := context.Background()
 
 	folder := &entity.Folder{UserID: 986, FolderName: "test_delete_folder"}

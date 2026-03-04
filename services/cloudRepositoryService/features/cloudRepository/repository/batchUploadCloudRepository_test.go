@@ -16,6 +16,7 @@ func TestBatchUploadCloudRepository_GeneratePresignedUploadURL_SkipsWithoutS3(t 
 
 func TestBatchUploadCloudRepository_CreateFile_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
 	ctx := context.Background()
 
 	repo := NewBatchUploadCloudRepositoryRepository(db, "test-bucket")

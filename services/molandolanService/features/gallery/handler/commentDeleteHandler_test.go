@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/entity"
-	_interface "github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/interface"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/usecase"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/entity"
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/interface"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/usecase"
 	"github.com/JokerTrickster/joker_backend/shared/db/mysql"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
@@ -59,6 +59,12 @@ func (m *mockGalleryCommentDeleteRepository) DeleteComment(ctx context.Context, 
 }
 func (m *mockGalleryCommentDeleteRepository) GetAuthorNickname(ctx context.Context, userID uint) (string, error) {
 	return "", nil
+}
+func (m *mockGalleryCommentDeleteRepository) GetAuthorInfo(ctx context.Context, userID uint) (string, *string, error) {
+	return "", nil, nil
+}
+func (m *mockGalleryCommentDeleteRepository) IsLikedBatch(ctx context.Context, userID uint, galleryIDs []uint) (map[uint]bool, error) {
+	return map[uint]bool{}, nil
 }
 
 var _ _interface.IGalleryRepository = (*mockGalleryCommentDeleteRepository)(nil)

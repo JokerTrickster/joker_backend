@@ -16,6 +16,7 @@ func TestDeleteCloudRepository_DeleteFromS3_SkipsWithoutS3(t *testing.T) {
 
 func TestDeleteCloudRepository_SoftDeleteFile_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
 	ctx := context.Background()
 
 	file := &entity.CloudFile{
@@ -47,6 +48,7 @@ func TestDeleteCloudRepository_SoftDeleteFile_Success(t *testing.T) {
 
 func TestDeleteCloudRepository_GetFileByID_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
 	ctx := context.Background()
 
 	file := &entity.CloudFile{

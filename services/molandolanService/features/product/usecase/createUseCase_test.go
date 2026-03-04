@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/product/model/entity"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/product/model/request"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/product/model/entity"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/product/model/request"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/mock"

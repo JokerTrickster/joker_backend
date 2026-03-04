@@ -23,6 +23,12 @@ var imgMeta = map[ImgType]imgMetaStruct{
 		path:       "images",
 		expireTime: 10 * time.Hour,
 	},
+	ImgGallery: {
+		bucket:     func() string { return "molandolan-gallery" },
+		domain:     func() string { return "molandolan-gallery.s3.ap-south-1.amazonaws.com" },
+		path:       "gallery",
+		expireTime: 24 * time.Hour,
+	},
 }
 
 func ImageUpload(ctx context.Context, file *multipart.FileHeader, filename string, imgType ImgType) error {
@@ -107,6 +113,73 @@ func ImageDelete(ctx context.Context, fileName string, imgType ImgType) error {
 	}
 
 	return nil
+}
+
+func RawFileUpload(ctx context.Context, file *multipart.FileHeader, key, contentType string, imgType ImgType) (string, error) {
+	meta, ok := imgMeta[imgType]
+	if !ok {
+		return "", fmt.Errorf("not available meta info for imgType - %v", imgType)
+	}
+	bucket := meta.bucket()
+	fullKey := fmt.Sprintf("%s/%s", meta.path, key)
+
+	src, err := file.Open()
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer src.Close()
+
+	_, err = awsClientS3Uploader.Upload(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(fullKey),
+		Body:        src,
+		ContentType: aws.String(contentType),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to upload file to S3: %w", err)
+	}
+
+	url := fmt.Sprintf("https://%s/%s", meta.domain(), fullKey)
+	return url, nil
+}
+
+func ThumbnailUpload(ctx context.Context, file *multipart.FileHeader, key string, imgType ImgType) (string, error) {
+	meta, ok := imgMeta[imgType]
+	if !ok {
+		return "", fmt.Errorf("not available meta info for imgType - %v", imgType)
+	}
+	bucket := meta.bucket()
+	thumbKey := fmt.Sprintf("%s/thumb_%s", meta.path, key)
+
+	src, err := file.Open()
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer src.Close()
+
+	img, err := imaging.Decode(src)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode image: %w", err)
+	}
+
+	thumb := imaging.Fit(img, 400, 400, imaging.Lanczos)
+	buf := new(bytes.Buffer)
+	if err := imaging.Encode(buf, thumb, imaging.PNG, imaging.PNGCompressionLevel(png.BestCompression)); err != nil {
+		return "", fmt.Errorf("failed to encode thumbnail: %w", err)
+	}
+
+	_, err = awsClientS3Uploader.Upload(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(thumbKey),
+		Body:        buf,
+		ContentType: aws.String("image/png"),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to upload thumbnail to S3: %w", err)
+	}
+
+	url := fmt.Sprintf("https://%s/%s", meta.domain(), thumbKey)
+	return url, nil
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")

@@ -3,7 +3,7 @@ package _interface
 import (
 	"context"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/entity"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/entity"
 )
 
 type IGalleryRepository interface {
@@ -21,4 +21,6 @@ type IGalleryRepository interface {
 	DeleteComment(ctx context.Context, id uint) error
 
 	GetAuthorNickname(ctx context.Context, userID uint) (string, error)
+	GetAuthorInfo(ctx context.Context, userID uint) (string, *string, error)
+	IsLikedBatch(ctx context.Context, userID uint, galleryIDs []uint) (map[uint]bool, error)
 }

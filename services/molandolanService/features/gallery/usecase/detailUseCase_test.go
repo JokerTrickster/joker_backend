@@ -5,16 +5,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/entity"
-	_interface "github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/interface"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/entity"
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/interface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 type mockDetailGalleryRepository struct {
-	findByIDFunc       func(ctx context.Context, id uint) (*entity.GalleryPost, error)
-	getAuthorNickname  func(ctx context.Context, userID uint) (string, error)
-	isLikedFunc        func(ctx context.Context, userID, galleryID uint) (bool, error)
+	findByIDFunc      func(ctx context.Context, id uint) (*entity.GalleryPost, error)
+	getAuthorInfoFunc func(ctx context.Context, userID uint) (string, *string, error)
+	isLikedFunc       func(ctx context.Context, userID, galleryID uint) (bool, error)
 }
 
 func (m *mockDetailGalleryRepository) List(ctx context.Context, page, limit int) ([]entity.GalleryPost, int64, error) {
@@ -54,10 +54,20 @@ func (m *mockDetailGalleryRepository) DeleteComment(ctx context.Context, id uint
 	return nil
 }
 func (m *mockDetailGalleryRepository) GetAuthorNickname(ctx context.Context, userID uint) (string, error) {
-	if m.getAuthorNickname != nil {
-		return m.getAuthorNickname(ctx, userID)
+	if m.getAuthorInfoFunc != nil {
+		nick, _, _ := m.getAuthorInfoFunc(ctx, userID)
+		return nick, nil
 	}
 	return "", nil
+}
+func (m *mockDetailGalleryRepository) GetAuthorInfo(ctx context.Context, userID uint) (string, *string, error) {
+	if m.getAuthorInfoFunc != nil {
+		return m.getAuthorInfoFunc(ctx, userID)
+	}
+	return "", nil, nil
+}
+func (m *mockDetailGalleryRepository) IsLikedBatch(ctx context.Context, userID uint, galleryIDs []uint) (map[uint]bool, error) {
+	return map[uint]bool{}, nil
 }
 
 var _ _interface.IGalleryRepository = (*mockDetailGalleryRepository)(nil)
@@ -79,8 +89,8 @@ func TestDetailUseCase_Detail_Success(t *testing.T) {
 				CreatedAt:    now,
 			}, nil
 		},
-		getAuthorNickname: func(ctx context.Context, userID uint) (string, error) {
-			return "author", nil
+		getAuthorInfoFunc: func(ctx context.Context, userID uint) (string, *string, error) {
+			return "author", nil, nil
 		},
 		isLikedFunc: func(ctx context.Context, userID, galleryID uint) (bool, error) {
 			return true, nil
@@ -112,8 +122,8 @@ func TestDetailUseCase_Detail_NoUser(t *testing.T) {
 		findByIDFunc: func(ctx context.Context, id uint) (*entity.GalleryPost, error) {
 			return &entity.GalleryPost{ID: 1, AuthorID: 1, MediaType: "image", MediaURL: "u", ThumbnailURL: "t"}, nil
 		},
-		getAuthorNickname: func(ctx context.Context, userID uint) (string, error) {
-			return "author", nil
+		getAuthorInfoFunc: func(ctx context.Context, userID uint) (string, *string, error) {
+			return "author", nil, nil
 		},
 		isLikedFunc: func(ctx context.Context, userID, galleryID uint) (bool, error) {
 			isLikedCalled = true
@@ -149,14 +159,41 @@ func TestDetailUseCase_Detail_NotFound(t *testing.T) {
 	t.Logf("Detail not found: %v", err)
 }
 
+func TestDetailUseCase_Detail_WithProfileImage(t *testing.T) {
+	t.Log("TestDetailUseCase_Detail_WithProfileImage: author has profileImage -> included in response")
+	pic := "https://example.com/avatar.jpg"
+	now := time.Now()
+	mockRepo := &mockDetailGalleryRepository{
+		findByIDFunc: func(ctx context.Context, id uint) (*entity.GalleryPost, error) {
+			return &entity.GalleryPost{
+				ID: 1, AuthorID: 10, MediaType: "image", MediaURL: "m", ThumbnailURL: "t",
+				Caption: "with pic", LikeCount: 1, CommentCount: 0, CreatedAt: now,
+			}, nil
+		},
+		getAuthorInfoFunc: func(ctx context.Context, userID uint) (string, *string, error) {
+			return "picAuthor", &pic, nil
+		},
+	}
+	uc := NewDetailUseCase(mockRepo, 10*time.Second)
+	ctx := context.Background()
+
+	res, err := uc.Detail(ctx, 1, nil)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	assert.Equal(t, "picAuthor", res.Author.Nickname)
+	require.NotNil(t, res.Author.ProfileImage)
+	assert.Equal(t, pic, *res.Author.ProfileImage)
+	t.Logf("Detail with profileImage: nickname=%s profileImage=%s", res.Author.Nickname, *res.Author.ProfileImage)
+}
+
 func TestDetailUseCase_Detail_AuthorNicknameError(t *testing.T) {
 	t.Log("TestDetailUseCase_Detail_AuthorNicknameError: GetAuthorNickname errors -> still returns (nickname defaults to empty)")
 	mockRepo := &mockDetailGalleryRepository{
 		findByIDFunc: func(ctx context.Context, id uint) (*entity.GalleryPost, error) {
 			return &entity.GalleryPost{ID: 1, AuthorID: 1, MediaType: "image", MediaURL: "u", ThumbnailURL: "t"}, nil
 		},
-		getAuthorNickname: func(ctx context.Context, userID uint) (string, error) {
-			return "", assert.AnError
+		getAuthorInfoFunc: func(ctx context.Context, userID uint) (string, *string, error) {
+			return "", nil, assert.AnError
 		},
 	}
 	uc := NewDetailUseCase(mockRepo, 10*time.Second)

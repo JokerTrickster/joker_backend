@@ -3,8 +3,8 @@ package handler
 import (
 	"net/http"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/request"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/usecase"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/request"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/usecase"
 	"github.com/labstack/echo/v4"
 )
 
@@ -23,7 +23,12 @@ func (h *ListHandler) List(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "BAD_REQUEST")
 	}
 
-	res, err := h.UseCase.List(ctx, req)
+	var userID *uint
+	if uid, ok := c.Get("userID").(uint); ok {
+		userID = &uid
+	}
+
+	res, err := h.UseCase.List(ctx, req, userID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "INTERNAL_ERROR")
 	}

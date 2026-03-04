@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	_interface "github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/interface"
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/interface"
 )
 
 type CommentDeleteUseCase struct {

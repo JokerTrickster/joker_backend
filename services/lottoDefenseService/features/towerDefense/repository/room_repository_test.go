@@ -22,7 +22,7 @@ func setupRoomTestDB(t *testing.T) *gorm.DB {
 		t.Skipf("Skipping: test database unavailable: %v", err)
 	}
 	if err := db.AutoMigrate(&entity.TDUser{}, &entity.TDRoom{}, &entity.TDRoomPlayer{}); err != nil {
-		t.Skip("Skipping: migration failed:", err)
+		t.Skipf("Skipping: migration failed: %v", err)
 	}
 	return db
 }
@@ -40,6 +40,8 @@ func createRoomTestUser(t *testing.T, db *gorm.DB) *entity.TDUser {
 
 func TestTDRoomRepository_Create(t *testing.T) {
 	db := setupRoomTestDB(t)
+	requireTable(t, db, "td_users")
+	requireTable(t, db, "td_rooms")
 	ctx := context.Background()
 	repo := NewTDRoomRepository(db)
 	user := createRoomTestUser(t, db)
@@ -61,6 +63,8 @@ func TestTDRoomRepository_Create(t *testing.T) {
 
 func TestTDRoomRepository_GetByID(t *testing.T) {
 	db := setupRoomTestDB(t)
+	requireTable(t, db, "td_users")
+	requireTable(t, db, "td_rooms")
 	ctx := context.Background()
 	repo := NewTDRoomRepository(db)
 	user := createRoomTestUser(t, db)
@@ -84,6 +88,8 @@ func TestTDRoomRepository_GetByID(t *testing.T) {
 
 func TestTDRoomRepository_GetByCode(t *testing.T) {
 	db := setupRoomTestDB(t)
+	requireTable(t, db, "td_users")
+	requireTable(t, db, "td_rooms")
 	ctx := context.Background()
 	repo := NewTDRoomRepository(db)
 	user := createRoomTestUser(t, db)
@@ -136,6 +142,9 @@ func TestTDRoomRepository_AddPlayer(t *testing.T) {
 
 func TestTDRoomRepository_RemovePlayer(t *testing.T) {
 	db := setupRoomTestDB(t)
+	requireTable(t, db, "td_users")
+	requireTable(t, db, "td_rooms")
+	requireTable(t, db, "td_room_players")
 	ctx := context.Background()
 	repo := NewTDRoomRepository(db)
 	user := createRoomTestUser(t, db)

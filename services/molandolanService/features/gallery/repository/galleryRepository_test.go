@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	authEntity "github.com/JokerTrickster/joker_backend/services/morandoranService/features/auth/model/entity"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/entity"
+	authEntity "github.com/JokerTrickster/joker_backend/services/molandolanService/features/auth/model/entity"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/mysql"
@@ -52,10 +52,11 @@ func TestGalleryRepository_FindByID(t *testing.T) {
 		t.Skipf("Skipping: cannot ensure tables: %v", err)
 	}
 
+	pass := "hashed"
 	user := &authEntity.MorandoranUser{
 		Nickname: "gallery-test-user",
 		Email:    "gallery-repo-" + time.Now().Format("20060102150405") + "@example.com",
-		Password: "hashed",
+		Password: &pass,
 		Role:     "user",
 	}
 	err := db.WithContext(ctx).Create(user).Error
@@ -98,10 +99,11 @@ func TestGalleryRepository_Create_Delete(t *testing.T) {
 		t.Skipf("Skipping: cannot ensure tables: %v", err)
 	}
 
+	pass := "x"
 	user := &authEntity.MorandoranUser{
 		Nickname: "gallery-create-user",
 		Email:    "gallery-create-" + time.Now().Format("20060102150405") + "@example.com",
-		Password: "x",
+		Password: &pass,
 		Role:     "user",
 	}
 	err := db.WithContext(ctx).Create(user).Error
@@ -140,10 +142,11 @@ func TestGalleryRepository_IsLiked_ToggleLike(t *testing.T) {
 		t.Skipf("Skipping: cannot ensure tables: %v", err)
 	}
 
+	pass := "x"
 	user := &authEntity.MorandoranUser{
 		Nickname: "like-test-user",
 		Email:    "like-test-" + time.Now().Format("20060102150405") + "@example.com",
-		Password: "x",
+		Password: &pass,
 		Role:     "user",
 	}
 	err := db.WithContext(ctx).Create(user).Error
@@ -193,10 +196,11 @@ func TestGalleryRepository_Comments(t *testing.T) {
 		t.Skipf("Skipping: cannot ensure tables: %v", err)
 	}
 
+	pass := "x"
 	user := &authEntity.MorandoranUser{
 		Nickname: "comment-test-user",
 		Email:    "comment-test-" + time.Now().Format("20060102150405") + "@example.com",
-		Password: "x",
+		Password: &pass,
 		Role:     "user",
 	}
 	err := db.WithContext(ctx).Create(user).Error
@@ -244,4 +248,86 @@ func TestGalleryRepository_Comments(t *testing.T) {
 	err = repo.DeleteComment(ctx, created.ID)
 	require.NoError(t, err)
 	t.Logf("Comment CRUD success")
+}
+
+func TestGalleryRepository_GetAuthorInfo(t *testing.T) {
+	db := setupTestDB(t)
+	repo := NewGalleryRepository(db)
+	ctx := context.Background()
+
+	if err := db.AutoMigrate(&authEntity.MorandoranUser{}); err != nil {
+		t.Skipf("Skipping: cannot ensure morandoran_users table: %v", err)
+	}
+
+	pic := "https://example.com/profile.jpg"
+	user := &authEntity.MorandoranUser{
+		Nickname:     "author-info-test",
+		Email:        "author-info-" + time.Now().Format("20060102150405") + "@example.com",
+		Role:         "user",
+		Provider:     "google",
+		ProfileImage: &pic,
+	}
+	err := db.WithContext(ctx).Create(user).Error
+	if err != nil {
+		t.Skipf("Skipping: cannot create test user: %v", err)
+	}
+	defer db.WithContext(ctx).Unscoped().Delete(user)
+
+	nickname, profileImage, err := repo.GetAuthorInfo(ctx, user.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "author-info-test", nickname)
+	require.NotNil(t, profileImage)
+	assert.Equal(t, pic, *profileImage)
+	t.Logf("GetAuthorInfo: nickname=%s profileImage=%s", nickname, *profileImage)
+
+	nickname2, profileImage2, err2 := repo.GetAuthorInfo(ctx, 999999)
+	require.Error(t, err2)
+	assert.Empty(t, nickname2)
+	assert.Nil(t, profileImage2)
+	t.Logf("GetAuthorInfo not found: err=%v", err2)
+}
+
+func TestGalleryRepository_IsLikedBatch(t *testing.T) {
+	db := setupTestDB(t)
+	repo := NewGalleryRepository(db)
+	ctx := context.Background()
+
+	if err := db.AutoMigrate(&entity.GalleryPost{}, &entity.GalleryLike{}, &authEntity.MorandoranUser{}); err != nil {
+		t.Skipf("Skipping: cannot ensure tables: %v", err)
+	}
+
+	pass := "x"
+	user := &authEntity.MorandoranUser{
+		Nickname: "batch-like-user",
+		Email:    "batch-like-" + time.Now().Format("20060102150405") + "@example.com",
+		Password: &pass,
+		Role:     "user",
+	}
+	err := db.WithContext(ctx).Create(user).Error
+	if err != nil {
+		t.Skipf("Skipping: cannot create test user: %v", err)
+	}
+	defer db.WithContext(ctx).Unscoped().Delete(user)
+
+	post1 := &entity.GalleryPost{AuthorID: user.ID, MediaType: "image", MediaURL: "a", ThumbnailURL: "b"}
+	post2 := &entity.GalleryPost{AuthorID: user.ID, MediaType: "image", MediaURL: "c", ThumbnailURL: "d"}
+	db.WithContext(ctx).Create(post1)
+	db.WithContext(ctx).Create(post2)
+	defer db.WithContext(ctx).Unscoped().Delete(post1)
+	defer db.WithContext(ctx).Unscoped().Delete(post2)
+
+	like := &entity.GalleryLike{UserID: user.ID, GalleryID: post1.ID}
+	db.WithContext(ctx).Create(like)
+	defer db.WithContext(ctx).Unscoped().Delete(like)
+
+	result, err := repo.IsLikedBatch(ctx, user.ID, []uint{post1.ID, post2.ID})
+	require.NoError(t, err)
+	assert.True(t, result[post1.ID], "post1 should be liked")
+	assert.False(t, result[post2.ID], "post2 should not be liked")
+	t.Logf("IsLikedBatch: post1=%v post2=%v", result[post1.ID], result[post2.ID])
+
+	emptyResult, err := repo.IsLikedBatch(ctx, 0, []uint{post1.ID})
+	require.NoError(t, err)
+	assert.Empty(t, emptyResult)
+	t.Logf("IsLikedBatch with userID=0: empty=%v", len(emptyResult) == 0)
 }

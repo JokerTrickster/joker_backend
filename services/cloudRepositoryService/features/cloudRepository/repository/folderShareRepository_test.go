@@ -12,6 +12,8 @@ import (
 
 func TestFolderShareRepository_CreateFolderShare_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "folders")
+	requireTable(t, db, "folder_shares")
 	ctx := context.Background()
 
 	folder := &entity.Folder{UserID: 985, FolderName: "share_folder"}
@@ -36,6 +38,8 @@ func TestFolderShareRepository_CreateFolderShare_Success(t *testing.T) {
 
 func TestFolderShareRepository_GetFolderSharesByFolderID_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "folders")
+	requireTable(t, db, "folder_shares")
 	ctx := context.Background()
 
 	folder := &entity.Folder{UserID: 984, FolderName: "get_shares_folder"}
@@ -52,6 +56,7 @@ func TestFolderShareRepository_GetFolderSharesByFolderID_Success(t *testing.T) {
 
 func TestFolderShareRepository_GetUsersByEmails_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "folder_shares")
 	ctx := context.Background()
 
 	repo := NewFolderShareRepository(db)
@@ -63,6 +68,8 @@ func TestFolderShareRepository_GetUsersByEmails_Success(t *testing.T) {
 
 func TestFolderShareRepository_HasFolderAccess_Owner(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "folders")
+	requireTable(t, db, "folder_shares")
 	ctx := context.Background()
 
 	folder := &entity.Folder{UserID: 983, FolderName: "access_folder"}

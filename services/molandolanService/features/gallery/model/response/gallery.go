@@ -3,16 +3,20 @@ package response
 import "time"
 
 type ResAuthor struct {
-	ID       string `json:"id"`
-	Nickname string `json:"nickname"`
+	ID           string  `json:"id"`
+	Nickname     string  `json:"nickname"`
+	ProfileImage *string `json:"profileImage,omitempty"`
 }
 
 type ResGalleryListItem struct {
 	ID           string    `json:"id"`
+	Author       ResAuthor `json:"author"`
 	MediaType    string    `json:"mediaType"`
 	ThumbnailURL string    `json:"thumbnailUrl"`
+	Caption      string    `json:"caption"`
 	LikeCount    int       `json:"likeCount"`
 	CommentCount int       `json:"commentCount"`
+	IsLiked      bool      `json:"isLiked"`
 	CreatedAt    time.Time `json:"createdAt"`
 }
 
@@ -50,6 +54,7 @@ type ResGalleryCreate struct {
 	Caption      string    `json:"caption"`
 	LikeCount    int       `json:"likeCount"`
 	CommentCount int       `json:"commentCount"`
+	IsLiked      bool      `json:"isLiked"`
 	CreatedAt    time.Time `json:"createdAt"`
 }
 

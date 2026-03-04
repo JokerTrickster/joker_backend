@@ -13,6 +13,8 @@ import (
 
 func TestFavoriteRepository_AddFavorite_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
+	requireTable(t, db, "favorites")
 	ctx := context.Background()
 
 	userID := uint(993)
@@ -42,6 +44,8 @@ func TestFavoriteRepository_AddFavorite_Success(t *testing.T) {
 
 func TestFavoriteRepository_RemoveFavorite_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
+	requireTable(t, db, "favorites")
 	ctx := context.Background()
 
 	userID := uint(992)
@@ -72,6 +76,8 @@ func TestFavoriteRepository_RemoveFavorite_Success(t *testing.T) {
 
 func TestFavoriteRepository_GetFavoritesByUserID_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
+	requireTable(t, db, "favorites")
 	ctx := context.Background()
 
 	userID := uint(991)
@@ -102,6 +108,8 @@ func TestFavoriteRepository_GetFavoritesByUserID_Success(t *testing.T) {
 
 func TestFavoriteRepository_CheckIsFavorited(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
+	requireTable(t, db, "favorites")
 	ctx := context.Background()
 
 	userID := uint(990)

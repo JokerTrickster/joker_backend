@@ -12,6 +12,7 @@ import (
 
 func TestTagRepository_GetFileByID_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
 	ctx := context.Background()
 
 	file := &entity.CloudFile{
@@ -35,6 +36,7 @@ func TestTagRepository_GetFileByID_Success(t *testing.T) {
 
 func TestTagRepository_FindOrCreateTag_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "tags")
 	ctx := context.Background()
 
 	repo := NewTagRepository(db)
@@ -56,6 +58,8 @@ func TestTagRepository_FindOrCreateTag_Success(t *testing.T) {
 
 func TestTagRepository_AddTagToFile_UpdateFileTags_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
+	requireTable(t, db, "tags")
 	ctx := context.Background()
 
 	file := &entity.CloudFile{

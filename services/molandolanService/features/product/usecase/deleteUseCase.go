@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	_interface "github.com/JokerTrickster/joker_backend/services/morandoranService/features/product/model/interface"
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/product/model/interface"
 )
 
 type DeleteUseCase struct {

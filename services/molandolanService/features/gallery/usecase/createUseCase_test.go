@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/entity"
-	_interface "github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/interface"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/request"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/entity"
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/interface"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/request"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -57,6 +57,16 @@ func (m *mockCreateGalleryRepository) GetAuthorNickname(ctx context.Context, use
 	}
 	return "testuser", nil
 }
+func (m *mockCreateGalleryRepository) GetAuthorInfo(ctx context.Context, userID uint) (string, *string, error) {
+	if m.getAuthorNickname != nil {
+		nick, _ := m.getAuthorNickname(ctx, userID)
+		return nick, nil, nil
+	}
+	return "testuser", nil, nil
+}
+func (m *mockCreateGalleryRepository) IsLikedBatch(ctx context.Context, userID uint, galleryIDs []uint) (map[uint]bool, error) {
+	return map[uint]bool{}, nil
+}
 
 var _ _interface.IGalleryRepository = (*mockCreateGalleryRepository)(nil)
 
@@ -84,6 +94,7 @@ func TestCreateUseCase_Create_Success(t *testing.T) {
 	require.NotNil(t, res)
 	assert.Equal(t, "gallery-001", res.ID)
 	assert.Equal(t, "author1", res.Author.Nickname)
+	assert.False(t, res.IsLiked)
 	assert.Equal(t, "image", res.MediaType)
 	assert.Equal(t, "https://example.com/media.jpg", res.MediaURL)
 	t.Logf("Create success: id=%s author=%s", res.ID, res.Author.Nickname)

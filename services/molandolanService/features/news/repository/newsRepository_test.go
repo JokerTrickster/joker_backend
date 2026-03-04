@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/news/model/entity"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/news/model/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/mysql"

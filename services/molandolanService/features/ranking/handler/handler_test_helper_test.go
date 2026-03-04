@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/ranking/model/entity"
-	_interface "github.com/JokerTrickster/joker_backend/services/morandoranService/features/ranking/model/interface"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/ranking/model/entity"
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/ranking/model/interface"
 	"github.com/JokerTrickster/joker_backend/shared/utils"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/mock"

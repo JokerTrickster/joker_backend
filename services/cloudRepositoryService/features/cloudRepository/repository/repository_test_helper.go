@@ -15,7 +15,13 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	}
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		t.Skip("Skipping: test database unavailable:", err)
+		t.Skipf("Skipping: test database unavailable: %v", err)
 	}
 	return db
+}
+
+func requireTable(t *testing.T, db *gorm.DB, tableName string) {
+	if !db.Migrator().HasTable(tableName) {
+		t.Skipf("Table %s does not exist - skipping integration test", tableName)
+	}
 }

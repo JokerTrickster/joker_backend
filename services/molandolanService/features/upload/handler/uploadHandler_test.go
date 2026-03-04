@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/upload/usecase"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/upload/usecase"
 	"github.com/JokerTrickster/joker_backend/shared/utils"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"

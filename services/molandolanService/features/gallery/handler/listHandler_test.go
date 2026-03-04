@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/entity"
-	_interface "github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/interface"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/usecase"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/entity"
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/interface"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/usecase"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,6 +55,12 @@ func (m *mockGalleryListRepository) DeleteComment(ctx context.Context, id uint) 
 func (m *mockGalleryListRepository) GetAuthorNickname(ctx context.Context, userID uint) (string, error) {
 	return "", nil
 }
+func (m *mockGalleryListRepository) GetAuthorInfo(ctx context.Context, userID uint) (string, *string, error) {
+	return "", nil, nil
+}
+func (m *mockGalleryListRepository) IsLikedBatch(ctx context.Context, userID uint, galleryIDs []uint) (map[uint]bool, error) {
+	return map[uint]bool{}, nil
+}
 
 var _ _interface.IGalleryRepository = (*mockGalleryListRepository)(nil)
 
@@ -72,7 +78,7 @@ func TestListHandler_List(t *testing.T) {
 			query: "",
 			mockList: func(ctx context.Context, page, limit int) ([]entity.GalleryPost, int64, error) {
 				return []entity.GalleryPost{
-					{ID: 1, MediaType: "image", ThumbnailURL: "https://x.com/t.jpg", LikeCount: 2, CommentCount: 1},
+					{ID: 1, AuthorID: 1, MediaType: "image", ThumbnailURL: "https://x.com/t.jpg", Caption: "cap", LikeCount: 2, CommentCount: 1},
 				}, 1, nil
 			},
 			wantStatus:  http.StatusOK,
@@ -101,6 +107,7 @@ func TestListHandler_List(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Logf("Running case: %s", tt.name)
 			e := setupGalleryTestEcho()
@@ -132,4 +139,31 @@ func TestListHandler_List(t *testing.T) {
 			t.Logf("Response: status=%d body=%s", rec.Code, rec.Body.String())
 		})
 	}
+}
+
+func TestListHandler_List_Authenticated(t *testing.T) {
+	t.Log("List with authenticated user: userID set in context -> 200 with isLiked")
+	e := setupGalleryTestEcho()
+	mockRepo := &mockGalleryListRepository{
+		listFunc: func(ctx context.Context, page, limit int) ([]entity.GalleryPost, int64, error) {
+			return []entity.GalleryPost{
+				{ID: 1, AuthorID: 1, MediaType: "image", ThumbnailURL: "t1", Caption: "cap1"},
+			}, 1, nil
+		},
+	}
+	uc := usecase.NewListUseCase(mockRepo, 10*time.Second)
+	h := NewListHandler(uc)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/gallery", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("userID", uint(1))
+
+	err := h.List(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), "isLiked")
+	assert.Contains(t, rec.Body.String(), "author")
+	assert.Contains(t, rec.Body.String(), "caption")
+	t.Logf("Authenticated list response: %s", rec.Body.String())
 }

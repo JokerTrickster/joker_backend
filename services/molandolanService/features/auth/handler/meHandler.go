@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/auth/usecase"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/auth/usecase"
 	"github.com/JokerTrickster/joker_backend/shared/utils"
 	"github.com/labstack/echo/v4"
 )

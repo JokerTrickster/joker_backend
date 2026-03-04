@@ -6,9 +6,9 @@ import (
 	"math"
 	"time"
 
-	_interface "github.com/JokerTrickster/joker_backend/services/morandoranService/features/news/model/interface"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/news/model/request"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/news/model/response"
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/news/model/interface"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/news/model/request"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/news/model/response"
 )
 
 type ListUseCase struct {

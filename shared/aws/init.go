@@ -24,6 +24,7 @@ type ImgType uint8
 
 const (
 	ImgCloudRepository = ImgType(0)
+	ImgGallery         = ImgType(1)
 )
 
 type imgMetaStruct struct {

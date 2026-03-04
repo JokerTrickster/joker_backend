@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/upload/model/response"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/upload/model/response"
 	"github.com/JokerTrickster/joker_backend/shared/aws"
 	s3svc "github.com/aws/aws-sdk-go-v2/service/s3"
 )

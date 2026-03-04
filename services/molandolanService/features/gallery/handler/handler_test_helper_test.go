@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -40,5 +41,24 @@ func newJSONRequest(t *testing.T, method, path string, body []byte) *http.Reques
 		req = httptest.NewRequest(method, path, nil)
 	}
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	return req
+}
+
+func newMultipartGalleryRequest(t *testing.T, method, path, filename string, fileContent []byte, caption string) *http.Request {
+	t.Helper()
+	var body bytes.Buffer
+	w := multipart.NewWriter(&body)
+	if filename != "" && fileContent != nil {
+		part, err := w.CreateFormFile("file", filename)
+		require.NoError(t, err)
+		_, err = part.Write(fileContent)
+		require.NoError(t, err)
+	}
+	if caption != "" {
+		_ = w.WriteField("caption", caption)
+	}
+	require.NoError(t, w.Close())
+	req := httptest.NewRequest(method, path, &body)
+	req.Header.Set("Content-Type", w.FormDataContentType())
 	return req
 }

@@ -12,6 +12,7 @@ import (
 
 func TestActivityHistoryCloudRepository_GetMonthlyActivity_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "activity_logs")
 	ctx := context.Background()
 
 	userID := uint(971)
@@ -34,6 +35,7 @@ func TestActivityHistoryCloudRepository_GetMonthlyActivity_Success(t *testing.T)
 
 func TestActivityHistoryCloudRepository_GetMonthlyActivity_Empty(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "activity_logs")
 	ctx := context.Background()
 
 	repo := NewActivityHistoryCloudRepositoryRepository(db)
@@ -46,6 +48,7 @@ func TestActivityHistoryCloudRepository_GetMonthlyActivity_Empty(t *testing.T) {
 
 func TestActivityHistoryCloudRepository_GetMonthlyUsedTags_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "activity_logs")
 	ctx := context.Background()
 
 	repo := NewActivityHistoryCloudRepositoryRepository(db)

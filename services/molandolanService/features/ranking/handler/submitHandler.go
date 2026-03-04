@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	authEntity "github.com/JokerTrickster/joker_backend/services/morandoranService/features/auth/model/entity"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/ranking/model/request"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/ranking/usecase"
+	authEntity "github.com/JokerTrickster/joker_backend/services/molandolanService/features/auth/model/entity"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/ranking/model/request"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/ranking/usecase"
 	"github.com/JokerTrickster/joker_backend/shared/db/mysql"
 	"github.com/JokerTrickster/joker_backend/shared/utils"
 	"github.com/labstack/echo/v4"

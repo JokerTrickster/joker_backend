@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/entity"
-	_interface "github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/interface"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/request"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/gallery/model/response"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/entity"
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/interface"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/request"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/response"
 )
 
 type CommentCreateUseCase struct {

@@ -15,6 +15,7 @@ func TestMultipartUploadRepository_CreateMultipartUpload_SkipsWithoutS3(t *testi
 
 func TestMultipartUploadRepository_CreateMultipartUploadRecord_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "multipart_uploads")
 	ctx := context.Background()
 
 	repo := NewMultipartUploadRepository(db, "test-bucket")
@@ -41,6 +42,7 @@ func TestMultipartUploadRepository_CreateMultipartUploadRecord_Success(t *testin
 
 func TestMultipartUploadRepository_GetMultipartUpload_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "multipart_uploads")
 	ctx := context.Background()
 
 	upload := &entity.MultipartUpload{
@@ -68,6 +70,7 @@ func TestMultipartUploadRepository_GetMultipartUpload_Success(t *testing.T) {
 
 func TestMultipartUploadRepository_UpdateMultipartUploadStatus_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "multipart_uploads")
 	ctx := context.Background()
 
 	upload := &entity.MultipartUpload{

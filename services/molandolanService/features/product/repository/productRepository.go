@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/product/model/entity"
-	_interface "github.com/JokerTrickster/joker_backend/services/morandoranService/features/product/model/interface"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/product/model/entity"
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/product/model/interface"
 	"gorm.io/gorm"
 )
 

@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	_interface "github.com/JokerTrickster/joker_backend/services/morandoranService/features/ranking/model/interface"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/ranking/model/request"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/ranking/model/response"
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/ranking/model/interface"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/ranking/model/request"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/ranking/model/response"
 )
 
 type ListUseCase struct {

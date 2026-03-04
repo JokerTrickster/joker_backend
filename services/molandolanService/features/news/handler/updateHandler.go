@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/news/model/request"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/news/usecase"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/news/model/request"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/news/usecase"
 	"github.com/labstack/echo/v4"
 )
 

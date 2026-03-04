@@ -12,6 +12,8 @@ import (
 
 func TestFileShareRepository_CreateFileShare_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
+	requireTable(t, db, "file_shares")
 	ctx := context.Background()
 
 	file := &entity.CloudFile{
@@ -43,6 +45,7 @@ func TestFileShareRepository_CreateFileShare_Success(t *testing.T) {
 
 func TestFileShareRepository_GetFileSharesByFileID_Success(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "file_shares")
 	ctx := context.Background()
 
 	repo := NewFileShareRepository(db)
@@ -55,6 +58,8 @@ func TestFileShareRepository_GetFileSharesByFileID_Success(t *testing.T) {
 
 func TestFileShareRepository_HasFileAccess_Owner(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
+	requireTable(t, db, "file_shares")
 	ctx := context.Background()
 
 	file := &entity.CloudFile{
@@ -78,6 +83,8 @@ func TestFileShareRepository_HasFileAccess_Owner(t *testing.T) {
 
 func TestFileShareRepository_HasFileAccess_NoAccess(t *testing.T) {
 	db := setupTestDB(t)
+	requireTable(t, db, "cloud_files")
+	requireTable(t, db, "file_shares")
 	ctx := context.Background()
 
 	file := &entity.CloudFile{

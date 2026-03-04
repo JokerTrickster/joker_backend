@@ -22,7 +22,7 @@ func setupQuestTestDB(t *testing.T) *gorm.DB {
 		t.Skipf("Skipping: test database unavailable: %v", err)
 	}
 	if err := db.AutoMigrate(&entity.TDUser{}, &entity.TDUserStats{}, &entity.TDQuest{}); err != nil {
-		t.Skip("Skipping: migration failed:", err)
+		t.Skipf("Skipping: migration failed: %v", err)
 	}
 	return db
 }
@@ -40,6 +40,8 @@ func createQuestTestUser(t *testing.T, db *gorm.DB) *entity.TDUser {
 
 func TestTDQuestRepository_Create(t *testing.T) {
 	db := setupQuestTestDB(t)
+	requireTable(t, db, "td_users")
+	requireTable(t, db, "td_quests")
 	ctx := context.Background()
 	repo := NewTDQuestRepository(db)
 	user := createQuestTestUser(t, db)
@@ -61,6 +63,8 @@ func TestTDQuestRepository_Create(t *testing.T) {
 
 func TestTDQuestRepository_GetByID(t *testing.T) {
 	db := setupQuestTestDB(t)
+	requireTable(t, db, "td_users")
+	requireTable(t, db, "td_quests")
 	ctx := context.Background()
 	repo := NewTDQuestRepository(db)
 	user := createQuestTestUser(t, db)
@@ -82,6 +86,8 @@ func TestTDQuestRepository_GetByID(t *testing.T) {
 
 func TestTDQuestRepository_GetActiveQuests(t *testing.T) {
 	db := setupQuestTestDB(t)
+	requireTable(t, db, "td_users")
+	requireTable(t, db, "td_quests")
 	ctx := context.Background()
 	repo := NewTDQuestRepository(db)
 	user := createQuestTestUser(t, db)
@@ -98,6 +104,8 @@ func TestTDQuestRepository_GetActiveQuests(t *testing.T) {
 
 func TestTDQuestRepository_UpdateProgress(t *testing.T) {
 	db := setupQuestTestDB(t)
+	requireTable(t, db, "td_users")
+	requireTable(t, db, "td_quests")
 	ctx := context.Background()
 	repo := NewTDQuestRepository(db)
 	user := createQuestTestUser(t, db)
@@ -121,6 +129,8 @@ func TestTDQuestRepository_UpdateProgress(t *testing.T) {
 
 func TestTDQuestRepository_CompleteQuest(t *testing.T) {
 	db := setupQuestTestDB(t)
+	requireTable(t, db, "td_users")
+	requireTable(t, db, "td_quests")
 	ctx := context.Background()
 	repo := NewTDQuestRepository(db)
 	user := createQuestTestUser(t, db)
@@ -144,6 +154,8 @@ func TestTDQuestRepository_CompleteQuest(t *testing.T) {
 
 func TestTDQuestRepository_ClaimQuest(t *testing.T) {
 	db := setupQuestTestDB(t)
+	requireTable(t, db, "td_users")
+	requireTable(t, db, "td_quests")
 	ctx := context.Background()
 	repo := NewTDQuestRepository(db)
 	user := createQuestTestUser(t, db)

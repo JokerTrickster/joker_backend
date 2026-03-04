@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	_interface "github.com/JokerTrickster/joker_backend/services/morandoranService/features/auth/model/interface"
-	"github.com/JokerTrickster/joker_backend/services/morandoranService/features/auth/model/response"
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/auth/model/interface"
+	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/auth/model/response"
 )
 
 type MeUseCase struct {
@@ -28,10 +28,12 @@ func (uc *MeUseCase) Me(c context.Context, userID uint) (*response.ResMe, error)
 	}
 
 	return &response.ResMe{
-		ID:        fmt.Sprintf("user-%03d", user.ID),
-		Nickname:  user.Nickname,
-		Email:     user.Email,
-		Role:      user.Role,
-		CreatedAt: user.CreatedAt,
+		ID:           fmt.Sprintf("user-%03d", user.ID),
+		Nickname:     user.Nickname,
+		Email:        user.Email,
+		ProfileImage: user.ProfileImage,
+		Role:         user.Role,
+		Provider:     user.Provider,
+		CreatedAt:    user.CreatedAt,
 	}, nil
 }
