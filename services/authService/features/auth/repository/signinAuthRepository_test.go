@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"os"
 	"testing"
 	"time"
@@ -32,7 +34,7 @@ func TestSigninAuthRepository_FindUserByEmail_Success(t *testing.T) {
 	repo := NewSigninAuthRepository(db)
 	ctx := context.Background()
 
-	email := "signin-repo-" + time.Now().Format("20060102150405") + "@example.com"
+	email := "signin-repo-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com"
 	password := "correctpassword123"
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	require.NoError(t, err, "bcrypt.GenerateFromPassword should succeed")
@@ -61,7 +63,7 @@ func TestSigninAuthRepository_FindUserByEmail_UserNotFound(t *testing.T) {
 	repo := NewSigninAuthRepository(db)
 	ctx := context.Background()
 
-	email := "nonexistent-" + time.Now().Format("20060102150405") + "@example.com"
+	email := "nonexistent-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com"
 
 	_, _, err := repo.FindUserByEmail(ctx, email, "anypassword", "game")
 	require.Error(t, err, "FindUserByEmail should fail for nonexistent user")
@@ -75,7 +77,7 @@ func TestSigninAuthRepository_FindUserByEmail_WrongPassword(t *testing.T) {
 	repo := NewSigninAuthRepository(db)
 	ctx := context.Background()
 
-	email := "signin-wrongpw-" + time.Now().Format("20060102150405") + "@example.com"
+	email := "signin-wrongpw-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com"
 	password := "correctpassword"
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	require.NoError(t, err, "bcrypt.GenerateFromPassword should succeed")
@@ -101,7 +103,7 @@ func TestSigninAuthRepository_FindUserByEmail_WrongProvider(t *testing.T) {
 	repo := NewSigninAuthRepository(db)
 	ctx := context.Background()
 
-	email := "signin-provider-" + time.Now().Format("20060102150405") + "@example.com"
+	email := "signin-provider-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com"
 	password := "password123"
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	require.NoError(t, err, "bcrypt.GenerateFromPassword should succeed")

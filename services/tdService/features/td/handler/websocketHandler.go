@@ -3,7 +3,9 @@ package handler
 import (
 	"log"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 
 	"github.com/JokerTrickster/joker_backend/services/tdService/features/td/usecase"
 	"github.com/JokerTrickster/joker_backend/services/tdService/pkg/websocket"
@@ -11,12 +13,26 @@ import (
 	ws "github.com/gorilla/websocket"
 )
 
+var allowedOrigins = parseAllowedOrigins()
+
+func parseAllowedOrigins() map[string]bool {
+	origins := os.Getenv("CORS_ALLOWED_ORIGINS")
+	if origins == "" {
+		origins = "http://localhost:3000"
+	}
+	m := make(map[string]bool)
+	for _, o := range strings.Split(origins, ",") {
+		m[strings.TrimSpace(o)] = true
+	}
+	return m
+}
+
 var upgrader = ws.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		// In production, implement proper origin checking
-		return true
+		origin := r.Header.Get("Origin")
+		return allowedOrigins[origin]
 	},
 }
 
@@ -85,9 +101,8 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 	go client.ReadPump()
 }
 
-// getPlayerNumber determines the player number based on join order
+// getPlayerNumber determines the player number based on current session occupancy
 func (h *WebSocketHandler) getPlayerNumber(sessionID string, userID uint) int {
-	// In a real implementation, this would check the database to determine player order
-	// For now, we'll use a simple approach
-	return 1 // Default to player 1
+	count := h.hub.GetRoomClientCount(sessionID)
+	return count + 1
 }

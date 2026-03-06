@@ -2,10 +2,14 @@ package usecase
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"math/rand"
 	"os"
 	"testing"
 	"time"
 
+	_interface "github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/request"
 	"github.com/JokerTrickster/joker_backend/services/authService/features/auth/repository"
 	"github.com/JokerTrickster/joker_backend/shared/db/mysql"
@@ -16,6 +20,17 @@ import (
 	mysqlDriver "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
+
+type mockSignupRepository struct {
+	CreateUserFunc func(ctx context.Context, name string, email string, password string, provider string) (uint, error)
+}
+
+func (m *mockSignupRepository) CreateUser(ctx context.Context, name string, email string, password string, provider string) (uint, error) {
+	if m.CreateUserFunc != nil {
+		return m.CreateUserFunc(ctx, name, email, password, provider)
+	}
+	return 0, nil
+}
 
 func setupTestDB(t *testing.T) *gorm.DB {
 	dsn := os.Getenv("TEST_DB_DSN")
@@ -51,7 +66,7 @@ func TestSignupAuthUseCase_Success(t *testing.T) {
 	uc := NewSignupAuthUseCase(repo, 10*time.Second)
 
 	ctx := context.Background()
-	email := "signup-test-" + time.Now().Format("20060102150405") + "@example.com"
+	email := "signup-test-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com"
 
 	req := &request.ReqSignUp{
 		Email:       email,
@@ -88,7 +103,7 @@ func TestSignupAuthUseCase_DuplicateEmail(t *testing.T) {
 	uc := NewSignupAuthUseCase(repo, 10*time.Second)
 
 	ctx := context.Background()
-	email := "dup-test-" + time.Now().Format("20060102150405") + "@example.com"
+	email := "dup-test-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com"
 
 	req := &request.ReqSignUp{
 		Email:       email,
@@ -113,4 +128,77 @@ func TestSignupAuthUseCase_DuplicateEmail(t *testing.T) {
 	assert.Contains(t, err.Error(), "email already exists", "Error should mention email duplication")
 
 	t.Logf("Duplicate email correctly rejected: %v", err)
+}
+
+func TestNewSignupAuthUseCase(t *testing.T) {
+	repo := &mockSignupRepository{}
+	uc := NewSignupAuthUseCase(repo, 5*time.Second).(*SignupAuthUseCase)
+	require.NotNil(t, uc)
+	assert.Equal(t, repo, uc.Repository)
+	assert.Equal(t, 5*time.Second, uc.ContextTimeout)
+	t.Logf("NewSignupAuthUseCase sets Repository and ContextTimeout correctly")
+}
+
+func TestSignupAuthUseCase_ImplementsInterface(t *testing.T) {
+	repo := &mockSignupRepository{}
+	uc := NewSignupAuthUseCase(repo, 10*time.Second)
+	var _ _interface.ISignupAuthUseCase = uc
+	t.Logf("SignupAuthUseCase implements ISignupAuthUseCase")
+}
+
+func TestSignupAuthUseCase_Signup_RepoError(t *testing.T) {
+	repoErr := errors.New("email already exists")
+	repo := &mockSignupRepository{
+		CreateUserFunc: func(ctx context.Context, name string, email string, password string, provider string) (uint, error) {
+			return 0, repoErr
+		},
+	}
+	uc := NewSignupAuthUseCase(repo, 10*time.Second)
+	ctx := context.Background()
+	req := &request.ReqSignUp{
+		Email:       "test@example.com",
+		Password:    "pass123",
+		ServiceType: "game",
+		Name:        "Test User",
+	}
+
+	res, err := uc.Signup(ctx, req)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, repoErr)
+	assert.Empty(t, res.AccessToken)
+	assert.Empty(t, res.RefreshToken)
+	t.Logf("Signup with repo error correctly propagated: %v", err)
+}
+
+func TestSignupAuthUseCase_Signup_SuccessWithMock(t *testing.T) {
+	initJWTForTest(t)
+
+	var createUserCalled bool
+	repo := &mockSignupRepository{
+		CreateUserFunc: func(ctx context.Context, name string, email string, password string, provider string) (uint, error) {
+			createUserCalled = true
+			assert.Equal(t, "Test User", name, "Name should be passed to repo")
+			assert.Equal(t, "signup-unit@example.com", email, "Email should be passed to repo")
+			assert.Equal(t, "secretpass123", password, "Password should be passed to repo")
+			assert.Equal(t, "game", provider, "ServiceType should be passed as provider")
+			return 42, nil
+		},
+	}
+	uc := NewSignupAuthUseCase(repo, 10*time.Second)
+	ctx := context.Background()
+	req := &request.ReqSignUp{
+		Email:       "signup-unit@example.com",
+		Password:    "secretpass123",
+		ServiceType: "game",
+		Name:        "Test User",
+	}
+
+	res, err := uc.Signup(ctx, req)
+	require.NoError(t, err, "Signup with mock should succeed")
+	require.True(t, createUserCalled, "CreateUser should have been called")
+	assert.NotEmpty(t, res.AccessToken, "AccessToken should be generated")
+	assert.NotEmpty(t, res.RefreshToken, "RefreshToken should be generated")
+
+	t.Logf("Signup success with mock: accessToken=%s..., refreshToken=%s...",
+		res.AccessToken[:min(20, len(res.AccessToken))], res.RefreshToken[:min(20, len(res.RefreshToken))])
 }

@@ -80,14 +80,18 @@ func (r *GalleryRepository) ToggleLike(ctx context.Context, userID, galleryID ui
 		if err := r.db.WithContext(ctx).Create(&newLike).Error; err != nil {
 			return false, 0, fmt.Errorf("failed to create like: %w", err)
 		}
-		r.db.WithContext(ctx).Model(&entity.GalleryPost{}).Where("id = ?", galleryID).
-			UpdateColumn("like_count", gorm.Expr("like_count + 1"))
+		if err := r.db.WithContext(ctx).Model(&entity.GalleryPost{}).Where("id = ?", galleryID).
+			UpdateColumn("like_count", gorm.Expr("like_count + 1")).Error; err != nil {
+			return false, 0, fmt.Errorf("failed to update like count: %w", err)
+		}
 	} else if err == nil {
 		if err := r.db.WithContext(ctx).Delete(&like).Error; err != nil {
 			return false, 0, fmt.Errorf("failed to delete like: %w", err)
 		}
-		r.db.WithContext(ctx).Model(&entity.GalleryPost{}).Where("id = ?", galleryID).
-			UpdateColumn("like_count", gorm.Expr("GREATEST(like_count - 1, 0)"))
+		if err := r.db.WithContext(ctx).Model(&entity.GalleryPost{}).Where("id = ?", galleryID).
+			UpdateColumn("like_count", gorm.Expr("GREATEST(like_count - 1, 0)")).Error; err != nil {
+			return false, 0, fmt.Errorf("failed to update like count: %w", err)
+		}
 	} else {
 		return false, 0, fmt.Errorf("failed to toggle like: %w", err)
 	}
@@ -128,8 +132,10 @@ func (r *GalleryRepository) CreateComment(ctx context.Context, comment *entity.G
 	if err := r.db.WithContext(ctx).Create(comment).Error; err != nil {
 		return nil, fmt.Errorf("failed to create comment: %w", err)
 	}
-	r.db.WithContext(ctx).Model(&entity.GalleryPost{}).Where("id = ?", comment.GalleryID).
-		UpdateColumn("comment_count", gorm.Expr("comment_count + 1"))
+	if err := r.db.WithContext(ctx).Model(&entity.GalleryPost{}).Where("id = ?", comment.GalleryID).
+		UpdateColumn("comment_count", gorm.Expr("comment_count + 1")).Error; err != nil {
+		return nil, fmt.Errorf("failed to update comment count: %w", err)
+	}
 	return comment, nil
 }
 
@@ -144,8 +150,10 @@ func (r *GalleryRepository) DeleteComment(ctx context.Context, id uint) error {
 		return fmt.Errorf("failed to delete comment: %w", result.Error)
 	}
 
-	r.db.WithContext(ctx).Model(&entity.GalleryPost{}).Where("id = ?", comment.GalleryID).
-		UpdateColumn("comment_count", gorm.Expr("GREATEST(comment_count - 1, 0)"))
+	if err := r.db.WithContext(ctx).Model(&entity.GalleryPost{}).Where("id = ?", comment.GalleryID).
+		UpdateColumn("comment_count", gorm.Expr("GREATEST(comment_count - 1, 0)")).Error; err != nil {
+		return fmt.Errorf("failed to update comment count: %w", err)
+	}
 	return nil
 }
 
@@ -163,6 +171,14 @@ func (r *GalleryRepository) GetAuthorInfo(ctx context.Context, userID uint) (str
 		return "", nil, fmt.Errorf("user not found")
 	}
 	return user.Nickname, user.ProfileImage, nil
+}
+
+func (r *GalleryRepository) GetUserRole(ctx context.Context, userID uint) (string, error) {
+	var user authEntity.MorandoranUser
+	if err := r.db.WithContext(ctx).Select("role").First(&user, userID).Error; err != nil {
+		return "", fmt.Errorf("user not found")
+	}
+	return user.Role, nil
 }
 
 func (r *GalleryRepository) IsLikedBatch(ctx context.Context, userID uint, galleryIDs []uint) (map[uint]bool, error) {

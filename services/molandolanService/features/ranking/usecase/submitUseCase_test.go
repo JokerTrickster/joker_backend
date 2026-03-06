@@ -122,3 +122,72 @@ func TestSubmitUseCase_Submit_NoUpdateSlowerTime(t *testing.T) {
 	mockRepo.AssertNotCalled(t, "Update")
 	mockRepo.AssertExpectations(t)
 }
+
+func TestSubmitUseCase_Submit_FindByUserAndGameError(t *testing.T) {
+	t.Log("Submit: FindByUserAndGame returns non-ErrRecordNotFound error")
+	mockRepo := new(mockSubmitRankingRepo)
+	uc := NewSubmitUseCase(mockRepo, 5*time.Second)
+	ctx := context.Background()
+
+	mockRepo.On("FindByUserAndGame", mock.Anything, uint(1), "puzzle").Return(nil, assert.AnError)
+
+	res, err := uc.Submit(ctx, 1, "Alice", "puzzle", 5000)
+	assert.Error(t, err)
+	assert.Nil(t, res)
+	mockRepo.AssertExpectations(t)
+	mockRepo.AssertNotCalled(t, "Create")
+	mockRepo.AssertNotCalled(t, "Update")
+	mockRepo.AssertNotCalled(t, "GetRank")
+}
+
+func TestSubmitUseCase_Submit_CreateError(t *testing.T) {
+	t.Log("Submit: Create fails for new record")
+	mockRepo := new(mockSubmitRankingRepo)
+	uc := NewSubmitUseCase(mockRepo, 5*time.Second)
+	ctx := context.Background()
+
+	mockRepo.On("FindByUserAndGame", mock.Anything, uint(1), "puzzle").Return(nil, gorm.ErrRecordNotFound)
+	mockRepo.On("Create", mock.Anything, mock.AnythingOfType("*entity.Ranking")).Return(assert.AnError)
+
+	res, err := uc.Submit(ctx, 1, "Alice", "puzzle", 5000)
+	assert.Error(t, err)
+	assert.Nil(t, res)
+	mockRepo.AssertExpectations(t)
+	mockRepo.AssertNotCalled(t, "GetRank")
+}
+
+func TestSubmitUseCase_Submit_UpdateError(t *testing.T) {
+	t.Log("Submit: Update fails when improving time")
+	mockRepo := new(mockSubmitRankingRepo)
+	uc := NewSubmitUseCase(mockRepo, 5*time.Second)
+	ctx := context.Background()
+
+	existing := &entity.Ranking{ID: 1, UserID: uint(1), GameType: "puzzle", Nickname: "Old", ClearTimeMs: 5000}
+	mockRepo.On("FindByUserAndGame", mock.Anything, uint(1), "puzzle").Return(existing, nil)
+	mockRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.Ranking")).Return(assert.AnError)
+
+	res, err := uc.Submit(ctx, 1, "Alice", "puzzle", 3000)
+	assert.Error(t, err)
+	assert.Nil(t, res)
+	mockRepo.AssertExpectations(t)
+	mockRepo.AssertNotCalled(t, "GetRank")
+}
+
+func TestSubmitUseCase_Submit_GetRankError(t *testing.T) {
+	t.Log("Submit: GetRank fails after successful create")
+	mockRepo := new(mockSubmitRankingRepo)
+	uc := NewSubmitUseCase(mockRepo, 5*time.Second)
+	ctx := context.Background()
+
+	mockRepo.On("FindByUserAndGame", mock.Anything, uint(1), "puzzle").Return(nil, gorm.ErrRecordNotFound)
+	mockRepo.On("Create", mock.Anything, mock.AnythingOfType("*entity.Ranking")).Run(func(args mock.Arguments) {
+		r := args.Get(1).(*entity.Ranking)
+		r.ID = 1
+	}).Return(nil)
+	mockRepo.On("GetRank", mock.Anything, "puzzle", uint(5000)).Return(0, assert.AnError)
+
+	res, err := uc.Submit(ctx, 1, "Alice", "puzzle", 5000)
+	assert.Error(t, err)
+	assert.Nil(t, res)
+	mockRepo.AssertExpectations(t)
+}

@@ -23,4 +23,5 @@ type IGalleryRepository interface {
 	GetAuthorNickname(ctx context.Context, userID uint) (string, error)
 	GetAuthorInfo(ctx context.Context, userID uint) (string, *string, error)
 	IsLikedBatch(ctx context.Context, userID uint, galleryIDs []uint) (map[uint]bool, error)
+	GetUserRole(ctx context.Context, userID uint) (string, error)
 }

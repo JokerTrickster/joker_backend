@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -16,10 +18,11 @@ func TestUserStatsCloudRepository_GetTotalStorageUsed_Success(t *testing.T) {
 	ctx := context.Background()
 
 	userID := uint(973)
+	uid := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000))
 	file := &entity.CloudFile{
 		UserID:      userID,
 		FileName:   "stats_file.jpg",
-		S3Key:      "user973/stats_file.jpg",
+		S3Key:      "user973/stats_file_" + uid + ".jpg",
 		FileType:   entity.FileTypeImage,
 		ContentType: "image/jpeg",
 		FileSize:   2048,

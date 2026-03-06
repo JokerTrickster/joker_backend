@@ -85,6 +85,147 @@ func TestTDQuestHandler_GetActiveQuests_NoUserID(t *testing.T) {
 	mockUC.AssertNotCalled(t, "GetActiveQuests")
 }
 
+func TestTDQuestHandler_UpdateProgress_InvalidID(t *testing.T) {
+	t.Log("UpdateProgress: invalid id -> 400")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDQuestUseCase)
+	h := &TDQuestHandler{uc: mockUC}
+
+	body := tdMustJSON(t, &request.UpdateQuestProgressRequest{Increment: 5})
+	req := httptest.NewRequest(http.MethodPost, "/quests/abc/progress", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/quests/:id/progress")
+	c.SetParamNames("id")
+	c.SetParamValues("abc")
+	setupTDAuthContext(c)
+
+	err := h.UpdateProgress(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, he.Code)
+	mockUC.AssertNotCalled(t, "UpdateQuestProgress")
+}
+
+func TestTDQuestHandler_UpdateProgress_QuestNotCompletedError(t *testing.T) {
+	t.Log("UpdateProgress: quest not completed (bad request) -> 400")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDQuestUseCase)
+	h := &TDQuestHandler{uc: mockUC}
+
+	body := tdMustJSON(t, &request.UpdateQuestProgressRequest{Increment: 5})
+	mockUC.On("UpdateQuestProgress", mock.Anything, tdTestUserID, uint(1), mock.AnythingOfType("*request.UpdateQuestProgressRequest")).
+		Return(nil, errors.New("quest not completed"))
+
+	req := httptest.NewRequest(http.MethodPost, "/quests/1/progress", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/quests/:id/progress")
+	c.SetParamNames("id")
+	c.SetParamValues("1")
+	setupTDAuthContext(c)
+
+	err := h.UpdateProgress(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestTDQuestHandler_UpdateProgress_InternalError(t *testing.T) {
+	t.Log("UpdateProgress: internal error -> 500")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDQuestUseCase)
+	h := &TDQuestHandler{uc: mockUC}
+
+	body := tdMustJSON(t, &request.UpdateQuestProgressRequest{Increment: 5})
+	mockUC.On("UpdateQuestProgress", mock.Anything, tdTestUserID, uint(1), mock.AnythingOfType("*request.UpdateQuestProgressRequest")).
+		Return(nil, errors.New("db error"))
+
+	req := httptest.NewRequest(http.MethodPost, "/quests/1/progress", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/quests/:id/progress")
+	c.SetParamNames("id")
+	c.SetParamValues("1")
+	setupTDAuthContext(c)
+
+	err := h.UpdateProgress(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestTDQuestHandler_ClaimReward_QuestNotFound(t *testing.T) {
+	t.Log("ClaimReward: quest not found -> 404")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDQuestUseCase)
+	h := &TDQuestHandler{uc: mockUC}
+
+	mockUC.On("ClaimReward", mock.Anything, tdTestUserID, uint(999)).
+		Return(nil, errors.New("quest not found"))
+
+	req := httptest.NewRequest(http.MethodPost, "/quests/999/claim", nil)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/quests/:id/claim")
+	c.SetParamNames("id")
+	c.SetParamValues("999")
+	setupTDAuthContext(c)
+
+	err := h.ClaimReward(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestTDQuestHandler_ClaimReward_InvalidID(t *testing.T) {
+	t.Log("ClaimReward: invalid id -> 400")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDQuestUseCase)
+	h := &TDQuestHandler{uc: mockUC}
+
+	req := httptest.NewRequest(http.MethodPost, "/quests/xyz/claim", nil)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/quests/:id/claim")
+	c.SetParamNames("id")
+	c.SetParamValues("xyz")
+	setupTDAuthContext(c)
+
+	err := h.ClaimReward(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, he.Code)
+	mockUC.AssertNotCalled(t, "ClaimReward")
+}
+
+func TestTDQuestHandler_GetActiveQuests_UseCaseError(t *testing.T) {
+	t.Log("GetActiveQuests: usecase error -> 500")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDQuestUseCase)
+	h := &TDQuestHandler{uc: mockUC}
+
+	mockUC.On("GetActiveQuests", mock.Anything, tdTestUserID).
+		Return(nil, errors.New("db error"))
+
+	req := httptest.NewRequest(http.MethodGet, "/quests", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupTDAuthContext(c)
+
+	err := h.GetActiveQuests(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
 func TestTDQuestHandler_UpdateProgress_Success(t *testing.T) {
 	t.Log("UpdateProgress: success")
 	e := setupTDTestEcho()

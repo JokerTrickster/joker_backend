@@ -88,3 +88,39 @@ func TestUpdateProductUseCase_Update_RepoError(t *testing.T) {
 	assert.Nil(t, res)
 	mockRepo.AssertExpectations(t)
 }
+
+func TestUpdateProductUseCase_Update_EmptyUpdatesReturnsExisting(t *testing.T) {
+	t.Log("Update: empty updates -> FindByID and return existing")
+	mockRepo := new(mockUpdateProductRepo)
+	uc := NewUpdateUseCase(mockRepo, 5*time.Second)
+	ctx := context.Background()
+	req := &request.ReqUpdateProduct{}
+
+	mockRepo.On("FindByID", mock.Anything, uint(1)).Return(&entity.Product{
+		ID: 1, Name: "P", Price: 100, Description: "D", Image: "i", Category: "c", InStock: true,
+	}, nil)
+
+	res, err := uc.Update(ctx, 1, req)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	assert.Equal(t, "product-001", res.ID)
+	assert.Equal(t, "P", res.Name)
+	mockRepo.AssertExpectations(t)
+	mockRepo.AssertNotCalled(t, "Update")
+}
+
+func TestUpdateProductUseCase_Update_EmptyUpdatesFindByIDError(t *testing.T) {
+	t.Log("Update: empty updates, FindByID error propagated")
+	mockRepo := new(mockUpdateProductRepo)
+	uc := NewUpdateUseCase(mockRepo, 5*time.Second)
+	ctx := context.Background()
+	req := &request.ReqUpdateProduct{}
+
+	mockRepo.On("FindByID", mock.Anything, uint(999)).Return(nil, assert.AnError)
+
+	res, err := uc.Update(ctx, 999, req)
+	assert.Error(t, err)
+	assert.Nil(t, res)
+	mockRepo.AssertExpectations(t)
+	mockRepo.AssertNotCalled(t, "Update")
+}

@@ -87,3 +87,36 @@ func TestMeRankingUseCase_MyRanking_NotFound(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 	mockRepo.AssertNotCalled(t, "GetRank")
 }
+
+func TestMeRankingUseCase_MyRanking_FindByUserAndGameError(t *testing.T) {
+	t.Log("MyRanking: FindByUserAndGame returns non-NotFound error")
+	mockRepo := new(mockMeRankingRepo)
+	uc := NewMeUseCase(mockRepo, 5*time.Second)
+	ctx := context.Background()
+
+	mockRepo.On("FindByUserAndGame", mock.Anything, uint(1), "puzzle").Return(nil, assert.AnError)
+
+	res, err := uc.MyRanking(ctx, 1, "puzzle")
+	assert.Error(t, err)
+	assert.Nil(t, res)
+	mockRepo.AssertExpectations(t)
+	mockRepo.AssertNotCalled(t, "GetRank")
+}
+
+func TestMeRankingUseCase_MyRanking_GetRankError(t *testing.T) {
+	t.Log("MyRanking: GetRank error propagated")
+	mockRepo := new(mockMeRankingRepo)
+	uc := NewMeUseCase(mockRepo, 5*time.Second)
+	ctx := context.Background()
+
+	ranking := &entity.Ranking{
+		ID: 1, UserID: 1, GameType: "puzzle", Nickname: "Me", ClearTimeMs: 4500,
+	}
+	mockRepo.On("FindByUserAndGame", mock.Anything, uint(1), "puzzle").Return(ranking, nil)
+	mockRepo.On("GetRank", mock.Anything, "puzzle", uint(4500)).Return(0, assert.AnError)
+
+	res, err := uc.MyRanking(ctx, 1, "puzzle")
+	assert.Error(t, err)
+	assert.Nil(t, res)
+	mockRepo.AssertExpectations(t)
+}

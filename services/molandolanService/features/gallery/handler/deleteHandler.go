@@ -1,21 +1,23 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/usecase"
-	"github.com/JokerTrickster/joker_backend/shared/db/mysql"
 	"github.com/JokerTrickster/joker_backend/shared/utils"
 	"github.com/labstack/echo/v4"
 )
 
 type DeleteHandler struct {
 	UseCase *usecase.DeleteUseCase
+	Repo    _interface.IGalleryRepository
 }
 
-func NewDeleteHandler(uc *usecase.DeleteUseCase) *DeleteHandler {
-	return &DeleteHandler{UseCase: uc}
+func NewDeleteHandler(uc *usecase.DeleteUseCase, repo _interface.IGalleryRepository) *DeleteHandler {
+	return &DeleteHandler{UseCase: uc, Repo: repo}
 }
 
 func (h *DeleteHandler) Delete(c echo.Context) error {
@@ -30,11 +32,10 @@ func (h *DeleteHandler) Delete(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "UNAUTHORIZED")
 	}
 
-	var role string
-	mysql.GormMysqlDB.Raw("SELECT role FROM morandoran_users WHERE id = ? AND deleted_at IS NULL", userID).Scan(&role)
+	role, _ := h.Repo.GetUserRole(ctx, userID)
 
 	if err := h.UseCase.Delete(ctx, uint(id), userID, role); err != nil {
-		if err.Error() == "FORBIDDEN" {
+		if errors.Is(err, usecase.ErrForbidden) {
 			return echo.NewHTTPError(http.StatusForbidden, "FORBIDDEN")
 		}
 		return echo.NewHTTPError(http.StatusNotFound, "NOT_FOUND")

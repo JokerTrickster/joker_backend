@@ -13,10 +13,14 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
+// googleTokenValidatorFunc, when set, is used instead of idtoken.Validate for testing.
+type googleTokenValidatorFunc func(ctx context.Context, idToken string, clientID string) (*idtoken.Payload, error)
+
 type GoogleSigninAuthUseCase struct {
-	Repository     _interface.IGoogleSigninAuthRepository
-	ContextTimeout time.Duration
-	GoogleClientID string
+	Repository           _interface.IGoogleSigninAuthRepository
+	ContextTimeout       time.Duration
+	GoogleClientID       string
+	googleTokenValidator googleTokenValidatorFunc // optional override for unit tests
 }
 
 func NewGoogleSigninAuthUseCase(repo _interface.IGoogleSigninAuthRepository, timeout time.Duration) _interface.IGoogleSigninAuthUseCase {
@@ -35,7 +39,13 @@ func (d *GoogleSigninAuthUseCase) GoogleSignin(c context.Context, idToken string
 
 	// 구글 ID 토큰 검증
 	// 클라이언트 ID가 설정되어 있으면 사용, 없으면 빈 문자열로 자동 검증
-	payload, err := idtoken.Validate(ctx, idToken, d.GoogleClientID)
+	var payload *idtoken.Payload
+	var err error
+	if d.googleTokenValidator != nil {
+		payload, err = d.googleTokenValidator(ctx, idToken, d.GoogleClientID)
+	} else {
+		payload, err = idtoken.Validate(ctx, idToken, d.GoogleClientID)
+	}
 	if err != nil {
 		return response.ResGoogleSignin{}, errors.Unauthorized("Invalid Google ID token")
 	}

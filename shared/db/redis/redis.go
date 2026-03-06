@@ -3,12 +3,13 @@ package _redis
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 
 	_aws "github.com/JokerTrickster/joker_backend/shared/aws"
+	"github.com/JokerTrickster/joker_backend/shared/logger"
 
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 var Client *redis.Client
@@ -22,23 +23,21 @@ func InitRedis() error {
 	if isLocal == "true" {
 		connectionString = fmt.Sprintf("redis://%s:%s@localhost:6379/1", os.Getenv("REDIS_USER"), os.Getenv("REDIS_PASSWORD"))
 	} else {
-		dbInfos, err := _aws.AwsSsmGetParams([]string{"dev_backend_redis_user", "dev_backend_redis_password", "dev_backend_redis_host", "dev_backend_redis_port", "dev_backend_redis_db"})
+		dbInfos, err := _aws.AwsSsmGetParams(ctx, []string{"dev_backend_redis_user", "dev_backend_redis_password", "dev_backend_redis_host", "dev_backend_redis_port", "dev_backend_redis_db"})
 		if err != nil {
 			return err
 		}
-		fmt.Println(dbInfos)
 		connectionString = fmt.Sprintf("redis://:%s@%s:%s/%s",
 			dbInfos[3], //password
 			dbInfos[0], //host
 			dbInfos[1], //port
 			dbInfos[2], //db
 		)
-		fmt.Println(connectionString)
 	}
 
 	opt, err := redis.ParseURL(connectionString)
 	if err != nil {
-		log.Println(err)
+		logger.Error("Failed to parse Redis URL", zap.Error(err))
 		return err
 	}
 
@@ -48,7 +47,7 @@ func InitRedis() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Connected to Redis!")
+	logger.Info("Connected to Redis")
 
 	return nil
 }

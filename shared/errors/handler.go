@@ -46,7 +46,16 @@ func CustomErrorHandler(err error, c echo.Context) {
 		// Handle Echo's HTTPError
 		code = echoErr.Code
 		if echoErr.Internal != nil {
-			message = echoErr.Internal.Error()
+			logger.Error("HTTP error internal",
+				zap.String("request_id", c.Response().Header().Get(echo.HeaderXRequestID)),
+				zap.Int("status_code", code),
+				zap.Error(echoErr.Internal),
+			)
+			if msg, ok := echoErr.Message.(string); ok && msg != "" {
+				message = msg
+			} else {
+				message = "Internal Server Error"
+			}
 		} else if msg, ok := echoErr.Message.(string); ok {
 			message = msg
 		}

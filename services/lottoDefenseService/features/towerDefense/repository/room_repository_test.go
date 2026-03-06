@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"os"
 	"testing"
 	"time"
@@ -28,9 +30,10 @@ func setupRoomTestDB(t *testing.T) *gorm.DB {
 }
 
 func createRoomTestUser(t *testing.T, db *gorm.DB) *entity.TDUser {
+	suffix := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000))
 	user := &entity.TDUser{
-		Username:     "roomuser_" + time.Now().Format("20060102150405"),
-		Email:        "room_" + time.Now().Format("20060102150405") + "@test.com",
+		Username:     "roomuser_" + suffix,
+		Email:        "room_" + suffix + "@test.com",
 		PasswordHash: "hash",
 		IsActive:     true,
 	}
@@ -47,13 +50,15 @@ func TestTDRoomRepository_Create(t *testing.T) {
 	user := createRoomTestUser(t, db)
 
 	room := &entity.TDRoom{
-		RoomCode:       "TEST",
+		RoomCode:       fmt.Sprintf("T%03d", rand.Intn(999)),
 		HostUserID:     user.ID,
 		RoomType:       "random",
 		MaxPlayers:     2,
 		CurrentPlayers: 1,
 		Status:         "waiting",
 		SharedGold:     100,
+		Player1State:   "{}",
+		Player2State:   "{}",
 		ExpiresAt:      time.Now().Add(30 * time.Minute),
 	}
 	err := repo.Create(ctx, room)
@@ -70,12 +75,14 @@ func TestTDRoomRepository_GetByID(t *testing.T) {
 	user := createRoomTestUser(t, db)
 
 	room := &entity.TDRoom{
-		RoomCode:       "GID1",
+		RoomCode:       fmt.Sprintf("G%03d", rand.Intn(999)),
 		HostUserID:     user.ID,
 		RoomType:       "random",
 		MaxPlayers:     2,
 		CurrentPlayers: 1,
 		Status:         "waiting",
+		Player1State:   "{}",
+		Player2State:   "{}",
 		ExpiresAt:      time.Now().Add(30 * time.Minute),
 	}
 	require.NoError(t, repo.Create(ctx, room))
@@ -83,7 +90,7 @@ func TestTDRoomRepository_GetByID(t *testing.T) {
 	got, err := repo.GetByID(ctx, room.ID)
 	require.NoError(t, err)
 	require.Equal(t, room.ID, got.ID)
-	require.Equal(t, "GID1", got.RoomCode)
+	require.Equal(t, room.RoomCode, got.RoomCode)
 }
 
 func TestTDRoomRepository_GetByCode(t *testing.T) {
@@ -94,7 +101,7 @@ func TestTDRoomRepository_GetByCode(t *testing.T) {
 	repo := NewTDRoomRepository(db)
 	user := createRoomTestUser(t, db)
 
-	code := "CODE" + time.Now().Format("05")
+	code := fmt.Sprintf("C%03d", rand.Intn(999))
 	room := &entity.TDRoom{
 		RoomCode:       code,
 		HostUserID:     user.ID,
@@ -102,6 +109,8 @@ func TestTDRoomRepository_GetByCode(t *testing.T) {
 		MaxPlayers:     2,
 		CurrentPlayers: 1,
 		Status:         "waiting",
+		Player1State:   "{}",
+		Player2State:   "{}",
 		ExpiresAt:      time.Now().Add(30 * time.Minute),
 	}
 	require.NoError(t, repo.Create(ctx, room))
@@ -118,12 +127,14 @@ func TestTDRoomRepository_AddPlayer(t *testing.T) {
 	user := createRoomTestUser(t, db)
 
 	room := &entity.TDRoom{
-		RoomCode:       "APLR",
+		RoomCode:       fmt.Sprintf("A%03d", rand.Intn(999)),
 		HostUserID:     user.ID,
 		RoomType:       "random",
 		MaxPlayers:     2,
 		CurrentPlayers: 1,
 		Status:         "waiting",
+		Player1State:   "{}",
+		Player2State:   "{}",
 		ExpiresAt:      time.Now().Add(30 * time.Minute),
 	}
 	require.NoError(t, repo.Create(ctx, room))
@@ -150,12 +161,14 @@ func TestTDRoomRepository_RemovePlayer(t *testing.T) {
 	user := createRoomTestUser(t, db)
 
 	room := &entity.TDRoom{
-		RoomCode:       "RPLR",
+		RoomCode:       fmt.Sprintf("R%03d", rand.Intn(999)),
 		HostUserID:     user.ID,
 		RoomType:       "random",
 		MaxPlayers:     2,
 		CurrentPlayers: 1,
 		Status:         "waiting",
+		Player1State:   "{}",
+		Player2State:   "{}",
 		ExpiresAt:      time.Now().Add(30 * time.Minute),
 	}
 	require.NoError(t, repo.Create(ctx, room))
@@ -176,13 +189,16 @@ func TestTDRoomRepository_GetPlayers(t *testing.T) {
 	repo := NewTDRoomRepository(db)
 	user := createRoomTestUser(t, db)
 
+	roomCode := fmt.Sprintf("GP%02d", rand.Intn(99))
 	room := &entity.TDRoom{
-		RoomCode:       "GPLR",
+		RoomCode:       roomCode,
 		HostUserID:     user.ID,
 		RoomType:       "random",
 		MaxPlayers:     2,
 		CurrentPlayers: 1,
 		Status:         "waiting",
+		Player1State:   "{}",
+		Player2State:   "{}",
 		ExpiresAt:      time.Now().Add(30 * time.Minute),
 	}
 	require.NoError(t, repo.Create(ctx, room))
@@ -201,13 +217,16 @@ func TestTDRoomRepository_UpdatePlayerReady(t *testing.T) {
 	repo := NewTDRoomRepository(db)
 	user := createRoomTestUser(t, db)
 
+	roomCode := fmt.Sprintf("RD%02d", rand.Intn(99))
 	room := &entity.TDRoom{
-		RoomCode:       "READ",
+		RoomCode:       roomCode,
 		HostUserID:     user.ID,
 		RoomType:       "random",
 		MaxPlayers:     2,
 		CurrentPlayers: 1,
 		Status:         "waiting",
+		Player1State:   "{}",
+		Player2State:   "{}",
 		ExpiresAt:      time.Now().Add(30 * time.Minute),
 	}
 	require.NoError(t, repo.Create(ctx, room))

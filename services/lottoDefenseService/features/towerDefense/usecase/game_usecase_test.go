@@ -155,3 +155,126 @@ func TestTDGameUseCase_GetWeeklyRankings_Success(t *testing.T) {
 	assert.Equal(t, "single", resp.GameMode)
 	mockGameRepo.AssertExpectations(t)
 }
+
+func TestTDGameUseCase_GetGameHistory_LimitOffsetClamping(t *testing.T) {
+	t.Log("GetGameHistory: limit<1 uses 10, offset<0 uses 0, limit>50 uses 50")
+	mockGameRepo := new(mockTDGameRepository)
+	mockUserRepo := new(mockTDUserRepository)
+	uc := NewTDGameUseCase(mockGameRepo, mockUserRepo, 5*time.Second)
+	ctx := context.Background()
+	userID := uint(1)
+	req := &request.GameHistoryRequest{GameMode: "single", Limit: 0, Offset: -1}
+
+	mockGameRepo.On("GetHistory", ctx, userID, "single", 10, 0).
+		Return([]entity.TDGameResult{}, int64(0), nil)
+
+	resp, err := uc.GetGameHistory(ctx, userID, req)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, int64(0), resp.Total)
+	mockGameRepo.AssertExpectations(t)
+}
+
+func TestTDGameUseCase_GetGameHistory_LimitMax50(t *testing.T) {
+	t.Log("GetGameHistory: limit>50 clamped to 50")
+	mockGameRepo := new(mockTDGameRepository)
+	mockUserRepo := new(mockTDUserRepository)
+	uc := NewTDGameUseCase(mockGameRepo, mockUserRepo, 5*time.Second)
+	ctx := context.Background()
+	userID := uint(1)
+	req := &request.GameHistoryRequest{GameMode: "single", Limit: 100, Offset: 0}
+
+	mockGameRepo.On("GetHistory", ctx, userID, "single", 50, 0).
+		Return([]entity.TDGameResult{}, int64(0), nil)
+
+	resp, err := uc.GetGameHistory(ctx, userID, req)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	mockGameRepo.AssertExpectations(t)
+}
+
+func TestTDGameUseCase_GetGameHistory_Empty(t *testing.T) {
+	t.Log("GetGameHistory: empty result")
+	mockGameRepo := new(mockTDGameRepository)
+	mockUserRepo := new(mockTDUserRepository)
+	uc := NewTDGameUseCase(mockGameRepo, mockUserRepo, 5*time.Second)
+	ctx := context.Background()
+	userID := uint(1)
+	req := &request.GameHistoryRequest{GameMode: "single", Limit: 10, Offset: 0}
+
+	mockGameRepo.On("GetHistory", ctx, userID, "single", 10, 0).
+		Return([]entity.TDGameResult{}, int64(0), nil)
+
+	resp, err := uc.GetGameHistory(ctx, userID, req)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Empty(t, resp.Games)
+	assert.Equal(t, int64(0), resp.Total)
+	mockGameRepo.AssertExpectations(t)
+}
+
+func TestTDGameUseCase_GetWeeklyRankings_WithCoopPlayers(t *testing.T) {
+	t.Log("GetWeeklyRankings: coop mode with player2 info")
+	mockGameRepo := new(mockTDGameRepository)
+	mockUserRepo := new(mockTDUserRepository)
+	uc := NewTDGameUseCase(mockGameRepo, mockUserRepo, 5*time.Second)
+	ctx := context.Background()
+
+	survivalSec := uint(300)
+	room := &entity.TDRoom{ID: 1, Players: []entity.TDRoomPlayer{
+		{UserID: 1, User: &entity.TDUser{Username: "player1"}},
+		{UserID: 2, User: &entity.TDUser{Username: "player2"}},
+	}}
+	mockGameRepo.On("GetWeeklyRankings", ctx, "coop", 10).
+		Return([]entity.TDGameResult{
+			{ID: 1, UserID: 1, RoundsReached: 15, GameMode: "coop", SurvivalTimeSeconds: &survivalSec, User: &entity.TDUser{Username: "player1"}, Room: room},
+		}, nil)
+
+	resp, err := uc.GetWeeklyRankings(ctx, "coop")
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, "coop", resp.GameMode)
+	require.Len(t, resp.Rankings, 1)
+	assert.NotNil(t, resp.Rankings[0].Player2ID)
+	assert.Equal(t, uint(2), *resp.Rankings[0].Player2ID)
+	assert.NotNil(t, resp.Rankings[0].Player2Username)
+	assert.Equal(t, "player2", *resp.Rankings[0].Player2Username)
+	assert.Equal(t, 5.0, resp.Rankings[0].SurvivalMinutes)
+	mockGameRepo.AssertExpectations(t)
+}
+
+func TestTDGameUseCase_SaveSingleResult_CoopMode(t *testing.T) {
+	t.Log("SaveSingleResult: coop mode updates coop stats and victory increments wins")
+	mockGameRepo := new(mockTDGameRepository)
+	mockUserRepo := new(mockTDUserRepository)
+	uc := NewTDGameUseCase(mockGameRepo, mockUserRepo, 5*time.Second)
+	ctx := context.Background()
+	userID := uint(1)
+	req := &request.SaveGameResultRequest{
+		GameMode:       "coop",
+		RoundsReached:  12,
+		MonstersKilled: 80,
+		GoldEarned:     150,
+		Result:         "victory",
+	}
+
+	mockGameRepo.On("Create", ctx, mock.AnythingOfType("*entity.TDGameResult")).Run(func(args mock.Arguments) {
+		r := args.Get(1).(*entity.TDGameResult)
+		r.ID = 1
+	}).Return(nil)
+	mockUserRepo.On("GetStats", ctx, userID).Return(&entity.TDUserStats{
+		UserID:             userID,
+		CoopHighestRound:   8,
+		CoopTotalGames:     2,
+		CoopTotalKills:     40,
+		CoopWins:           1,
+	}, nil)
+	mockUserRepo.On("UpdateStats", ctx, mock.AnythingOfType("*entity.TDUserStats")).Return(nil)
+
+	resp, err := uc.SaveSingleResult(ctx, userID, req)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, uint(12), resp.NewHighestRound)
+	mockGameRepo.AssertExpectations(t)
+	mockUserRepo.AssertExpectations(t)
+}

@@ -11,19 +11,34 @@ import (
 
 func createTestPlayerForSession(t *testing.T, db *gorm.DB, userID uint) *entity.Player {
 	t.Helper()
+	suffix := uniqueSuffix()
 	player := &entity.Player{
 		UserID:   userID,
-		Nickname: "testplayer",
-		AvatarID: "avatar-1",
+		Nickname: "player_" + suffix,
+		AvatarID: "avatar_" + suffix,
 	}
 	require.NoError(t, db.Create(player).Error)
 	return player
 }
 
+func deferCleanupSessionTest(t *testing.T, db *gorm.DB, playerIDs []uint, sessionIDs []string) {
+	t.Helper()
+	t.Cleanup(func() {
+		for _, sid := range sessionIDs {
+			db.Exec("DELETE FROM game_results WHERE session_id = ?", sid)
+			db.Where("session_id = ?", sid).Delete(&entity.GameSession{})
+		}
+		for _, pid := range playerIDs {
+			db.Where("player_id = ?", pid).Delete(&entity.PlayerStats{})
+			db.Delete(&entity.Player{}, pid)
+		}
+	})
+}
+
 func TestGameSessionRepository_CreateSession_Single(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewGameSessionRepository(db)
-	player := createTestPlayerForSession(t, db, 1)
+	player := createTestPlayerForSession(t, db, uniqueUserID())
 
 	session := &entity.GameSession{
 		Mode:        entity.GameModeSingle,
@@ -33,6 +48,7 @@ func TestGameSessionRepository_CreateSession_Single(t *testing.T) {
 
 	err := repo.CreateSession(session)
 	require.NoError(t, err)
+	deferCleanupSessionTest(t, db, []uint{player.ID}, []string{session.SessionID})
 	assert.NotEmpty(t, session.SessionID, "SessionID should be generated")
 	assert.Equal(t, entity.GameStatusWaiting, session.Status)
 	assert.Empty(t, session.RoomCode, "Single mode should not have room code")
@@ -43,7 +59,7 @@ func TestGameSessionRepository_CreateSession_Single(t *testing.T) {
 func TestGameSessionRepository_CreateSession_Coop(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewGameSessionRepository(db)
-	player := createTestPlayerForSession(t, db, 1)
+	player := createTestPlayerForSession(t, db, uniqueUserID())
 
 	session := &entity.GameSession{
 		Mode:        entity.GameModeCoop,
@@ -53,6 +69,7 @@ func TestGameSessionRepository_CreateSession_Coop(t *testing.T) {
 
 	err := repo.CreateSession(session)
 	require.NoError(t, err)
+	deferCleanupSessionTest(t, db, []uint{player.ID}, []string{session.SessionID})
 	assert.NotEmpty(t, session.SessionID)
 	assert.NotEmpty(t, session.RoomCode, "Coop mode should generate room code")
 	assert.Len(t, session.RoomCode, 6, "Room code should be 6 characters")
@@ -64,7 +81,7 @@ func TestGameSessionRepository_CreateSession_Coop(t *testing.T) {
 func TestGameSessionRepository_GetSessionByID_Found(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewGameSessionRepository(db)
-	player := createTestPlayerForSession(t, db, 1)
+	player := createTestPlayerForSession(t, db, uniqueUserID())
 
 	session := &entity.GameSession{
 		Mode:        entity.GameModeSingle,
@@ -72,6 +89,7 @@ func TestGameSessionRepository_GetSessionByID_Found(t *testing.T) {
 		PlayerID:    player.ID,
 	}
 	require.NoError(t, repo.CreateSession(session))
+	deferCleanupSessionTest(t, db, []uint{player.ID}, []string{session.SessionID})
 
 	got, err := repo.GetSessionByID(session.SessionID)
 	require.NoError(t, err)
@@ -88,7 +106,7 @@ func TestGameSessionRepository_GetSessionByID_NotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewGameSessionRepository(db)
 
-	got, err := repo.GetSessionByID("non-existent-session-id")
+	got, err := repo.GetSessionByID("non-existent-" + uniqueSuffix())
 	require.Error(t, err)
 	assert.Nil(t, got)
 	assert.Contains(t, err.Error(), "session not found")
@@ -99,7 +117,7 @@ func TestGameSessionRepository_GetSessionByID_NotFound(t *testing.T) {
 func TestGameSessionRepository_GetSessionByRoomCode_Found(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewGameSessionRepository(db)
-	player := createTestPlayerForSession(t, db, 1)
+	player := createTestPlayerForSession(t, db, uniqueUserID())
 
 	session := &entity.GameSession{
 		Mode:        entity.GameModeCoop,
@@ -107,6 +125,7 @@ func TestGameSessionRepository_GetSessionByRoomCode_Found(t *testing.T) {
 		PlayerID:    player.ID,
 	}
 	require.NoError(t, repo.CreateSession(session))
+	deferCleanupSessionTest(t, db, []uint{player.ID}, []string{session.SessionID})
 
 	got, err := repo.GetSessionByRoomCode(session.RoomCode)
 	require.NoError(t, err)
@@ -121,7 +140,7 @@ func TestGameSessionRepository_GetSessionByRoomCode_NotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewGameSessionRepository(db)
 
-	got, err := repo.GetSessionByRoomCode("INVALID")
+	got, err := repo.GetSessionByRoomCode("XX" + uniqueSuffix())
 	require.Error(t, err)
 	assert.Nil(t, got)
 	assert.Contains(t, err.Error(), "session not found")
@@ -132,8 +151,8 @@ func TestGameSessionRepository_GetSessionByRoomCode_NotFound(t *testing.T) {
 func TestGameSessionRepository_JoinSession_Success(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewGameSessionRepository(db)
-	player1 := createTestPlayerForSession(t, db, 1)
-	player2 := createTestPlayerForSession(t, db, 2)
+	player1 := createTestPlayerForSession(t, db, uniqueUserID())
+	player2 := createTestPlayerForSession(t, db, uniqueUserID())
 
 	session := &entity.GameSession{
 		Mode:        entity.GameModeCoop,
@@ -141,6 +160,7 @@ func TestGameSessionRepository_JoinSession_Success(t *testing.T) {
 		PlayerID:    player1.ID,
 	}
 	require.NoError(t, repo.CreateSession(session))
+	deferCleanupSessionTest(t, db, []uint{player1.ID, player2.ID}, []string{session.SessionID})
 
 	err := repo.JoinSession(session.SessionID, player2.ID)
 	require.NoError(t, err)
@@ -156,16 +176,18 @@ func TestGameSessionRepository_JoinSession_Success(t *testing.T) {
 func TestGameSessionRepository_JoinSession_NotCoop(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewGameSessionRepository(db)
-	player1 := createTestPlayerForSession(t, db, 1)
-	player2 := createTestPlayerForSession(t, db, 2)
+	player1 := createTestPlayerForSession(t, db, uniqueUserID())
+	player2 := createTestPlayerForSession(t, db, uniqueUserID())
 
+	sid := "single-" + uniqueSuffix()
 	session := &entity.GameSession{
-		SessionID:   "single-session-123",
+		SessionID:   sid,
 		Mode:        entity.GameModeSingle,
 		PlayerCount: 1,
 		PlayerID:    player1.ID,
 	}
 	require.NoError(t, db.Create(session).Error)
+	deferCleanupSessionTest(t, db, []uint{player1.ID, player2.ID}, []string{sid})
 
 	err := repo.JoinSession(session.SessionID, player2.ID)
 	require.Error(t, err)
@@ -177,9 +199,9 @@ func TestGameSessionRepository_JoinSession_NotCoop(t *testing.T) {
 func TestGameSessionRepository_JoinSession_AlreadyFull(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewGameSessionRepository(db)
-	player1 := createTestPlayerForSession(t, db, 1)
-	player2 := createTestPlayerForSession(t, db, 2)
-	player3 := createTestPlayerForSession(t, db, 3)
+	player1 := createTestPlayerForSession(t, db, uniqueUserID())
+	player2 := createTestPlayerForSession(t, db, uniqueUserID())
+	player3 := createTestPlayerForSession(t, db, uniqueUserID())
 
 	session := &entity.GameSession{
 		Mode:        entity.GameModeCoop,
@@ -188,6 +210,7 @@ func TestGameSessionRepository_JoinSession_AlreadyFull(t *testing.T) {
 	}
 	require.NoError(t, repo.CreateSession(session))
 	require.NoError(t, repo.JoinSession(session.SessionID, player2.ID))
+	deferCleanupSessionTest(t, db, []uint{player1.ID, player2.ID, player3.ID}, []string{session.SessionID})
 
 	err := repo.JoinSession(session.SessionID, player3.ID)
 	require.Error(t, err)
@@ -199,8 +222,8 @@ func TestGameSessionRepository_JoinSession_AlreadyFull(t *testing.T) {
 func TestGameSessionRepository_JoinSession_AlreadyStarted(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewGameSessionRepository(db)
-	player1 := createTestPlayerForSession(t, db, 1)
-	player2 := createTestPlayerForSession(t, db, 2)
+	player1 := createTestPlayerForSession(t, db, uniqueUserID())
+	player2 := createTestPlayerForSession(t, db, uniqueUserID())
 
 	session := &entity.GameSession{
 		Mode:        entity.GameModeCoop,
@@ -209,6 +232,7 @@ func TestGameSessionRepository_JoinSession_AlreadyStarted(t *testing.T) {
 	}
 	require.NoError(t, repo.CreateSession(session))
 	require.NoError(t, repo.StartSession(session.SessionID))
+	deferCleanupSessionTest(t, db, []uint{player1.ID, player2.ID}, []string{session.SessionID})
 
 	err := repo.JoinSession(session.SessionID, player2.ID)
 	require.Error(t, err)
@@ -220,7 +244,7 @@ func TestGameSessionRepository_JoinSession_AlreadyStarted(t *testing.T) {
 func TestGameSessionRepository_StartSession(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewGameSessionRepository(db)
-	player := createTestPlayerForSession(t, db, 1)
+	player := createTestPlayerForSession(t, db, uniqueUserID())
 
 	session := &entity.GameSession{
 		Mode:        entity.GameModeSingle,
@@ -228,6 +252,7 @@ func TestGameSessionRepository_StartSession(t *testing.T) {
 		PlayerID:    player.ID,
 	}
 	require.NoError(t, repo.CreateSession(session))
+	deferCleanupSessionTest(t, db, []uint{player.ID}, []string{session.SessionID})
 
 	err := repo.StartSession(session.SessionID)
 	require.NoError(t, err)
@@ -243,7 +268,7 @@ func TestGameSessionRepository_StartSession(t *testing.T) {
 func TestGameSessionRepository_EndSession(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewGameSessionRepository(db)
-	player := createTestPlayerForSession(t, db, 1)
+	player := createTestPlayerForSession(t, db, uniqueUserID())
 
 	session := &entity.GameSession{
 		Mode:        entity.GameModeSingle,
@@ -252,6 +277,7 @@ func TestGameSessionRepository_EndSession(t *testing.T) {
 	}
 	require.NoError(t, repo.CreateSession(session))
 	require.NoError(t, repo.StartSession(session.SessionID))
+	deferCleanupSessionTest(t, db, []uint{player.ID}, []string{session.SessionID})
 
 	err := repo.EndSession(session.SessionID)
 	require.NoError(t, err)
@@ -267,7 +293,7 @@ func TestGameSessionRepository_EndSession(t *testing.T) {
 func TestGameSessionRepository_SaveGameResult(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewGameSessionRepository(db)
-	player := createTestPlayerForSession(t, db, 1)
+	player := createTestPlayerForSession(t, db, uniqueUserID())
 
 	session := &entity.GameSession{
 		Mode:        entity.GameModeSingle,
@@ -275,9 +301,10 @@ func TestGameSessionRepository_SaveGameResult(t *testing.T) {
 		PlayerID:    player.ID,
 	}
 	require.NoError(t, repo.CreateSession(session))
+	deferCleanupSessionTest(t, db, []uint{player.ID}, []string{session.SessionID})
 
 	result := &entity.GameResult{
-		SessionID:      session.SessionID,
+		SessionID:       session.SessionID,
 		PlayerID:       player.ID,
 		Score:          1500,
 		WavesCompleted: 10,
@@ -301,7 +328,7 @@ func TestGameSessionRepository_SaveGameResult(t *testing.T) {
 func TestGameSessionRepository_GetGameResults(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewGameSessionRepository(db)
-	player := createTestPlayerForSession(t, db, 1)
+	player := createTestPlayerForSession(t, db, uniqueUserID())
 
 	session := &entity.GameSession{
 		Mode:        entity.GameModeSingle,
@@ -309,9 +336,10 @@ func TestGameSessionRepository_GetGameResults(t *testing.T) {
 		PlayerID:    player.ID,
 	}
 	require.NoError(t, repo.CreateSession(session))
+	deferCleanupSessionTest(t, db, []uint{player.ID}, []string{session.SessionID})
 
 	r1 := &entity.GameResult{
-		SessionID:      session.SessionID,
+		SessionID:       session.SessionID,
 		PlayerID:       player.ID,
 		Score:          1000,
 		WavesCompleted: 5,
@@ -321,7 +349,7 @@ func TestGameSessionRepository_GetGameResults(t *testing.T) {
 		PlayTime:       300,
 	}
 	r2 := &entity.GameResult{
-		SessionID:      session.SessionID,
+		SessionID:       session.SessionID,
 		PlayerID:       player.ID,
 		Score:          2000,
 		WavesCompleted: 12,
@@ -344,7 +372,7 @@ func TestGameSessionRepository_GetGameResults(t *testing.T) {
 func TestGameSessionRepository_GetPlayerGameHistory(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewGameSessionRepository(db)
-	player := createTestPlayerForSession(t, db, 1)
+	player := createTestPlayerForSession(t, db, uniqueUserID())
 
 	session1 := &entity.GameSession{
 		Mode:        entity.GameModeSingle,
@@ -358,10 +386,11 @@ func TestGameSessionRepository_GetPlayerGameHistory(t *testing.T) {
 	}
 	require.NoError(t, repo.CreateSession(session1))
 	require.NoError(t, repo.CreateSession(session2))
+	deferCleanupSessionTest(t, db, []uint{player.ID}, []string{session1.SessionID, session2.SessionID})
 
 	for i, sid := range []string{session1.SessionID, session2.SessionID} {
 		r := &entity.GameResult{
-			SessionID:      sid,
+			SessionID:       sid,
 			PlayerID:       player.ID,
 			Score:          int64(1000 * (i + 1)),
 			WavesCompleted: 5 + i,
@@ -383,4 +412,80 @@ func TestGameSessionRepository_GetPlayerGameHistory(t *testing.T) {
 	assert.GreaterOrEqual(t, len(resultsAll), 2)
 
 	t.Logf("GetPlayerGameHistory: limit=1 returned 1, limit=0 returned %d", len(resultsAll))
+}
+
+func TestGameSessionRepository_UpdateSession(t *testing.T) {
+	db := setupTestDB(t)
+	repo := NewGameSessionRepository(db)
+	player := createTestPlayerForSession(t, db, uniqueUserID())
+
+	session := &entity.GameSession{
+		Mode:        entity.GameModeSingle,
+		PlayerCount: 1,
+		PlayerID:    player.ID,
+	}
+	require.NoError(t, repo.CreateSession(session))
+	deferCleanupSessionTest(t, db, []uint{player.ID}, []string{session.SessionID})
+
+	session.WebSocketURL = "wss://example.com/game"
+	err := repo.UpdateSession(session)
+	require.NoError(t, err)
+
+	got, err := repo.GetSessionByID(session.SessionID)
+	require.NoError(t, err)
+	assert.Equal(t, "wss://example.com/game", got.WebSocketURL)
+	t.Log("UpdateSession persisted WebSocketURL change")
+}
+
+func TestGameSessionRepository_GetActiveSessions(t *testing.T) {
+	db := setupTestDB(t)
+	repo := NewGameSessionRepository(db)
+	player := createTestPlayerForSession(t, db, uniqueUserID())
+
+	session1 := &entity.GameSession{
+		Mode:        entity.GameModeSingle,
+		PlayerCount: 1,
+		PlayerID:    player.ID,
+	}
+	session2 := &entity.GameSession{
+		Mode:        entity.GameModeSingle,
+		PlayerCount: 1,
+		PlayerID:    player.ID,
+	}
+	require.NoError(t, repo.CreateSession(session1))
+	require.NoError(t, repo.CreateSession(session2))
+	require.NoError(t, repo.StartSession(session1.SessionID))
+	deferCleanupSessionTest(t, db, []uint{player.ID}, []string{session1.SessionID, session2.SessionID})
+
+	sessions, err := repo.GetActiveSessions(player.ID)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(sessions), 2, "Player should have waiting and playing sessions")
+	statuses := make(map[entity.GameStatus]bool)
+	for _, s := range sessions {
+		statuses[s.Status] = true
+	}
+	assert.True(t, statuses[entity.GameStatusWaiting], "Should include waiting session")
+	assert.True(t, statuses[entity.GameStatusPlaying], "Should include playing session")
+	t.Logf("GetActiveSessions returned %d sessions", len(sessions))
+}
+
+func TestGameSessionRepository_GetSessionByRoomCode_AlreadyStarted(t *testing.T) {
+	db := setupTestDB(t)
+	repo := NewGameSessionRepository(db)
+	player := createTestPlayerForSession(t, db, uniqueUserID())
+
+	session := &entity.GameSession{
+		Mode:        entity.GameModeCoop,
+		PlayerCount: 1,
+		PlayerID:    player.ID,
+	}
+	require.NoError(t, repo.CreateSession(session))
+	require.NoError(t, repo.StartSession(session.SessionID))
+	deferCleanupSessionTest(t, db, []uint{player.ID}, []string{session.SessionID})
+
+	got, err := repo.GetSessionByRoomCode(session.RoomCode)
+	require.Error(t, err)
+	assert.Nil(t, got)
+	assert.Contains(t, err.Error(), "session not found or already started")
+	t.Log("GetSessionByRoomCode correctly rejects started session")
 }

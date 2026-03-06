@@ -86,3 +86,37 @@ func TestListCloudHandler_ListFiles_UseCaseError(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	mockUC.AssertExpectations(t)
 }
+
+func TestListCloudHandler_ListFiles_ValidationError_InvalidFileType(t *testing.T) {
+	t.Log("Running: Validation error - invalid file_type -> 400")
+	e := setupTestEcho()
+	mockUC := new(mockListCloudUseCase)
+	handler := &ListCloudRepositoryHandler{UseCase: mockUC}
+
+	req := httptest.NewRequest(http.MethodGet, "/files?file_type=invalid", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupAuthContext(c)
+
+	err := handler.ListFiles(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	mockUC.AssertNotCalled(t, "ListFiles")
+}
+
+func TestListCloudHandler_ListFiles_ValidationError_InvalidSort(t *testing.T) {
+	t.Log("Running: Validation error - invalid sort -> 400")
+	e := setupTestEcho()
+	mockUC := new(mockListCloudUseCase)
+	handler := &ListCloudRepositoryHandler{UseCase: mockUC}
+
+	req := httptest.NewRequest(http.MethodGet, "/files?sort=invalid", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupAuthContext(c)
+
+	err := handler.ListFiles(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	mockUC.AssertNotCalled(t, "ListFiles")
+}

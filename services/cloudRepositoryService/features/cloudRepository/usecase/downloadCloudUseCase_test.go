@@ -171,3 +171,64 @@ func TestRequestDownloadURL_NoAccess(t *testing.T) {
 	mockFileShareRepo.AssertExpectations(t)
 	mockRepo.AssertNotCalled(t, "GetFileByID")
 }
+
+func TestRequestDownloadURL_HasFileAccessError(t *testing.T) {
+	t.Logf("TestRequestDownloadURL_HasFileAccessError: verifying error when HasFileAccess fails")
+
+	mockRepo := new(MockDownloadRepository)
+	mockStatsRepo := new(MockUserStatsRepository)
+	mockFileShareRepo := new(MockFileShareRepository)
+
+	uc := NewDownloadCloudRepositoryUseCase(mockRepo, mockStatsRepo, mockFileShareRepo, 5*time.Second)
+
+	ctx := context.Background()
+	userID := uint(1)
+	fileID := uint(100)
+
+	mockFileShareRepo.On("HasFileAccess", mock.Anything, int32(userID), fileID).Return(false, errors.New("db error"))
+
+	result, err := uc.RequestDownloadURL(ctx, userID, fileID)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to check file access")
+	mockFileShareRepo.AssertExpectations(t)
+	mockRepo.AssertNotCalled(t, "GetFileByID")
+}
+
+func TestRequestDownloadURL_GeneratePresignedURLError(t *testing.T) {
+	t.Logf("TestRequestDownloadURL_GeneratePresignedURLError: verifying error when presigned URL generation fails")
+
+	mockRepo := new(MockDownloadRepository)
+	mockStatsRepo := new(MockUserStatsRepository)
+	mockFileShareRepo := new(MockFileShareRepository)
+
+	uc := NewDownloadCloudRepositoryUseCase(mockRepo, mockStatsRepo, mockFileShareRepo, 5*time.Second)
+
+	ctx := context.Background()
+	userID := uint(1)
+	fileID := uint(100)
+
+	mockFile := &entity.CloudFile{
+		ID:       fileID,
+		UserID:   userID,
+		FileName: "test.jpg",
+		S3Key:    "user1/test.jpg",
+		FileType: entity.FileTypeImage,
+		FileSize: 1024,
+	}
+
+	mockFileShareRepo.On("HasFileAccess", mock.Anything, int32(userID), fileID).Return(true, nil)
+	mockRepo.On("GetFileByID", mock.Anything, fileID).Return(mockFile, nil)
+	mockStatsRepo.On("LogActivity", mock.Anything, mock.AnythingOfType("*entity.ActivityLog")).Return(nil)
+	mockRepo.On("GeneratePresignedDownloadURLWithFilename", mock.Anything, "user1/test.jpg", "test.jpg", 1*time.Hour).
+		Return("", errors.New("S3 error"))
+
+	result, err := uc.RequestDownloadURL(ctx, userID, fileID)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to generate download URL")
+	mockFileShareRepo.AssertExpectations(t)
+	mockRepo.AssertExpectations(t)
+}

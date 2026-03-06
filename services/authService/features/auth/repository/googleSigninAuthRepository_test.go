@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -29,7 +31,7 @@ func TestFindOrCreateUserByGoogleEmail_NewUser(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique email for test isolation
-	testEmail := "newuser-" + time.Now().Format("20060102150405") + "@gmail.com"
+	testEmail := "newuser-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@gmail.com"
 	testName := "New Google User"
 
 	t.Logf("Testing new user creation with email: %s", testEmail)
@@ -66,7 +68,7 @@ func TestFindOrCreateUserByGoogleEmail_ExistingActiveUser(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique email for test isolation
-	testEmail := "existing-" + time.Now().Format("20060102150405") + "@gmail.com"
+	testEmail := "existing-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@gmail.com"
 	testName := "Existing Google User"
 
 	t.Logf("Testing existing active user with email: %s", testEmail)
@@ -126,7 +128,7 @@ func TestFindOrCreateUserByGoogleEmail_SoftDeletedUser(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique email for test isolation
-	testEmail := "deleted-" + time.Now().Format("20060102150405") + "@gmail.com"
+	testEmail := "deleted-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@gmail.com"
 	testName := "Deleted Google User"
 
 	t.Logf("Testing soft-deleted user restoration with email: %s", testEmail)
@@ -225,7 +227,7 @@ func TestFindOrCreateUserByGoogleEmail_MultipleDeleteRestore(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique email for test isolation
-	testEmail := "multidelete-" + time.Now().Format("20060102150405") + "@gmail.com"
+	testEmail := "multidelete-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@gmail.com"
 	testName := "Multi Delete User"
 
 	t.Logf("Testing multiple delete/restore cycles with email: %s", testEmail)
@@ -295,7 +297,7 @@ func TestFindOrCreateUserByGoogleEmail_DifferentProviders(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique email for test isolation
-	testEmail := "multiprovider-" + time.Now().Format("20060102150405") + "@example.com"
+	testEmail := "multiprovider-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com"
 	testName := "Multi Provider User"
 
 	t.Logf("Testing different providers with email: %s", testEmail)

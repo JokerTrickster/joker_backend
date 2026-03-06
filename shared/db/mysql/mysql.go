@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -44,7 +45,7 @@ func InitMySQL() error {
 		)
 	} else {
 		logger.Info("Using AWS SSM parameters for database connection")
-		dbInfos, err := _aws.AwsSsmGetParams([]string{"dev_backend_mysql_user", "dev_backend_mysql_password", "dev_backend_mysql_host", "dev_backend_mysql_port", "dev_backend_mysql_db"})
+		dbInfos, err := _aws.AwsSsmGetParams(context.Background(), []string{"dev_backend_mysql_user", "dev_backend_mysql_password", "dev_backend_mysql_host", "dev_backend_mysql_port", "dev_backend_mysql_db"})
 		if err != nil {
 			return err
 		}
@@ -61,6 +62,9 @@ func InitMySQL() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
 	}
+	MysqlDB.SetMaxOpenConns(25)
+	MysqlDB.SetMaxIdleConns(10)
+	MysqlDB.SetConnMaxLifetime(5 * time.Minute)
 	logger.Info("Connected to MySQL")
 
 	GormMysqlDB, err = gorm.Open(mysql.New(mysql.Config{
@@ -93,9 +97,12 @@ func EpochToTimeString(t int64) string {
 	return time.Unix(t, t%1000*1000000).String()
 }
 
-func TimeStringToEpoch(t string) int64 {
-	date, _ := time.Parse("2006-01-02 15:04:05 -0700 MST", t)
-	return date.Unix()
+func TimeStringToEpoch(t string) (int64, error) {
+	date, err := time.Parse("2006-01-02 15:04:05 -0700 MST", t)
+	if err != nil {
+		return 0, err
+	}
+	return date.Unix(), nil
 }
 
 func TimeToEpoch(t time.Time) int64 {

@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -15,7 +17,7 @@ func TestCheckEmailAuthRepository_CheckEmailExists_EmailExists(t *testing.T) {
 	repo := NewCheckEmailAuthRepository(db)
 	ctx := context.Background()
 
-	email := "exists-" + time.Now().Format("20060102150405") + "@example.com"
+	email := "exists-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com"
 	provider := "game"
 
 	user := mysql.Users{
@@ -39,7 +41,7 @@ func TestCheckEmailAuthRepository_CheckEmailExists_EmailDoesNotExist(t *testing.
 	repo := NewCheckEmailAuthRepository(db)
 	ctx := context.Background()
 
-	email := "nonexistent-" + time.Now().Format("20060102150405") + "@example.com"
+	email := "nonexistent-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com"
 	provider := "game"
 
 	exists, err := repo.CheckEmailExists(ctx, email, provider)
@@ -54,7 +56,7 @@ func TestCheckEmailAuthRepository_CheckEmailExists_SameEmailDifferentProvider(t 
 	repo := NewCheckEmailAuthRepository(db)
 	ctx := context.Background()
 
-	email := "provider-" + time.Now().Format("20060102150405") + "@example.com"
+	email := "provider-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com"
 
 	// Create user with provider "game"
 	user := mysql.Users{

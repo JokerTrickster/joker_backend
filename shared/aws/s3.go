@@ -8,6 +8,7 @@ import (
 	"image/png"
 	"math/rand"
 	"mime/multipart"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -182,10 +183,14 @@ func ThumbnailUpload(ctx context.Context, file *multipart.FileHeader, key string
 	return url, nil
 }
 
+func sanitizeFilename(name string) string {
+	r := strings.NewReplacer(`"`, "", "\r", "", "\n", "", "\\", "_")
+	return r.Replace(name)
+}
+
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
 func FileNameGenerateRandom() string {
-	rand.Seed(time.Now().UnixNano())
 	b := make([]rune, 32)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]
@@ -244,7 +249,7 @@ func GeneratePresignedDownloadURLWithFilename(ctx context.Context, bucket, key, 
 	presignParams := &s3.GetObjectInput{
 		Bucket:                     aws.String(bucket),
 		Key:                        aws.String(key),
-		ResponseContentDisposition: aws.String(fmt.Sprintf(`attachment; filename="%s"`, filename)),
+		ResponseContentDisposition: aws.String(fmt.Sprintf(`attachment; filename="%s"`, sanitizeFilename(filename))),
 	}
 
 	presignResult, err := presignClient.PresignGetObject(ctx, presignParams, s3.WithPresignExpires(expiration))

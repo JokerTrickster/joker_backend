@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	_interface "github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/interface"
 	"github.com/JokerTrickster/joker_backend/shared/db/mysql"
@@ -25,14 +26,21 @@ func (r *GoogleSigninAuthRepository) FindOrCreateUserByGoogleEmail(ctx context.C
 		First(user)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		// User doesn't exist - create new
 		user = &mysql.Users{
 			Name:     name,
 			Email:    email,
-			Password: "", // 구글 로그인은 비밀번호 없음
+			Password: "",
 			Provider: "google",
 		}
 		if err := r.GormDB.WithContext(ctx).Create(user).Error; err != nil {
+			if strings.Contains(err.Error(), "Duplicate entry") {
+				// Another request created this user concurrently; fetch it
+				found := &mysql.Users{}
+				if findErr := r.GormDB.WithContext(ctx).Where("email = ? AND provider = ?", email, "google").First(found).Error; findErr != nil {
+					return 0, fmt.Errorf("failed to find concurrently created user: %w", findErr)
+				}
+				return uint(found.ID), nil
+			}
 			return 0, fmt.Errorf("failed to create user: %w", err)
 		}
 		return uint(user.ID), nil

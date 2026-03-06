@@ -139,6 +139,9 @@ func GenerateRefreshToken(email string, now time.Time, userID uint) (string, int
 func VerifyToken(tokenString string) error {
 	// Parse the token
 	token, err := jwt.ParseWithClaims(tokenString, &JwtCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return AccessTokenSecretKey, nil
 	})
 	if err != nil {
@@ -153,6 +156,9 @@ func VerifyToken(tokenString string) error {
 }
 func ParseToken(tokenString string) (uint, string, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &JwtCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return AccessTokenSecretKey, nil
 	})
 	if err != nil {
@@ -170,6 +176,9 @@ func ParseToken(tokenString string) (uint, string, error) {
 func VerifyRefreshToken(tokenString string) (uint, string, error) {
 	// Parse the refresh token
 	token, err := jwt.ParseWithClaims(tokenString, &JwtCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return RefreshTokenSecretKey, nil
 	})
 	if err != nil {

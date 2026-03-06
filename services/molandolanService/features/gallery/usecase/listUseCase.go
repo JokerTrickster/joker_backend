@@ -32,6 +32,9 @@ func (uc *ListUseCase) List(c context.Context, req *request.ReqListGallery, user
 	if limit < 1 {
 		limit = 30
 	}
+	if limit > 100 {
+		limit = 100
+	}
 
 	items, total, err := uc.Repo.List(ctx, page, limit)
 	if err != nil {

@@ -1,21 +1,23 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
+	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/usecase"
-	"github.com/JokerTrickster/joker_backend/shared/db/mysql"
 	"github.com/JokerTrickster/joker_backend/shared/utils"
 	"github.com/labstack/echo/v4"
 )
 
 type CommentDeleteHandler struct {
 	UseCase *usecase.CommentDeleteUseCase
+	Repo    _interface.IGalleryRepository
 }
 
-func NewCommentDeleteHandler(uc *usecase.CommentDeleteUseCase) *CommentDeleteHandler {
-	return &CommentDeleteHandler{UseCase: uc}
+func NewCommentDeleteHandler(uc *usecase.CommentDeleteUseCase, repo _interface.IGalleryRepository) *CommentDeleteHandler {
+	return &CommentDeleteHandler{UseCase: uc, Repo: repo}
 }
 
 func (h *CommentDeleteHandler) Delete(c echo.Context) error {
@@ -30,11 +32,10 @@ func (h *CommentDeleteHandler) Delete(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "UNAUTHORIZED")
 	}
 
-	var role string
-	mysql.GormMysqlDB.Raw("SELECT role FROM morandoran_users WHERE id = ? AND deleted_at IS NULL", userID).Scan(&role)
+	role, _ := h.Repo.GetUserRole(ctx, userID)
 
 	if err := h.UseCase.Delete(ctx, uint(commentID), userID, role); err != nil {
-		if err.Error() == "FORBIDDEN" {
+		if errors.Is(err, usecase.ErrForbidden) {
 			return echo.NewHTTPError(http.StatusForbidden, "FORBIDDEN")
 		}
 		return echo.NewHTTPError(http.StatusNotFound, "NOT_FOUND")

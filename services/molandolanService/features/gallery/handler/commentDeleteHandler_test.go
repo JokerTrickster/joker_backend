@@ -10,7 +10,6 @@ import (
 	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/entity"
 	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/usecase"
-	"github.com/JokerTrickster/joker_backend/shared/db/mysql"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -66,6 +65,9 @@ func (m *mockGalleryCommentDeleteRepository) GetAuthorInfo(ctx context.Context, 
 func (m *mockGalleryCommentDeleteRepository) IsLikedBatch(ctx context.Context, userID uint, galleryIDs []uint) (map[uint]bool, error) {
 	return map[uint]bool{}, nil
 }
+func (m *mockGalleryCommentDeleteRepository) GetUserRole(ctx context.Context, userID uint) (string, error) {
+	return "user", nil
+}
 
 var _ _interface.IGalleryRepository = (*mockGalleryCommentDeleteRepository)(nil)
 
@@ -73,7 +75,7 @@ func TestCommentDeleteHandler_Delete_InvalidCommentID(t *testing.T) {
 	e := setupGalleryTestEcho()
 	mockRepo := &mockGalleryCommentDeleteRepository{}
 	uc := usecase.NewCommentDeleteUseCase(mockRepo, 10*time.Second)
-	h := NewCommentDeleteHandler(uc)
+	h := NewCommentDeleteHandler(uc, mockRepo)
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/gallery/1/comments/invalid", nil)
 	rec := httptest.NewRecorder()
@@ -94,7 +96,7 @@ func TestCommentDeleteHandler_Delete_NoUserID(t *testing.T) {
 	e := setupGalleryTestEcho()
 	mockRepo := &mockGalleryCommentDeleteRepository{}
 	uc := usecase.NewCommentDeleteUseCase(mockRepo, 10*time.Second)
-	h := NewCommentDeleteHandler(uc)
+	h := NewCommentDeleteHandler(uc, mockRepo)
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/gallery/1/comments/1", nil)
 	rec := httptest.NewRecorder()
@@ -111,9 +113,28 @@ func TestCommentDeleteHandler_Delete_NoUserID(t *testing.T) {
 	t.Logf("No userID returns 401: %v", err)
 }
 
-func TestCommentDeleteHandler_Delete_DBRequired(t *testing.T) {
-	if mysql.GormMysqlDB == nil {
-		t.Skip("Skipping: mysql.GormMysqlDB not initialized (DB-dependent test)")
+func TestCommentDeleteHandler_Delete_Success(t *testing.T) {
+	e := setupGalleryTestEcho()
+	mockRepo := &mockGalleryCommentDeleteRepository{
+		findCommentFunc: func(ctx context.Context, id uint) (*entity.GalleryComment, error) {
+			return &entity.GalleryComment{ID: id, AuthorID: 1, GalleryID: 1}, nil
+		},
+		deleteFunc: func(ctx context.Context, id uint) error {
+			return nil
+		},
 	}
-	t.Skip("Skipping: full comment delete flow requires DB for Raw role query - run as integration test when DB available")
+	uc := usecase.NewCommentDeleteUseCase(mockRepo, 10*time.Second)
+	h := NewCommentDeleteHandler(uc, mockRepo)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/gallery/1/comments/1", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id", "commentId")
+	c.SetParamValues("1", "1")
+	setupGalleryAuthContext(c)
+
+	err := h.Delete(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	t.Logf("Comment delete success: status=%d", rec.Code)
 }

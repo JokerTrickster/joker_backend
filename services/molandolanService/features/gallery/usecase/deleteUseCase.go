@@ -2,11 +2,13 @@ package usecase
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"time"
 
 	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/interface"
 )
+
+var ErrForbidden = errors.New("forbidden")
 
 type DeleteUseCase struct {
 	Repo           _interface.IGalleryRepository
@@ -27,7 +29,7 @@ func (uc *DeleteUseCase) Delete(c context.Context, id, userID uint, userRole str
 	}
 
 	if post.AuthorID != userID && userRole != "admin" {
-		return fmt.Errorf("FORBIDDEN")
+		return ErrForbidden
 	}
 
 	return uc.Repo.Delete(ctx, id)

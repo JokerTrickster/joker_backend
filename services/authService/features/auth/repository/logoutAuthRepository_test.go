@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -27,7 +29,7 @@ func TestLogoutAuthRepository_DeleteTokenByUserID_Success(t *testing.T) {
 	// Create a user and token
 	user := mysql.Users{
 		Name:     "Logout Test User",
-		Email:    "logout-" + time.Now().Format("20060102150405") + "@example.com",
+		Email:    "logout-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com",
 		Password: "",
 		Provider: "game",
 	}

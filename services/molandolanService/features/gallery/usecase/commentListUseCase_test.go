@@ -66,6 +66,9 @@ func (m *mockCommentListGalleryRepository) GetAuthorInfo(ctx context.Context, us
 func (m *mockCommentListGalleryRepository) IsLikedBatch(ctx context.Context, userID uint, galleryIDs []uint) (map[uint]bool, error) {
 	return map[uint]bool{}, nil
 }
+func (m *mockCommentListGalleryRepository) GetUserRole(ctx context.Context, userID uint) (string, error) {
+	return "user", nil
+}
 
 var _ _interface.IGalleryRepository = (*mockCommentListGalleryRepository)(nil)
 

@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"os"
 	"testing"
 	"time"
@@ -32,9 +34,10 @@ func TestTDUserRepository_Create(t *testing.T) {
 	ctx := context.Background()
 	repo := NewTDUserRepository(db)
 
+	unique := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000))
 	user := &entity.TDUser{
-		Username:     "testuser_" + time.Now().Format("20060102150405"),
-		Email:        "test_" + time.Now().Format("20060102150405") + "@test.com",
+		Username:     "testuser_" + unique,
+		Email:        "test_" + unique + "@test.com",
 		PasswordHash: "hashed",
 		IsActive:     true,
 	}
@@ -49,9 +52,10 @@ func TestTDUserRepository_GetByID(t *testing.T) {
 	ctx := context.Background()
 	repo := NewTDUserRepository(db)
 
+	unique := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000))
 	user := &entity.TDUser{
-		Username:     "getbyid_" + time.Now().Format("20060102150405"),
-		Email:        "getbyid_" + time.Now().Format("20060102150405") + "@test.com",
+		Username:     "getbyid_" + unique,
+		Email:        "getbyid_" + unique + "@test.com",
 		PasswordHash: "hash",
 		IsActive:     true,
 	}
@@ -68,9 +72,10 @@ func TestTDUserRepository_GetByEmail(t *testing.T) {
 	ctx := context.Background()
 	repo := NewTDUserRepository(db)
 
-	email := "getbyemail_" + time.Now().Format("20060102150405") + "@test.com"
+	unique := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000))
+	email := "getbyemail_" + unique + "@test.com"
 	user := &entity.TDUser{
-		Username:     "getbyemail_" + time.Now().Format("20060102150405"),
+		Username:     "getbyemail_" + unique,
 		Email:        email,
 		PasswordHash: "hash",
 		IsActive:     true,
@@ -88,10 +93,11 @@ func TestTDUserRepository_GetByUsername(t *testing.T) {
 	ctx := context.Background()
 	repo := NewTDUserRepository(db)
 
-	username := "getbyuname_" + time.Now().Format("20060102150405")
+	unique := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000))
+	username := "getbyuname_" + unique
 	user := &entity.TDUser{
 		Username:     username,
-		Email:        "uname_" + time.Now().Format("20060102150405") + "@test.com",
+		Email:        "uname_" + unique + "@test.com",
 		PasswordHash: "hash",
 		IsActive:     true,
 	}
@@ -108,9 +114,10 @@ func TestTDUserRepository_GetStats(t *testing.T) {
 	ctx := context.Background()
 	repo := NewTDUserRepository(db)
 
+	unique := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000))
 	user := &entity.TDUser{
-		Username:     "stats_" + time.Now().Format("20060102150405"),
-		Email:        "stats_" + time.Now().Format("20060102150405") + "@test.com",
+		Username:     "stats_" + unique,
+		Email:        "stats_" + unique + "@test.com",
 		PasswordHash: "hash",
 		IsActive:     true,
 	}
@@ -130,9 +137,10 @@ func TestTDUserRepository_CreateStats(t *testing.T) {
 	ctx := context.Background()
 	repo := NewTDUserRepository(db)
 
+	unique := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000))
 	user := &entity.TDUser{
-		Username:     "createstats_" + time.Now().Format("20060102150405"),
-		Email:        "createstats_" + time.Now().Format("20060102150405") + "@test.com",
+		Username:     "createstats_" + unique,
+		Email:        "createstats_" + unique + "@test.com",
 		PasswordHash: "hash",
 		IsActive:     true,
 	}

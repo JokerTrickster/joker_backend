@@ -57,7 +57,13 @@ func main() {
 	)
 
 	db := mysql.GormMysqlDB
+	timeoutStr := os.Getenv("REQUEST_TIMEOUT")
 	timeout := 10 * time.Second
+	if timeoutStr != "" {
+		if d, err := time.ParseDuration(timeoutStr); err == nil {
+			timeout = d
+		}
+	}
 
 	// Auth
 	authRepository := authRepo.NewAuthRepository(db)
@@ -119,11 +125,11 @@ func main() {
 	galleryListH := galleryHandler.NewListHandler(galleryListUC)
 	galleryDetailH := galleryHandler.NewDetailHandler(galleryDetailUC)
 	galleryCreateH := galleryHandler.NewCreateHandler(galleryCreateUC)
-	galleryDeleteH := galleryHandler.NewDeleteHandler(galleryDeleteUC)
+	galleryDeleteH := galleryHandler.NewDeleteHandler(galleryDeleteUC, galleryRepository)
 	galleryLikeH := galleryHandler.NewLikeHandler(galleryLikeUC)
 	galleryCommentListH := galleryHandler.NewCommentListHandler(galleryCommentListUC)
 	galleryCommentCreateH := galleryHandler.NewCommentCreateHandler(galleryCommentCreateUC)
-	galleryCommentDeleteH := galleryHandler.NewCommentDeleteHandler(galleryCommentDeleteUC)
+	galleryCommentDeleteH := galleryHandler.NewCommentDeleteHandler(galleryCommentDeleteUC, galleryRepository)
 
 	// Upload
 	uploadUC := uploadUseCase.NewUploadUseCase(timeout)

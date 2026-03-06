@@ -2,7 +2,10 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/entity"
 	"github.com/stretchr/testify/assert"
@@ -24,10 +27,11 @@ func TestUploadCloudRepository_CreateFile_Success(t *testing.T) {
 		_ = db.WithContext(ctx).Where("user_id = ?", uint(993)).Delete(&entity.CloudFile{}).Error
 	}()
 
+	uid := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000))
 	file := &entity.CloudFile{
 		UserID:      993,
 		FileName:   "test_upload_create.jpg",
-		S3Key:      "user993/test_upload_create_unique.jpg",
+		S3Key:      "user993/test_upload_create_" + uid + ".jpg",
 		FileType:   entity.FileTypeImage,
 		ContentType: "image/jpeg",
 		FileSize:   4096,
@@ -62,11 +66,11 @@ func TestUploadCloudRepository_CreateFile_DuplicateID(t *testing.T) {
 		_ = db.WithContext(ctx).Where("user_id = ?", uint(994)).Delete(&entity.CloudFile{}).Error
 	}()
 
-	// Create first file
+	uid2 := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000))
 	file1 := &entity.CloudFile{
 		UserID:      994,
 		FileName:   "first.jpg",
-		S3Key:      "user994/first_dup.jpg",
+		S3Key:      "user994/first_dup_" + uid2 + ".jpg",
 		FileType:   entity.FileTypeImage,
 		ContentType: "image/jpeg",
 		FileSize:   100,
@@ -81,7 +85,7 @@ func TestUploadCloudRepository_CreateFile_DuplicateID(t *testing.T) {
 		ID:          fileID,
 		UserID:      994,
 		FileName:   "second.jpg",
-		S3Key:      "user994/second_dup.jpg",
+		S3Key:      "user994/second_dup_" + uid2 + ".jpg",
 		FileType:   entity.FileTypeImage,
 		ContentType: "image/jpeg",
 		FileSize:   200,

@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -138,7 +139,7 @@ func TestTDGameHandler_GetHistory_Success(t *testing.T) {
 	mockUC.On("GetGameHistory", mock.Anything, tdTestUserID, mock.AnythingOfType("*request.GameHistoryRequest")).
 		Return(&response.GameHistoryResponse{Total: 0, Games: []response.GameHistoryItem{}}, nil)
 
-	req := httptest.NewRequest(http.MethodGet, "/game/history", nil)
+	req := httptest.NewRequest(http.MethodGet, "/game/history?mode=single&limit=20&offset=5", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	setupTDAuthContext(c)
@@ -206,4 +207,74 @@ func TestTDGameHandler_GetRankings_InvalidMode(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	mockUC.AssertNotCalled(t, "GetWeeklyRankings")
+}
+
+func TestTDGameHandler_SaveSingleResult_UseCaseError(t *testing.T) {
+	t.Log("SaveSingleResult: usecase error -> 500")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDGameUseCase)
+	h := &TDGameHandler{uc: mockUC}
+
+	body := tdMustJSON(t, &request.SaveGameResultRequest{
+		GameMode:       "single",
+		RoundsReached:  10,
+		MonstersKilled: 50,
+		GoldEarned:     100,
+		Result:         "victory",
+	})
+	mockUC.On("SaveSingleResult", mock.Anything, tdTestUserID, mock.AnythingOfType("*request.SaveGameResultRequest")).
+		Return(nil, errors.New("failed to save"))
+
+	req := httptest.NewRequest(http.MethodPost, "/game/single/result", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupTDAuthContext(c)
+
+	err := h.SaveSingleResult(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestTDGameHandler_GetHistory_UseCaseError(t *testing.T) {
+	t.Log("GetHistory: usecase error -> 500")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDGameUseCase)
+	h := &TDGameHandler{uc: mockUC}
+
+	mockUC.On("GetGameHistory", mock.Anything, tdTestUserID, mock.AnythingOfType("*request.GameHistoryRequest")).
+		Return(nil, errors.New("db error"))
+
+	req := httptest.NewRequest(http.MethodGet, "/game/history", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupTDAuthContext(c)
+
+	err := h.GetHistory(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestTDGameHandler_GetRankings_UseCaseError(t *testing.T) {
+	t.Log("GetRankings: usecase error -> 500")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDGameUseCase)
+	h := &TDGameHandler{uc: mockUC}
+
+	mockUC.On("GetWeeklyRankings", mock.Anything, "coop").
+		Return(nil, errors.New("ranking service error"))
+
+	req := httptest.NewRequest(http.MethodGet, "/rankings/coop", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/rankings/:mode")
+	c.SetParamNames("mode")
+	c.SetParamValues("coop")
+
+	err := h.GetRankings(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
 }

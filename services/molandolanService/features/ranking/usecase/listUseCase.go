@@ -26,6 +26,9 @@ func (uc *ListUseCase) List(c context.Context, gameType string, req *request.Req
 	if limit < 1 {
 		limit = 5
 	}
+	if limit > 100 {
+		limit = 100
+	}
 
 	items, _, err := uc.Repo.List(ctx, gameType, 1, limit)
 	if err != nil {

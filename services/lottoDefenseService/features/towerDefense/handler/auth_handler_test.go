@@ -175,6 +175,50 @@ func TestTDAuthHandler_Login_Success(t *testing.T) {
 	mockUC.AssertExpectations(t)
 }
 
+func TestTDAuthHandler_Register_InternalError(t *testing.T) {
+	t.Log("Register: internal error -> 500")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDAuthUseCase)
+	h := &TDAuthHandler{uc: mockUC}
+
+	body := tdMustJSON(t, &request.RegisterRequest{
+		Username: "testuser",
+		Email:    "test@example.com",
+		Password: "password123",
+	})
+	mockUC.On("Register", mock.Anything, mock.AnythingOfType("*request.RegisterRequest")).
+		Return(nil, errors.New("database connection failed"))
+
+	req := httptest.NewRequest(http.MethodPost, "/auth/register", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err := h.Register(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestTDAuthHandler_Register_BindError(t *testing.T) {
+	t.Log("Register: invalid JSON body -> 400")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDAuthUseCase)
+	h := &TDAuthHandler{uc: mockUC}
+
+	req := httptest.NewRequest(http.MethodPost, "/auth/register", bytes.NewReader([]byte("{invalid}")))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err := h.Register(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, he.Code)
+	mockUC.AssertNotCalled(t, "Register")
+}
+
 func TestTDAuthHandler_Login_InvalidCredentials(t *testing.T) {
 	t.Log("Login: invalid credentials -> 401")
 	e := setupTDTestEcho()
@@ -196,5 +240,29 @@ func TestTDAuthHandler_Login_InvalidCredentials(t *testing.T) {
 	err := h.Login(c)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestTDAuthHandler_Login_InternalError(t *testing.T) {
+	t.Log("Login: internal error -> 500")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDAuthUseCase)
+	h := &TDAuthHandler{uc: mockUC}
+
+	body := tdMustJSON(t, &request.LoginRequest{
+		Email:    "test@example.com",
+		Password: "password123",
+	})
+	mockUC.On("Login", mock.Anything, mock.AnythingOfType("*request.LoginRequest")).
+		Return(nil, errors.New("database error"))
+
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err := h.Login(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	mockUC.AssertExpectations(t)
 }

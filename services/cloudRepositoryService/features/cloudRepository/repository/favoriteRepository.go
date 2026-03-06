@@ -55,13 +55,14 @@ func (r *FavoriteRepository) GetFavoritesByUserID(ctx context.Context, userID ui
 
 	// Apply filename search filter
 	if filter.Q != "" {
-		query = query.Where("cloud_files.file_name LIKE ?", "%"+filter.Q+"%")
+		q := escapeLike(filter.Q)
+		query = query.Where("cloud_files.file_name LIKE ?", "%"+q+"%")
 	}
 
 	// Apply extension filter
 	if filter.Ext != "" {
 		// Extension should match the file extension (case-insensitive)
-		ext := strings.TrimPrefix(filter.Ext, ".")
+		ext := escapeLike(strings.TrimPrefix(filter.Ext, "."))
 		query = query.Where("LOWER(cloud_files.file_name) LIKE ?", "%."+strings.ToLower(ext))
 	}
 

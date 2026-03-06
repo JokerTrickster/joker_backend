@@ -209,6 +209,19 @@ func (h *Hub) UpdateRoomState(sessionID string, state *entity.GameStatePayload) 
 	}
 }
 
+// GetRoomClientCount returns the number of clients in a room
+func (h *Hub) GetRoomClientCount(sessionID string) int {
+	h.mu.RLock()
+	room, exists := h.sessions[sessionID]
+	h.mu.RUnlock()
+	if !exists {
+		return 0
+	}
+	room.mu.RLock()
+	defer room.mu.RUnlock()
+	return len(room.Clients)
+}
+
 // GetRoomState gets the current game state for a room
 func (h *Hub) GetRoomState(sessionID string) *entity.GameStatePayload {
 	h.mu.RLock()

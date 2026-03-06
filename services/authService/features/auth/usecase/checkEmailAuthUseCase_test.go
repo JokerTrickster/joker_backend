@@ -2,15 +2,31 @@ package usecase
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
+	_interface "github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/request"
 	"github.com/JokerTrickster/joker_backend/services/authService/features/auth/repository"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
+
+type mockCheckEmailRepository struct {
+	CheckEmailExistsFunc func(ctx context.Context, email string, provider string) (bool, error)
+}
+
+func (m *mockCheckEmailRepository) CheckEmailExists(ctx context.Context, email string, provider string) (bool, error) {
+	if m.CheckEmailExistsFunc != nil {
+		return m.CheckEmailExistsFunc(ctx, email, provider)
+	}
+	return false, nil
+}
 
 func setupTestDBForCheckEmail(t *testing.T) *gorm.DB {
 	// authService용 데이터베이스 연결
@@ -30,7 +46,7 @@ func TestCheckEmailAuthUseCase_EmailExists(t *testing.T) {
 	signupUC := NewSignupAuthUseCase(signupRepo, 10*time.Second)
 
 	ctx := context.Background()
-	testEmail := "test-check-" + time.Now().Format("20060102150405") + "@example.com"
+	testEmail := "test-check-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com"
 
 	signupReq := &request.ReqSignUp{
 		Email:       testEmail,
@@ -70,7 +86,7 @@ func TestCheckEmailAuthUseCase_EmailNotExists(t *testing.T) {
 
 	ctx := context.Background()
 	checkReq := &request.ReqCheckEmail{
-		Email:    "nonexistent-" + time.Now().Format("20060102150405") + "@example.com",
+		Email:    "nonexistent-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com",
 		Provider: "email",
 	}
 
@@ -91,7 +107,7 @@ func TestCheckEmailAuthUseCase_DifferentProviders(t *testing.T) {
 	signupUC := NewSignupAuthUseCase(signupRepo, 10*time.Second)
 
 	ctx := context.Background()
-	email := "test-provider-" + time.Now().Format("20060102150405") + "@example.com"
+	email := "test-provider-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com"
 
 	signupReq := &request.ReqSignUp{
 		Email:       email,
@@ -131,4 +147,101 @@ func TestCheckEmailAuthUseCase_DifferentProviders(t *testing.T) {
 	assert.True(t, res2.Available, "Email with google provider should be available")
 
 	t.Logf("Game provider: exists=%v, Google provider: exists=%v", res1.Exists, res2.Exists)
+}
+
+func TestNewCheckEmailAuthUseCase(t *testing.T) {
+	repo := &mockCheckEmailRepository{}
+	uc := NewCheckEmailAuthUseCase(repo, 5*time.Second).(*CheckEmailAuthUseCase)
+	require.NotNil(t, uc)
+	assert.Equal(t, repo, uc.Repository)
+	assert.Equal(t, 5*time.Second, uc.ContextTimeout)
+	t.Logf("NewCheckEmailAuthUseCase sets Repository and ContextTimeout correctly")
+}
+
+func TestCheckEmailAuthUseCase_ImplementsInterface(t *testing.T) {
+	repo := &mockCheckEmailRepository{}
+	uc := NewCheckEmailAuthUseCase(repo, 10*time.Second)
+	var _ _interface.ICheckEmailAuthUseCase = uc
+	t.Logf("CheckEmailAuthUseCase implements ICheckEmailAuthUseCase")
+}
+
+func TestCheckEmailAuthUseCase_CheckEmail_RepoReturnsExists(t *testing.T) {
+	repo := &mockCheckEmailRepository{
+		CheckEmailExistsFunc: func(ctx context.Context, email string, provider string) (bool, error) {
+			return true, nil
+		},
+	}
+	uc := NewCheckEmailAuthUseCase(repo, 10*time.Second)
+	ctx := context.Background()
+	req := &request.ReqCheckEmail{Email: "exists@example.com", Provider: "game"}
+
+	res, err := uc.CheckEmail(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	assert.Equal(t, "exists@example.com", res.Email)
+	assert.True(t, res.Exists)
+	assert.False(t, res.Available)
+	t.Logf("CheckEmail with exists=true: res=%+v", res)
+}
+
+func TestCheckEmailAuthUseCase_CheckEmail_RepoReturnsNotExists(t *testing.T) {
+	repo := &mockCheckEmailRepository{
+		CheckEmailExistsFunc: func(ctx context.Context, email string, provider string) (bool, error) {
+			return false, nil
+		},
+	}
+	uc := NewCheckEmailAuthUseCase(repo, 10*time.Second)
+	ctx := context.Background()
+	req := &request.ReqCheckEmail{Email: "new@example.com", Provider: "email"}
+
+	res, err := uc.CheckEmail(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	assert.Equal(t, "new@example.com", res.Email)
+	assert.False(t, res.Exists)
+	assert.True(t, res.Available)
+	t.Logf("CheckEmail with exists=false: res=%+v", res)
+}
+
+func TestCheckEmailAuthUseCase_CheckEmail_RepoError(t *testing.T) {
+	repoErr := errors.New("database connection failed")
+	repo := &mockCheckEmailRepository{
+		CheckEmailExistsFunc: func(ctx context.Context, email string, provider string) (bool, error) {
+			return false, repoErr
+		},
+	}
+	uc := NewCheckEmailAuthUseCase(repo, 10*time.Second)
+	ctx := context.Background()
+	req := &request.ReqCheckEmail{Email: "test@example.com", Provider: "game"}
+
+	res, err := uc.CheckEmail(ctx, req)
+	require.Error(t, err)
+	assert.Nil(t, res)
+	assert.Contains(t, err.Error(), "failed to check email")
+	assert.ErrorIs(t, err, repoErr)
+	t.Logf("CheckEmail repo error correctly propagated: %v", err)
+}
+
+func TestCheckEmailAuthUseCase_CheckEmail_RepoCalledWithCorrectArgs(t *testing.T) {
+	var capturedEmail, capturedProvider string
+	repo := &mockCheckEmailRepository{
+		CheckEmailExistsFunc: func(ctx context.Context, email string, provider string) (bool, error) {
+			capturedEmail = email
+			capturedProvider = provider
+			return false, nil
+		},
+	}
+	uc := NewCheckEmailAuthUseCase(repo, 10*time.Second)
+	ctx := context.Background()
+	req := &request.ReqCheckEmail{Email: "verify-args@example.com", Provider: "google"}
+
+	res, err := uc.CheckEmail(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	assert.Equal(t, "verify-args@example.com", capturedEmail, "Repo should receive email from request")
+	assert.Equal(t, "google", capturedProvider, "Repo should receive provider from request")
+	assert.Equal(t, "verify-args@example.com", res.Email)
+	assert.False(t, res.Exists)
+	assert.True(t, res.Available)
+	t.Logf("CheckEmail passes correct args to repo: email=%s, provider=%s", capturedEmail, capturedProvider)
 }

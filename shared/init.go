@@ -192,8 +192,13 @@ func Cleanup() error {
 	// Note: Sync errors on stderr are acceptable for cleanup
 
 	// Database cleanup
-	// Close DB connection pool if needed
-	// mysql.Close() or similar cleanup code
+	if mysql.MysqlDB != nil {
+		if err := mysql.MysqlDB.Close(); err != nil {
+			logger.Error("Failed to close MySQL connection", zap.Error(err))
+		} else {
+			logger.Info("MySQL connection closed")
+		}
+	}
 
 	logger.Info("Shared module cleanup completed")
 	return nil

@@ -57,6 +57,9 @@ func (m *mockLikeGalleryRepository) GetAuthorInfo(ctx context.Context, userID ui
 func (m *mockLikeGalleryRepository) IsLikedBatch(ctx context.Context, userID uint, galleryIDs []uint) (map[uint]bool, error) {
 	return map[uint]bool{}, nil
 }
+func (m *mockLikeGalleryRepository) GetUserRole(ctx context.Context, userID uint) (string, error) {
+	return "user", nil
+}
 
 var _ _interface.IGalleryRepository = (*mockLikeGalleryRepository)(nil)
 

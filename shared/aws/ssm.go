@@ -7,8 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
-func AwsSsmGetParam(path string) (string, error) {
-	ctx := context.TODO()
+func AwsSsmGetParam(ctx context.Context, path string) (string, error) {
 	param, err := AwsClientSsm.GetParameter(ctx, &ssm.GetParameterInput{
 		Name:           aws.String(path),
 		WithDecryption: PointerTrue(),
@@ -19,8 +18,7 @@ func AwsSsmGetParam(path string) (string, error) {
 
 	return aws.ToString(param.Parameter.Value), nil
 }
-func AwsSsmGetParams(paths []string) ([]string, error) {
-	ctx := context.TODO()
+func AwsSsmGetParams(ctx context.Context, paths []string) ([]string, error) {
 	params, err := AwsClientSsm.GetParameters(ctx, &ssm.GetParametersInput{
 		Names:          paths,
 		WithDecryption: PointerTrue(),

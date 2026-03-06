@@ -2,11 +2,14 @@ package handler
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/auth/usecase"
 	"github.com/JokerTrickster/joker_backend/shared/logger"
@@ -83,7 +86,22 @@ func (h *OAuthHandler) Redirect(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("%s OAuth not configured", provider))
 	}
 
-	state := "state"
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate state")
+	}
+	state := base64.URLEncoding.EncodeToString(b)
+
+	c.SetCookie(&http.Cookie{
+		Name:     "oauth_state",
+		Value:    state,
+		Path:     "/",
+		MaxAge:   int(10 * time.Minute / time.Second),
+		HttpOnly: true,
+		Secure:   os.Getenv("ENV") != "local",
+		SameSite: http.SameSiteLaxMode,
+	})
+
 	url := config.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	return c.Redirect(http.StatusFound, url)
 }
@@ -94,6 +112,26 @@ func (h *OAuthHandler) Callback(c echo.Context) error {
 	if code == "" {
 		return c.Redirect(http.StatusFound, h.FrontendURL+"/login?error=no_code")
 	}
+
+	// Check unsupported provider early—no state validation needed for unsupported providers
+	switch provider {
+	case "google", "kakao":
+		// fall through to state validation
+	default:
+		return c.Redirect(http.StatusFound, h.FrontendURL+"/login?error=unsupported_provider")
+	}
+
+	stateParam := c.QueryParam("state")
+	cookie, err := c.Cookie("oauth_state")
+	if err != nil || cookie.Value == "" || cookie.Value != stateParam {
+		return c.Redirect(http.StatusFound, h.FrontendURL+"/login?error=invalid_state")
+	}
+	c.SetCookie(&http.Cookie{
+		Name:   "oauth_state",
+		Value:  "",
+		Path:   "/",
+		MaxAge: -1,
+	})
 
 	ctx := c.Request().Context()
 	var email, nickname string
@@ -114,8 +152,6 @@ func (h *OAuthHandler) Callback(c echo.Context) error {
 			return c.Redirect(http.StatusFound, h.FrontendURL+"/login?error=oauth_failed")
 		}
 		email, nickname, profileImage = e, n, p
-	default:
-		return c.Redirect(http.StatusFound, h.FrontendURL+"/login?error=unsupported_provider")
 	}
 
 	res, err := h.UseCase.HandleCallback(ctx, email, nickname, provider, profileImage)
@@ -140,7 +176,10 @@ func (h *OAuthHandler) googleUserInfo(ctx context.Context, code string) (string,
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", "", nil, fmt.Errorf("read userinfo body failed: %w", err)
+	}
 	var info struct {
 		Email   string `json:"email"`
 		Name    string `json:"name"`
@@ -163,16 +202,17 @@ func (h *OAuthHandler) kakaoUserInfo(ctx context.Context, code string) (string, 
 		return "", "", nil, fmt.Errorf("exchange failed: %w", err)
 	}
 
-	req, _ := http.NewRequestWithContext(ctx, "GET", "https://kapi.kakao.com/v2/user/me", nil)
-	req.Header.Set("Authorization", "Bearer "+token.AccessToken)
-
-	resp, err := http.DefaultClient.Do(req)
+	client := h.KakaoConfig.Client(ctx, token)
+	resp, err := client.Get("https://kapi.kakao.com/v2/user/me")
 	if err != nil {
 		return "", "", nil, fmt.Errorf("user info request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", "", nil, fmt.Errorf("read user info body failed: %w", err)
+	}
 	var info struct {
 		KakaoAccount struct {
 			Email   string `json:"email"`

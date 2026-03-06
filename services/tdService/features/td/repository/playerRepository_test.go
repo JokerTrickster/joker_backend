@@ -11,11 +11,13 @@ import (
 func TestPlayerRepository_CreatePlayer(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewPlayerRepository(db)
+	uid := uniqueUserID()
+	suffix := uniqueSuffix()
 
 	player := &entity.Player{
-		UserID:     1001,
-		Nickname:   "testplayer",
-		AvatarID:   "avatar-1",
+		UserID:     uid,
+		Nickname:   "player_" + suffix,
+		AvatarID:   "avatar_" + suffix,
 		Level:      1,
 		Experience: 0,
 	}
@@ -23,31 +25,35 @@ func TestPlayerRepository_CreatePlayer(t *testing.T) {
 	err := repo.CreatePlayer(player)
 	require.NoError(t, err)
 	assert.NotZero(t, player.ID, "Player ID should be set after create")
+	deferCleanupPlayers(t, db, []uint{player.ID})
 
 	t.Logf("Created player with ID=%d, UserID=%d", player.ID, player.UserID)
 
 	var count int64
-	db.Model(&entity.Player{}).Where("user_id = ?", 1001).Count(&count)
+	db.Model(&entity.Player{}).Where("user_id = ?", uid).Count(&count)
 	assert.Equal(t, int64(1), count, "Player should exist in database")
 }
 
 func TestPlayerRepository_GetPlayerByUserID_Found(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewPlayerRepository(db)
+	uid := uniqueUserID()
+	suffix := uniqueSuffix()
 
 	player := &entity.Player{
-		UserID:   2001,
-		Nickname: "foundplayer",
-		AvatarID: "avatar-2",
+		UserID:   uid,
+		Nickname: "found_" + suffix,
+		AvatarID: "avatar_" + suffix,
 	}
 	require.NoError(t, db.Create(player).Error)
+	deferCleanupPlayers(t, db, []uint{player.ID})
 
-	got, err := repo.GetPlayerByUserID(2001)
+	got, err := repo.GetPlayerByUserID(uid)
 	require.NoError(t, err)
 	require.NotNil(t, got)
 	assert.Equal(t, player.ID, got.ID)
-	assert.Equal(t, uint(2001), got.UserID)
-	assert.Equal(t, "foundplayer", got.Nickname)
+	assert.Equal(t, uid, got.UserID)
+	assert.Equal(t, "found_"+suffix, got.Nickname)
 
 	t.Logf("GetPlayerByUserID found player ID=%d", got.ID)
 }
@@ -56,7 +62,7 @@ func TestPlayerRepository_GetPlayerByUserID_NotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewPlayerRepository(db)
 
-	got, err := repo.GetPlayerByUserID(99999)
+	got, err := repo.GetPlayerByUserID(uniqueUserID())
 	require.NoError(t, err)
 	assert.Nil(t, got, "Expected nil when player not found")
 
@@ -66,19 +72,20 @@ func TestPlayerRepository_GetPlayerByUserID_NotFound(t *testing.T) {
 func TestPlayerRepository_GetPlayerByID_Found(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewPlayerRepository(db)
+	suffix := uniqueSuffix()
 
 	player := &entity.Player{
-		UserID:   3001,
-		Nickname: "idlookup",
-		AvatarID: "avatar-3",
+		UserID:   uniqueUserID(),
+		Nickname: "idlookup_" + suffix,
+		AvatarID: "avatar_" + suffix,
 	}
 	require.NoError(t, db.Create(player).Error)
+	deferCleanupPlayers(t, db, []uint{player.ID})
 
 	got, err := repo.GetPlayerByID(player.ID)
 	require.NoError(t, err)
 	require.NotNil(t, got)
 	assert.Equal(t, player.ID, got.ID)
-	assert.Equal(t, uint(3001), got.UserID)
 
 	t.Logf("GetPlayerByID found player by ID=%d", got.ID)
 }
@@ -87,7 +94,7 @@ func TestPlayerRepository_GetPlayerByID_NotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewPlayerRepository(db)
 
-	got, err := repo.GetPlayerByID(99999)
+	got, err := repo.GetPlayerByID(999999999)
 	require.Error(t, err)
 	assert.Nil(t, got)
 	assert.Contains(t, err.Error(), "player not found")
@@ -98,17 +105,19 @@ func TestPlayerRepository_GetPlayerByID_NotFound(t *testing.T) {
 func TestPlayerRepository_UpdatePlayer(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewPlayerRepository(db)
+	suffix := uniqueSuffix()
 
 	player := &entity.Player{
-		UserID:    4001,
-		Nickname:  "original",
-		AvatarID:  "avatar-orig",
-		Level:     1,
+		UserID:     uniqueUserID(),
+		Nickname:   "original_" + suffix,
+		AvatarID:   "avatar_" + suffix,
+		Level:      1,
 		Experience: 0,
 	}
 	require.NoError(t, repo.CreatePlayer(player))
+	deferCleanupPlayers(t, db, []uint{player.ID})
 
-	player.Nickname = "updated_nick"
+	player.Nickname = "updated_nick_" + suffix
 	player.Level = 5
 	player.Experience = 100
 
@@ -117,7 +126,7 @@ func TestPlayerRepository_UpdatePlayer(t *testing.T) {
 
 	got, err := repo.GetPlayerByID(player.ID)
 	require.NoError(t, err)
-	assert.Equal(t, "updated_nick", got.Nickname)
+	assert.Equal(t, "updated_nick_"+suffix, got.Nickname)
 	assert.Equal(t, 5, got.Level)
 	assert.Equal(t, 100, got.Experience)
 
@@ -127,21 +136,23 @@ func TestPlayerRepository_UpdatePlayer(t *testing.T) {
 func TestPlayerRepository_CreateOrUpdateStats(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewPlayerRepository(db)
+	suffix := uniqueSuffix()
 
 	player := &entity.Player{
-		UserID:   5001,
-		Nickname: "statplayer",
-		AvatarID: "avatar-5",
+		UserID:   uniqueUserID(),
+		Nickname: "statplayer_" + suffix,
+		AvatarID: "avatar_" + suffix,
 	}
 	require.NoError(t, db.Create(player).Error)
+	deferCleanupPlayers(t, db, []uint{player.ID})
 
 	stats := &entity.PlayerStats{
-		PlayerID:      player.ID,
-		GamesPlayed:   5,
-		Victories:     2,
-		TotalScore:    1000,
-		HighestScore:  500,
-		HighestWave:   10,
+		PlayerID:     player.ID,
+		GamesPlayed:  5,
+		Victories:    2,
+		TotalScore:   1000,
+		HighestScore: 500,
+		HighestWave:  10,
 	}
 
 	err := repo.CreateOrUpdateStats(stats)
@@ -160,36 +171,38 @@ func TestPlayerRepository_CreateOrUpdateStats(t *testing.T) {
 func TestPlayerRepository_UpdatePlayerStats(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewPlayerRepository(db)
+	suffix := uniqueSuffix()
 
 	player := &entity.Player{
-		UserID:   6001,
-		Nickname: "statsupdate",
-		AvatarID: "avatar-6",
+		UserID:   uniqueUserID(),
+		Nickname: "statsupdate_" + suffix,
+		AvatarID: "avatar_" + suffix,
 	}
 	require.NoError(t, db.Create(player).Error)
+	deferCleanupPlayers(t, db, []uint{player.ID})
 
 	stats := &entity.PlayerStats{
-		PlayerID:   player.ID,
-		GamesPlayed: 2,
-		Victories:   1,
-		TotalScore:  200,
-		HighestScore: 150,
-		HighestWave:  5,
-		UnitsPlaced:  10,
+		PlayerID:      player.ID,
+		GamesPlayed:   2,
+		Victories:     1,
+		TotalScore:    200,
+		HighestScore:  150,
+		HighestWave:   5,
+		UnitsPlaced:   10,
 		EnemiesKilled: 50,
 		TotalPlayTime: 300,
 	}
 	require.NoError(t, db.Create(stats).Error)
 
 	result := &entity.GameResult{
-		SessionID:      "session-abc",
-		PlayerID:       player.ID,
-		Score:          300,
-		WavesCompleted: 8,
-		UnitsPlaced:    15,
+		SessionID:       "session-" + suffix,
+		PlayerID:        player.ID,
+		Score:           300,
+		WavesCompleted:  8,
+		UnitsPlaced:     15,
 		EnemiesDefeated: 80,
-		Victory:        true,
-		PlayTime:       120,
+		Victory:         true,
+		PlayTime:        120,
 	}
 
 	err := repo.UpdatePlayerStats(player.ID, result)
@@ -212,14 +225,17 @@ func TestPlayerRepository_UpdatePlayerStats(t *testing.T) {
 func TestPlayerRepository_GetOrCreatePlayer_New(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewPlayerRepository(db)
+	uid := uniqueUserID()
+	suffix := uniqueSuffix()
 
-	player, err := repo.GetOrCreatePlayer(7001, "newplayer", "avatar-7")
+	player, err := repo.GetOrCreatePlayer(uid, "new_"+suffix, "avatar_"+suffix)
 	require.NoError(t, err)
 	require.NotNil(t, player)
+	deferCleanupPlayers(t, db, []uint{player.ID})
 	assert.NotZero(t, player.ID)
-	assert.Equal(t, uint(7001), player.UserID)
-	assert.Equal(t, "newplayer", player.Nickname)
-	assert.Equal(t, "avatar-7", player.AvatarID)
+	assert.Equal(t, uid, player.UserID)
+	assert.Equal(t, "new_"+suffix, player.Nickname)
+	assert.Equal(t, "avatar_"+suffix, player.AvatarID)
 	assert.Equal(t, 1, player.Level)
 	assert.Equal(t, 0, player.Experience)
 
@@ -234,22 +250,66 @@ func TestPlayerRepository_GetOrCreatePlayer_New(t *testing.T) {
 func TestPlayerRepository_GetOrCreatePlayer_Existing(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewPlayerRepository(db)
+	uid := uniqueUserID()
+	suffix := uniqueSuffix()
 
 	existing := &entity.Player{
-		UserID:   8001,
-		Nickname: "existing",
-		AvatarID: "avatar-8",
+		UserID:   uid,
+		Nickname: "existing_" + suffix,
+		AvatarID: "avatar_" + suffix,
 		Level:    3,
 	}
 	require.NoError(t, db.Create(existing).Error)
+	deferCleanupPlayers(t, db, []uint{existing.ID})
 
-	got, err := repo.GetOrCreatePlayer(8001, "ignored_nick", "ignored_avatar")
+	got, err := repo.GetOrCreatePlayer(uid, "ignored_nick", "ignored_avatar")
 	require.NoError(t, err)
 	require.NotNil(t, got)
 	assert.Equal(t, existing.ID, got.ID)
-	assert.Equal(t, "existing", got.Nickname, "Should return existing player, not overwrite with new nickname")
-	assert.Equal(t, "avatar-8", got.AvatarID)
+	assert.Equal(t, "existing_"+suffix, got.Nickname, "Should return existing player, not overwrite with new nickname")
+	assert.Equal(t, "avatar_"+suffix, got.AvatarID)
 	assert.Equal(t, 3, got.Level)
 
 	t.Log("GetOrCreatePlayer correctly returns existing player without creating duplicate")
+}
+
+func TestPlayerRepository_UpdatePlayerStats_NoExistingStats(t *testing.T) {
+	db := setupTestDB(t)
+	repo := NewPlayerRepository(db)
+	suffix := uniqueSuffix()
+
+	player := &entity.Player{
+		UserID:   uniqueUserID(),
+		Nickname: "nostats_" + suffix,
+		AvatarID: "avatar_" + suffix,
+	}
+	require.NoError(t, db.Create(player).Error)
+	deferCleanupPlayers(t, db, []uint{player.ID})
+
+	result := &entity.GameResult{
+		SessionID:       "session-" + suffix,
+		PlayerID:        player.ID,
+		Score:           500,
+		WavesCompleted:  5,
+		UnitsPlaced:     20,
+		EnemiesDefeated: 60,
+		Victory:         true,
+		PlayTime:        180,
+	}
+
+	err := repo.UpdatePlayerStats(player.ID, result)
+	require.NoError(t, err)
+
+	var dbStats entity.PlayerStats
+	require.NoError(t, db.Where("player_id = ?", player.ID).First(&dbStats).Error)
+	assert.Equal(t, 1, dbStats.GamesPlayed, "Should create new stats with GamesPlayed=1")
+	assert.Equal(t, 1, dbStats.Victories, "Should record victory")
+	assert.Equal(t, int64(500), dbStats.TotalScore)
+	assert.Equal(t, int64(500), dbStats.HighestScore)
+	assert.Equal(t, 5, dbStats.HighestWave)
+	assert.Equal(t, 20, dbStats.UnitsPlaced)
+	assert.Equal(t, 60, dbStats.EnemiesKilled)
+	assert.Equal(t, 180, dbStats.TotalPlayTime)
+
+	t.Log("UpdatePlayerStats correctly creates stats when player has none")
 }

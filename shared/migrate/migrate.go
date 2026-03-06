@@ -66,7 +66,7 @@ func Run(db *sql.DB, config Config) error {
 	if err != nil {
 		return err
 	}
-	// Don't defer m.Close() to avoid closing the database connection
+	defer m.Close()
 
 	// Get current version
 	version, dirty, err := m.Version()
@@ -126,6 +126,7 @@ func Down(db *sql.DB, config Config) error {
 	if err != nil {
 		return err
 	}
+	defer m.Close()
 
 	if err := m.Steps(-1); err != nil {
 		if errors.Is(err, migrate.ErrNoChange) {
@@ -145,6 +146,7 @@ func Version(db *sql.DB, config Config) (uint, bool, error) {
 	if err != nil {
 		return 0, false, err
 	}
+	defer m.Close()
 
 	version, dirty, err := m.Version()
 	if err != nil && !errors.Is(err, migrate.ErrNilVersion) {

@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"os"
 	"testing"
 	"time"
@@ -28,9 +30,10 @@ func setupQuestTestDB(t *testing.T) *gorm.DB {
 }
 
 func createQuestTestUser(t *testing.T, db *gorm.DB) *entity.TDUser {
+	unique := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000))
 	user := &entity.TDUser{
-		Username:     "questuser_" + time.Now().Format("20060102150405"),
-		Email:        "quest_" + time.Now().Format("20060102150405") + "@test.com",
+		Username:     "questuser_" + unique,
+		Email:        "quest_" + unique + "@test.com",
 		PasswordHash: "hash",
 		IsActive:     true,
 	}

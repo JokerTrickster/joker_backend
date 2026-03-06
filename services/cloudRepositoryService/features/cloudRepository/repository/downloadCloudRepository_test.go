@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -26,10 +28,12 @@ func TestDownloadCloudRepository_GetFileByID_Found(t *testing.T) {
 		_ = db.WithContext(ctx).Where("user_id = ?", uint(991)).Delete(&entity.CloudFile{}).Error
 	}()
 
+	uid := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000))
+	s3Key := "user991/test_download_found_" + uid + ".jpg"
 	file := &entity.CloudFile{
 		UserID:      991,
 		FileName:   "test_download_found.jpg",
-		S3Key:      "user991/test_download_found.jpg",
+		S3Key:      s3Key,
 		FileType:   entity.FileTypeImage,
 		ContentType: "image/jpeg",
 		FileSize:   2048,
@@ -75,10 +79,12 @@ func TestDownloadCloudRepository_GetFileByID_Deleted(t *testing.T) {
 	require.NoError(t, db.AutoMigrate(&entity.CloudFile{}))
 	now := time.Now()
 
+	uid := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000))
+	s3Key := "user992/test_download_deleted_" + uid + ".jpg"
 	file := &entity.CloudFile{
 		UserID:      992,
 		FileName:   "test_download_deleted.jpg",
-		S3Key:      "user992/test_download_deleted.jpg",
+		S3Key:      s3Key,
 		FileType:   entity.FileTypeImage,
 		ContentType: "image/jpeg",
 		FileSize:   1024,

@@ -2,15 +2,30 @@ package usecase
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
+	_interface "github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/authService/features/auth/model/request"
 	"github.com/JokerTrickster/joker_backend/services/authService/features/auth/repository"
 	"github.com/JokerTrickster/joker_backend/shared/db/mysql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type mockLogoutRepository struct {
+	DeleteTokenByUserIDFunc func(ctx context.Context, userID uint) error
+}
+
+func (m *mockLogoutRepository) DeleteTokenByUserID(ctx context.Context, userID uint) error {
+	if m.DeleteTokenByUserIDFunc != nil {
+		return m.DeleteTokenByUserIDFunc(ctx, userID)
+	}
+	return nil
+}
 
 func TestLogoutAuthUseCase_Success(t *testing.T) {
 	db := setupTestDB(t)
@@ -22,7 +37,7 @@ func TestLogoutAuthUseCase_Success(t *testing.T) {
 	signupUC := NewSignupAuthUseCase(signupRepo, 10*time.Second)
 
 	ctx := context.Background()
-	email := "logout-test-" + time.Now().Format("20060102150405") + "@example.com"
+	email := "logout-test-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com"
 
 	signupReq := &request.ReqSignUp{
 		Email:       email,
@@ -86,4 +101,50 @@ func TestLogoutAuthUseCase_NoTokens(t *testing.T) {
 	assert.Error(t, err, "Logout with no tokens should return error")
 
 	t.Logf("No-tokens logout correctly handled: %v", err)
+}
+
+func TestNewLogoutAuthUseCase(t *testing.T) {
+	repo := &mockLogoutRepository{}
+	uc := NewLogoutAuthUseCase(repo, 5*time.Second).(*LogoutAuthUseCase)
+	require.NotNil(t, uc)
+	assert.Equal(t, repo, uc.Repository)
+	assert.Equal(t, 5*time.Second, uc.ContextTimeout)
+	t.Logf("NewLogoutAuthUseCase sets Repository and ContextTimeout correctly")
+}
+
+func TestLogoutAuthUseCase_ImplementsInterface(t *testing.T) {
+	repo := &mockLogoutRepository{}
+	uc := NewLogoutAuthUseCase(repo, 10*time.Second)
+	var _ _interface.ILogoutAuthUseCase = uc
+	t.Logf("LogoutAuthUseCase implements ILogoutAuthUseCase")
+}
+
+func TestLogoutAuthUseCase_Logout_RepoError(t *testing.T) {
+	repoErr := errors.New("database error")
+	repo := &mockLogoutRepository{
+		DeleteTokenByUserIDFunc: func(ctx context.Context, userID uint) error {
+			return repoErr
+		},
+	}
+	uc := NewLogoutAuthUseCase(repo, 10*time.Second)
+	ctx := context.Background()
+
+	err := uc.Logout(ctx, 123)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, repoErr)
+	t.Logf("Logout with repo error correctly propagated: %v", err)
+}
+
+func TestLogoutAuthUseCase_Logout_SuccessWithMock(t *testing.T) {
+	repo := &mockLogoutRepository{
+		DeleteTokenByUserIDFunc: func(ctx context.Context, userID uint) error {
+			return nil
+		},
+	}
+	uc := NewLogoutAuthUseCase(repo, 10*time.Second)
+	ctx := context.Background()
+
+	err := uc.Logout(ctx, 42)
+	require.NoError(t, err)
+	t.Logf("Logout with mock success returns nil")
 }

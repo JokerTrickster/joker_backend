@@ -19,6 +19,7 @@ type MorandoranUser struct {
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
+// TableName returns "morandoran_users" (legacy DB table name, intentionally kept to avoid migration)
 func (MorandoranUser) TableName() string {
 	return "morandoran_users"
 }

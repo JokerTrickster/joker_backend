@@ -64,6 +64,31 @@ func TestSubmitHandler_Submit_BadRequest_BindError(t *testing.T) {
 	t.Logf("Submit bind error -> 400")
 }
 
+func TestSubmitHandler_Submit_BadRequest_ValidationError(t *testing.T) {
+	t.Log("Submit: missing required clearTimeMs -> 400 Bad Request")
+	e := setupRankingTestEcho()
+	mockRepo := new(mockRankingRepository)
+	uc := usecase.NewSubmitUseCase(mockRepo, rankingDefaultTimeout)
+	h := NewSubmitHandler(uc)
+
+	reqBody := []byte(`{}`)
+	req := httptest.NewRequest(http.MethodPost, "/ranking/puzzle/submit", bytes.NewReader(reqBody))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/ranking/:gameType/submit")
+	c.SetParamNames("gameType")
+	c.SetParamValues("puzzle")
+	setupRankingAuthContext(c)
+
+	err := h.Submit(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, he.Code)
+	mockRepo.AssertNotCalled(t, "FindByUserAndGame")
+}
+
 func TestSubmitHandler_Submit_Success_SkipsDB(t *testing.T) {
 	t.Skip("Submit success requires DB for getUserNickname; integration test")
 	// getUserNickname uses mysql.GormMysqlDB directly - cannot mock without refactoring

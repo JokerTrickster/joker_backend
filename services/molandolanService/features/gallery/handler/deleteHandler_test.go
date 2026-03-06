@@ -10,7 +10,6 @@ import (
 	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/entity"
 	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/usecase"
-	"github.com/JokerTrickster/joker_backend/shared/db/mysql"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -66,6 +65,9 @@ func (m *mockGalleryDeleteRepository) GetAuthorInfo(ctx context.Context, userID 
 func (m *mockGalleryDeleteRepository) IsLikedBatch(ctx context.Context, userID uint, galleryIDs []uint) (map[uint]bool, error) {
 	return map[uint]bool{}, nil
 }
+func (m *mockGalleryDeleteRepository) GetUserRole(ctx context.Context, userID uint) (string, error) {
+	return "user", nil
+}
 
 var _ _interface.IGalleryRepository = (*mockGalleryDeleteRepository)(nil)
 
@@ -73,7 +75,7 @@ func TestDeleteHandler_Delete_InvalidID(t *testing.T) {
 	e := setupGalleryTestEcho()
 	mockRepo := &mockGalleryDeleteRepository{}
 	uc := usecase.NewDeleteUseCase(mockRepo, 10*time.Second)
-	h := NewDeleteHandler(uc)
+	h := NewDeleteHandler(uc, mockRepo)
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/gallery/invalid", nil)
 	rec := httptest.NewRecorder()
@@ -95,7 +97,7 @@ func TestDeleteHandler_Delete_NoUserID(t *testing.T) {
 	e := setupGalleryTestEcho()
 	mockRepo := &mockGalleryDeleteRepository{}
 	uc := usecase.NewDeleteUseCase(mockRepo, 10*time.Second)
-	h := NewDeleteHandler(uc)
+	h := NewDeleteHandler(uc, mockRepo)
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/gallery/1", nil)
 	rec := httptest.NewRecorder()
@@ -112,10 +114,28 @@ func TestDeleteHandler_Delete_NoUserID(t *testing.T) {
 	t.Logf("No userID returns 401: %v", err)
 }
 
-func TestDeleteHandler_Delete_DBRequired(t *testing.T) {
-	// deleteHandler uses mysql.GormMysqlDB.Raw for role lookup - skip when DB unavailable
-	if mysql.GormMysqlDB == nil {
-		t.Skip("Skipping: mysql.GormMysqlDB not initialized (DB-dependent test)")
+func TestDeleteHandler_Delete_Success(t *testing.T) {
+	e := setupGalleryTestEcho()
+	mockRepo := &mockGalleryDeleteRepository{
+		findByIDFunc: func(ctx context.Context, id uint) (*entity.GalleryPost, error) {
+			return &entity.GalleryPost{ID: id, AuthorID: 1}, nil
+		},
+		deleteFunc: func(ctx context.Context, id uint) error {
+			return nil
+		},
 	}
-	t.Skip("Skipping: full delete flow requires DB for Raw role query - run as integration test when DB available")
+	uc := usecase.NewDeleteUseCase(mockRepo, 10*time.Second)
+	h := NewDeleteHandler(uc, mockRepo)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/gallery/1", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues("1")
+	setupGalleryAuthContext(c)
+
+	err := h.Delete(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	t.Logf("Delete success: status=%d", rec.Code)
 }

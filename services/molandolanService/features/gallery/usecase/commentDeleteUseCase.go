@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	_interface "github.com/JokerTrickster/joker_backend/services/molandolanService/features/gallery/model/interface"
@@ -27,7 +26,7 @@ func (uc *CommentDeleteUseCase) Delete(c context.Context, commentID, userID uint
 	}
 
 	if comment.AuthorID != userID && userRole != "admin" {
-		return fmt.Errorf("FORBIDDEN")
+		return ErrForbidden
 	}
 
 	return uc.Repo.DeleteComment(ctx, commentID)

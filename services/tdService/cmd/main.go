@@ -24,6 +24,15 @@ func main() {
 	dbPassword := getEnv("DB_PASSWORD", "rootpassword")
 	dbName := getEnv("DB_NAME", "td_service")
 	jwtSecret := getEnv("JWT_SECRET", "test-secret-key")
+	env := getEnv("ENV", "local")
+	if env != "local" && env != "development" {
+		if dbPassword == "rootpassword" {
+			log.Fatal("DB_PASSWORD must be set in production")
+		}
+		if jwtSecret == "test-secret-key" {
+			log.Fatal("JWT_SECRET must be set in production")
+		}
+	}
 	wsBaseURL := getEnv("WS_BASE_URL", "ws://localhost:18082/ws")
 	port := getEnv("PORT", "18082")
 	corsOrigins := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")

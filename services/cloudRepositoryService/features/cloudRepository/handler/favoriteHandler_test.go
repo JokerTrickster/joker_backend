@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -143,4 +144,108 @@ func TestFavoriteHandler_InvalidFileID(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.Contains(t, rec.Body.String(), "invalid file ID")
 	mockUC.AssertNotCalled(t, "RemoveFavorite")
+}
+
+func TestFavoriteHandler_AddFavorite_ValidationError_MissingFileID(t *testing.T) {
+	t.Log("Running: AddFavorite missing fileId -> 400")
+	e := setupTestEcho()
+	mockUC := new(mockFavoriteUseCase)
+	handler := &FavoriteHandler{UseCase: mockUC}
+
+	body := mustJSON(t, map[string]interface{}{})
+	req := httptest.NewRequest(http.MethodPost, "/favorites", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupAuthContext(c)
+
+	err := handler.AddFavorite(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	mockUC.AssertNotCalled(t, "AddFavorite")
+}
+
+func TestFavoriteHandler_AddFavorite_UseCaseError_NotFound(t *testing.T) {
+	t.Log("Running: AddFavorite file not found -> 404")
+	e := setupTestEcho()
+	mockUC := new(mockFavoriteUseCase)
+	handler := &FavoriteHandler{UseCase: mockUC}
+
+	body := mustJSON(t, map[string]interface{}{"fileId": float64(999)})
+	mockUC.On("AddFavorite", mock.Anything, testUserID, uint(999)).
+		Return(nil, fmt.Errorf("file not found"))
+
+	req := httptest.NewRequest(http.MethodPost, "/favorites", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupAuthContext(c)
+
+	err := handler.AddFavorite(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestFavoriteHandler_AddFavorite_UseCaseError_Forbidden(t *testing.T) {
+	t.Log("Running: AddFavorite access denied -> 403")
+	e := setupTestEcho()
+	mockUC := new(mockFavoriteUseCase)
+	handler := &FavoriteHandler{UseCase: mockUC}
+
+	body := mustJSON(t, map[string]interface{}{"fileId": float64(1)})
+	mockUC.On("AddFavorite", mock.Anything, testUserID, uint(1)).
+		Return(nil, fmt.Errorf("you do not own this file"))
+
+	req := httptest.NewRequest(http.MethodPost, "/favorites", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupAuthContext(c)
+
+	err := handler.AddFavorite(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusForbidden, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestFavoriteHandler_RemoveFavorite_UseCaseError(t *testing.T) {
+	t.Log("Running: RemoveFavorite UseCase error -> 500")
+	e := setupTestEcho()
+	mockUC := new(mockFavoriteUseCase)
+	handler := &FavoriteHandler{UseCase: mockUC}
+
+	mockUC.On("RemoveFavorite", mock.Anything, testUserID, uint(1)).Return(assert.AnError)
+
+	req := httptest.NewRequest(http.MethodDelete, "/favorites/1", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("fileId")
+	c.SetParamValues("1")
+	setupAuthContext(c)
+
+	err := handler.RemoveFavorite(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestFavoriteHandler_ListFavorites_UseCaseError(t *testing.T) {
+	t.Log("Running: ListFavorites UseCase error -> 500")
+	e := setupTestEcho()
+	mockUC := new(mockFavoriteUseCase)
+	handler := &FavoriteHandler{UseCase: mockUC}
+
+	mockUC.On("ListFavorites", mock.Anything, testUserID, mock.AnythingOfType("request.ListFavoritesRequestDTO")).
+		Return(nil, assert.AnError)
+
+	req := httptest.NewRequest(http.MethodGet, "/favorites", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupAuthContext(c)
+
+	err := handler.ListFavorites(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
 }

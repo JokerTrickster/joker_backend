@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	_interface "github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/interface"
 	"github.com/labstack/echo/v4"
@@ -47,7 +48,10 @@ func (h *DownloadCloudRepositoryHandler) RequestDownloadURL(c echo.Context) erro
 
 	resp, err := h.UseCase.RequestDownloadURL(ctx, userID, uint(fileID))
 	if err != nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": err.Error()})
+		if strings.Contains(err.Error(), "not found") {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "file not found"})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 	}
 
 	return c.JSON(http.StatusOK, resp)

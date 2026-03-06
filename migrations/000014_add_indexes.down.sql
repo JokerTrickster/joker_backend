@@ -1,0 +1,2 @@
+DROP INDEX idx_gallery_comments_gallery_id ON gallery_comments;
+DROP INDEX idx_gallery_comments_author_id ON gallery_comments;

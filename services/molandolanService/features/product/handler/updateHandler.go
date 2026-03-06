@@ -28,6 +28,9 @@ func (h *UpdateHandler) Update(c echo.Context) error {
 	if err := c.Bind(req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "BAD_REQUEST")
 	}
+	if err := c.Validate(req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "VALIDATION_ERROR")
+	}
 
 	res, err := h.UseCase.Update(ctx, uint(id), req)
 	if err != nil {

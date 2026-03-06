@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -21,10 +23,12 @@ func TestListCloudRepository_GetFilesByUserID_Success(t *testing.T) {
 	ctx := context.Background()
 
 	userID := uint(995)
+	uid := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000))
+	s3Key := "user995/test_list_" + uid + ".jpg"
 	file := &entity.CloudFile{
 		UserID:      userID,
 		FileName:    "test_list.jpg",
-		S3Key:       "user995/test_list.jpg",
+		S3Key:       s3Key,
 		FileType:    entity.FileTypeImage,
 		ContentType: "image/jpeg",
 		FileSize:    1024,

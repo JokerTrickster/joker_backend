@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -90,14 +91,14 @@ func TestDownloadCloudHandler_RequestDownloadURL_InvalidFileID(t *testing.T) {
 	mockUC.AssertNotCalled(t, "RequestDownloadURL")
 }
 
-func TestDownloadCloudHandler_RequestDownloadURL_UseCaseError(t *testing.T) {
-	t.Log("Running: UseCase error -> 404")
+func TestDownloadCloudHandler_RequestDownloadURL_UseCaseError_FileNotFound(t *testing.T) {
+	t.Log("Running: UseCase error with 'not found' -> 404")
 	e := setupTestEcho()
 	mockUC := new(mockDownloadCloudUseCase)
 	handler := &DownloadCloudRepositoryHandler{UseCase: mockUC}
 
 	mockUC.On("RequestDownloadURL", mock.Anything, testUserID, uint(999)).
-		Return(nil, assert.AnError)
+		Return(nil, errors.New("file not found"))
 
 	req := httptest.NewRequest(http.MethodGet, "/files/999/download", nil)
 	rec := httptest.NewRecorder()
@@ -109,5 +110,29 @@ func TestDownloadCloudHandler_RequestDownloadURL_UseCaseError(t *testing.T) {
 	err := handler.RequestDownloadURL(c)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.Contains(t, rec.Body.String(), "file not found")
+	mockUC.AssertExpectations(t)
+}
+
+func TestDownloadCloudHandler_RequestDownloadURL_UseCaseError_InternalServerError(t *testing.T) {
+	t.Log("Running: UseCase error without 'not found' -> 500")
+	e := setupTestEcho()
+	mockUC := new(mockDownloadCloudUseCase)
+	handler := &DownloadCloudRepositoryHandler{UseCase: mockUC}
+
+	mockUC.On("RequestDownloadURL", mock.Anything, testUserID, uint(1)).
+		Return(nil, errors.New("failed to generate download URL"))
+
+	req := httptest.NewRequest(http.MethodGet, "/files/1/download", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues("1")
+	setupAuthContext(c)
+
+	err := handler.RequestDownloadURL(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Contains(t, rec.Body.String(), "internal server error")
 	mockUC.AssertExpectations(t)
 }

@@ -68,6 +68,63 @@ func TestLeaderboardHandler_GetLeaderboard_WithLimitParam(t *testing.T) {
 	mockUC.AssertExpectations(t)
 }
 
+func TestLeaderboardHandler_GetLeaderboard_InvalidLimitIgnored(t *testing.T) {
+	t.Log("GetLeaderboard: invalid limit (negative) -> uses default 10")
+	e := setupTestEcho()
+	mockUC := new(mockLeaderboardUseCase)
+	h := &LeaderboardHandler{uc: mockUC}
+
+	mockUC.On("GetLeaderboard", mock.Anything, 10).
+		Return(&response.LeaderboardResponse{Entries: []response.LeaderboardEntry{}}, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/leaderboard?limit=-5", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err := h.GetLeaderboard(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestLeaderboardHandler_GetLeaderboard_Over100UsesDefault(t *testing.T) {
+	t.Log("GetLeaderboard: limit>100 uses default 10")
+	e := setupTestEcho()
+	mockUC := new(mockLeaderboardUseCase)
+	h := &LeaderboardHandler{uc: mockUC}
+
+	mockUC.On("GetLeaderboard", mock.Anything, 10).
+		Return(&response.LeaderboardResponse{Entries: []response.LeaderboardEntry{}}, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/leaderboard?limit=999", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err := h.GetLeaderboard(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestLeaderboardHandler_GetLeaderboard_NonNumericLimitIgnored(t *testing.T) {
+	t.Log("GetLeaderboard: non-numeric limit -> uses default 10")
+	e := setupTestEcho()
+	mockUC := new(mockLeaderboardUseCase)
+	h := &LeaderboardHandler{uc: mockUC}
+
+	mockUC.On("GetLeaderboard", mock.Anything, 10).
+		Return(&response.LeaderboardResponse{Entries: []response.LeaderboardEntry{}}, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/leaderboard?limit=abc", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err := h.GetLeaderboard(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
 func TestLeaderboardHandler_GetLeaderboard_UseCaseError(t *testing.T) {
 	t.Log("GetLeaderboard: usecase error -> 500")
 	e := setupTestEcho()

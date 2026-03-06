@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -177,5 +178,91 @@ func TestProcessingStatusHandler_GetBatchProcessingStatus_TooManyFileIDs(t *test
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.Contains(t, rec.Body.String(), "Maximum 100 file IDs allowed")
+	mockUC.AssertNotCalled(t, "GetBatchProcessingStatus")
+}
+
+func TestProcessingStatusHandler_GetProcessingStatus_UseCaseError_FileNotFound(t *testing.T) {
+	t.Log("Running: GetProcessingStatus FILE_NOT_FOUND -> 404")
+	e := setupTestEcho()
+	mockUC := new(mockProcessingStatusUseCase)
+	handler := NewProcessingStatusHandler(mockUC)
+
+	mockUC.On("GetProcessingStatus", mock.Anything, testUserID, uint(999)).
+		Return(nil, fmt.Errorf("FILE_NOT_FOUND: file with ID 999 not found"))
+
+	req := httptest.NewRequest(http.MethodGet, "/files/999/processing-status", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues("999")
+	setupAuthContext(c)
+
+	err := handler.GetProcessingStatus(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.Contains(t, rec.Body.String(), "FILE_NOT_FOUND")
+	mockUC.AssertExpectations(t)
+}
+
+func TestProcessingStatusHandler_GetProcessingStatus_UseCaseError_Internal(t *testing.T) {
+	t.Log("Running: GetProcessingStatus internal error -> 500")
+	e := setupTestEcho()
+	mockUC := new(mockProcessingStatusUseCase)
+	handler := NewProcessingStatusHandler(mockUC)
+
+	mockUC.On("GetProcessingStatus", mock.Anything, testUserID, uint(1)).
+		Return(nil, fmt.Errorf("failed to fetch file: database error"))
+
+	req := httptest.NewRequest(http.MethodGet, "/files/1/processing-status", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues("1")
+	setupAuthContext(c)
+
+	err := handler.GetProcessingStatus(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Contains(t, rec.Body.String(), "INTERNAL_SERVER_ERROR")
+	mockUC.AssertExpectations(t)
+}
+
+func TestProcessingStatusHandler_GetBatchProcessingStatus_UseCaseError(t *testing.T) {
+	t.Log("Running: GetBatchProcessingStatus UseCase error -> 500")
+	e := setupTestEcho()
+	mockUC := new(mockProcessingStatusUseCase)
+	handler := NewProcessingStatusHandler(mockUC)
+
+	body := mustJSON(t, map[string]interface{}{"file_ids": []float64{1, 2, 3}})
+	mockUC.On("GetBatchProcessingStatus", mock.Anything, testUserID, mock.AnythingOfType("[]uint")).
+		Return(nil, assert.AnError)
+
+	req := httptest.NewRequest(http.MethodPost, "/files/processing-status/batch", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupAuthContext(c)
+
+	err := handler.GetBatchProcessingStatus(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestProcessingStatusHandler_GetBatchProcessingStatus_InvalidRequest(t *testing.T) {
+	t.Log("Running: GetBatchProcessingStatus invalid request body -> 400")
+	e := setupTestEcho()
+	mockUC := new(mockProcessingStatusUseCase)
+	handler := NewProcessingStatusHandler(mockUC)
+
+	req := httptest.NewRequest(http.MethodPost, "/files/processing-status/batch", bytes.NewReader([]byte(`{invalid}`)))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupAuthContext(c)
+
+	err := handler.GetBatchProcessingStatus(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	mockUC.AssertNotCalled(t, "GetBatchProcessingStatus")
 }

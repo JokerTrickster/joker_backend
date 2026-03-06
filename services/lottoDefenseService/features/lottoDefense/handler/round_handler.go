@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	_interface "github.com/JokerTrickster/joker_backend/services/lottoDefenseService/features/lottoDefense/model/interface"
 	"github.com/JokerTrickster/joker_backend/services/lottoDefenseService/features/lottoDefense/model/request"
+	"github.com/JokerTrickster/joker_backend/services/lottoDefenseService/features/lottoDefense/usecase"
 	"github.com/labstack/echo/v4"
 )
 
@@ -54,10 +56,10 @@ func (h *RoundHandler) EndRound(c echo.Context) error {
 	}
 	resp, err := h.uc.EndRound(ctx, userID, uint(roundID), &req)
 	if err != nil {
-		if err.Error() == "round not found or not owned by you" || err.Error() == "round is already completed" {
+		if errors.Is(err, usecase.ErrRoundNotFound) || errors.Is(err, usecase.ErrRoundCompleted) {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 		}
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 	}
 	return c.JSON(http.StatusOK, resp)
 }
@@ -94,10 +96,10 @@ func (h *RoundHandler) GetRound(c echo.Context) error {
 	}
 	resp, err := h.uc.GetRound(ctx, userID, uint(roundID))
 	if err != nil {
-		if err.Error() == "round not found or not owned by you" {
+		if errors.Is(err, usecase.ErrRoundNotFound) {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": err.Error()})
 		}
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 	}
 	return c.JSON(http.StatusOK, resp)
 }

@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -347,4 +348,110 @@ func TestShareHandler_NoUserID(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 	mockFolderUC.AssertNotCalled(t, "GetSharedWithMeFolders")
+}
+
+func TestShareHandler_ShareFolder_InvalidFolderID(t *testing.T) {
+	t.Log("Running: ShareFolder invalid folder ID -> 400")
+	e := setupTestEcho()
+	mockFolderUC := new(mockFolderShareUseCase)
+	mockFileUC := new(mockFileShareUseCase)
+	handler := &ShareHandler{FolderShareUseCase: mockFolderUC, FileShareUseCase: mockFileUC}
+
+	body := mustJSON(t, map[string]interface{}{
+		"user_emails": []string{"user@example.com"},
+		"permission":  "read",
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/folders/abc/share", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues("abc")
+	setupAuthContext(c)
+
+	err := handler.ShareFolder(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "invalid folder ID")
+	mockFolderUC.AssertNotCalled(t, "ShareFolder")
+}
+
+func TestShareHandler_ShareFolder_UseCaseError_NotFound(t *testing.T) {
+	t.Log("Running: ShareFolder folder not found -> 404")
+	e := setupTestEcho()
+	mockFolderUC := new(mockFolderShareUseCase)
+	mockFileUC := new(mockFileShareUseCase)
+	handler := &ShareHandler{FolderShareUseCase: mockFolderUC, FileShareUseCase: mockFileUC}
+
+	body := mustJSON(t, map[string]interface{}{
+		"user_emails": []string{"user@example.com"},
+		"permission":  "read",
+	})
+
+	mockFolderUC.On("ShareFolder", mock.Anything, uint(999), int32(1), mock.AnythingOfType("*request.ShareFolderRequestDTO")).
+		Return(nil, fmt.Errorf("folder not found or access denied: record not found"))
+
+	req := httptest.NewRequest(http.MethodPost, "/folders/999/share", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues("999")
+	setupAuthContext(c)
+
+	err := handler.ShareFolder(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	mockFolderUC.AssertExpectations(t)
+}
+
+func TestShareHandler_ShareFile_UseCaseError_NotFound(t *testing.T) {
+	t.Log("Running: ShareFile file not found -> 404")
+	e := setupTestEcho()
+	mockFolderUC := new(mockFolderShareUseCase)
+	mockFileUC := new(mockFileShareUseCase)
+	handler := &ShareHandler{FolderShareUseCase: mockFolderUC, FileShareUseCase: mockFileUC}
+
+	body := mustJSON(t, map[string]interface{}{
+		"user_emails": []string{"user@example.com"},
+		"permission":  "read",
+	})
+
+	mockFileUC.On("ShareFile", mock.Anything, uint(999), int32(1), mock.AnythingOfType("*request.ShareFileRequestDTO")).
+		Return(nil, fmt.Errorf("file not found or access denied"))
+
+	req := httptest.NewRequest(http.MethodPost, "/files/999/share", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues("999")
+	setupAuthContext(c)
+
+	err := handler.ShareFile(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	mockFileUC.AssertExpectations(t)
+}
+
+func TestShareHandler_RevokeFolderShare_InvalidUserID(t *testing.T) {
+	t.Log("Running: RevokeFolderShare invalid user ID -> 400")
+	e := setupTestEcho()
+	mockFolderUC := new(mockFolderShareUseCase)
+	mockFileUC := new(mockFileShareUseCase)
+	handler := &ShareHandler{FolderShareUseCase: mockFolderUC, FileShareUseCase: mockFileUC}
+
+	req := httptest.NewRequest(http.MethodDelete, "/folders/1/shares/xyz", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id", "userId")
+	c.SetParamValues("1", "xyz")
+	setupAuthContext(c)
+
+	err := handler.RevokeFolderShare(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "invalid user ID")
+	mockFolderUC.AssertNotCalled(t, "RevokeFolderShare")
 }

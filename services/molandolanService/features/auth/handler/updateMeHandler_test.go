@@ -173,3 +173,96 @@ func TestUpdateMeHandler_NotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, he.Code)
 	t.Logf("Error: code=%d", he.Code)
 }
+
+func TestUpdateMeHandler_BadRequest_InvalidJSON(t *testing.T) {
+	t.Log("UpdateMe: invalid JSON body -> 400 BAD_REQUEST")
+	e := echo.New()
+	e.Validator = utils.NewValidator()
+	mockRepo := &mockUpdateMeAuthRepository{}
+	uc := usecase.NewUpdateMeUseCase(mockRepo, 10*time.Second)
+	h := NewUpdateMeHandler(uc)
+
+	body := strings.NewReader(`{invalid json}`)
+	req := httptest.NewRequest(http.MethodPut, "/api/auth/me", body)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("userID", uint(1))
+
+	err := h.UpdateMe(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, he.Code)
+	assert.Equal(t, "BAD_REQUEST", he.Message)
+	t.Logf("Error: code=%d message=%v", he.Code, he.Message)
+}
+
+func TestUpdateMeHandler_BadRequest_EmptyNickname(t *testing.T) {
+	t.Log("UpdateMe: empty nickname fails validation -> 400")
+	e := echo.New()
+	e.Validator = utils.NewValidator()
+	mockRepo := &mockUpdateMeAuthRepository{}
+	uc := usecase.NewUpdateMeUseCase(mockRepo, 10*time.Second)
+	h := NewUpdateMeHandler(uc)
+
+	body := strings.NewReader(`{"nickname":""}`)
+	req := httptest.NewRequest(http.MethodPut, "/api/auth/me", body)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("userID", uint(1))
+
+	err := h.UpdateMe(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, he.Code)
+	t.Logf("Error: code=%d message=%v", he.Code, he.Message)
+}
+
+func TestUpdateMeHandler_BadRequest_TooLong(t *testing.T) {
+	t.Log("UpdateMe: nickname exceeds max length (20) -> 400")
+	e := echo.New()
+	e.Validator = utils.NewValidator()
+	mockRepo := &mockUpdateMeAuthRepository{}
+	uc := usecase.NewUpdateMeUseCase(mockRepo, 10*time.Second)
+	h := NewUpdateMeHandler(uc)
+
+	body := strings.NewReader(`{"nickname":"this_nickname_is_way_too_long"}`)
+	req := httptest.NewRequest(http.MethodPut, "/api/auth/me", body)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("userID", uint(1))
+
+	err := h.UpdateMe(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, he.Code)
+	t.Logf("Error: code=%d message=%v", he.Code, he.Message)
+}
+
+func TestUpdateMeHandler_BadRequest_MissingNickname(t *testing.T) {
+	t.Log("UpdateMe: missing nickname field -> 400")
+	e := echo.New()
+	e.Validator = utils.NewValidator()
+	mockRepo := &mockUpdateMeAuthRepository{}
+	uc := usecase.NewUpdateMeUseCase(mockRepo, 10*time.Second)
+	h := NewUpdateMeHandler(uc)
+
+	body := strings.NewReader(`{}`)
+	req := httptest.NewRequest(http.MethodPut, "/api/auth/me", body)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("userID", uint(1))
+
+	err := h.UpdateMe(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, he.Code)
+	t.Logf("Error: code=%d message=%v", he.Code, he.Message)
+}

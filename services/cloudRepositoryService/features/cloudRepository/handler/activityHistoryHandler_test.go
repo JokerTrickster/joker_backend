@@ -80,3 +80,4 @@ func TestActivityHistoryHandler_GetActivityHistory_UseCaseError(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	mockUC.AssertExpectations(t)
 }
+

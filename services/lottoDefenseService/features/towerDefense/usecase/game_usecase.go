@@ -91,8 +91,11 @@ func (u *TDGameUseCase) SaveSingleResult(ctx context.Context, userID uint, req *
 }
 
 func (u *TDGameUseCase) GetGameHistory(ctx context.Context, userID uint, req *request.GameHistoryRequest) (*response.GameHistoryResponse, error) {
-	if req.Limit == 0 {
+	if req.Limit < 1 {
 		req.Limit = 10
+	}
+	if req.Offset < 0 {
+		req.Offset = 0
 	}
 	if req.Limit > 50 {
 		req.Limit = 50

@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -16,7 +18,7 @@ func TestSignupAuthRepository_CreateUser_Success(t *testing.T) {
 	repo := NewSignupAuthRepository(db)
 	ctx := context.Background()
 
-	email := "signup-repo-" + time.Now().Format("20060102150405") + "@example.com"
+	email := "signup-repo-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com"
 	name := "Signup Repo User"
 	password := "securepassword456"
 	provider := "game"
@@ -45,7 +47,7 @@ func TestSignupAuthRepository_CreateUser_DuplicateEmailProvider(t *testing.T) {
 	repo := NewSignupAuthRepository(db)
 	ctx := context.Background()
 
-	email := "dup-repo-" + time.Now().Format("20060102150405") + "@example.com"
+	email := "dup-repo-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com"
 
 	_, err := repo.CreateUser(ctx, "First User", email, "password1", "game")
 	require.NoError(t, err, "First CreateUser should succeed")
@@ -62,7 +64,7 @@ func TestSignupAuthRepository_CreateUser_PasswordStoredAsBcrypt(t *testing.T) {
 	repo := NewSignupAuthRepository(db)
 	ctx := context.Background()
 
-	email := "bcrypt-repo-" + time.Now().Format("20060102150405") + "@example.com"
+	email := "bcrypt-repo-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com"
 	password := "mypassword789"
 
 	userID, err := repo.CreateUser(ctx, "Bcrypt Test", email, password, "game")

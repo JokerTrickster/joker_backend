@@ -127,6 +127,9 @@ func Timeout(duration time.Duration) echo.MiddlewareFunc {
 			uri := c.Request().RequestURI
 
 			done := make(chan error, 1)
+			// NOTE: The goroutine running next(c) will continue until the handler completes.
+			// This is inherent to Go's HTTP handler model. The timeoutCtx cancellation
+			// signals the handler via ctx.Done() but cannot forcibly kill the goroutine.
 			go func() {
 				done <- next(c)
 			}()

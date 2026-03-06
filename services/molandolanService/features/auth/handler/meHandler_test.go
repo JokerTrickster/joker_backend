@@ -90,6 +90,33 @@ func TestMeHandler_Me(t *testing.T) {
 			wantStatus:     http.StatusNotFound,
 			checkErrReturn: true,
 		},
+		{
+			name: "invalid userID type in context returns 401",
+			setUserID: func(c echo.Context) {
+				c.Set("userID", "not_an_int")
+			},
+			mockFindByID:   nil,
+			wantStatus:     http.StatusUnauthorized,
+			checkErrReturn: true,
+		},
+		{
+			name: "success: user with nil profileImage returns 200",
+			setUserID: func(c echo.Context) {
+				c.Set("userID", uint(2))
+			},
+			mockFindByID: func(ctx context.Context, userID uint) (*entity.MorandoranUser, error) {
+				return &entity.MorandoranUser{
+					ID:        2,
+					Nickname:  "noimage",
+					Email:     "noimg@example.com",
+					Role:      "user",
+					Provider:  "kakao",
+					ProfileImage: nil,
+				}, nil
+			},
+			wantStatus:  http.StatusOK,
+			wantBodyHas: "noimage",
+		},
 	}
 
 	for _, tt := range tests {

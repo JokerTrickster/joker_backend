@@ -35,17 +35,17 @@ func (d *RefreshTokenUseCase) RefreshToken(c context.Context, req *request.ReqRe
 	if err != nil {
 		return response.ResRefreshToken{}, fmt.Errorf("failed to generate tokens: %w", err)
 	}
-	// db에 기존 리프레시 토큰 삭제
-	err = d.Repository.FindOneByUserIDAndDeleteToken(ctx, userID)
-	if err != nil {
-		return response.ResRefreshToken{}, fmt.Errorf("failed to delete old refresh token: %w", err)
-	}
-
-	// db에 리프레시 토큰 저장
+	// db에 리프레시 토큰 저장 (먼저 저장 후 삭제하여 토큰 유실 방지)
 	tokenDTO := createTokenDTO(userID, accessToken, refreshToken)
 	err = d.Repository.CreateToken(ctx, tokenDTO)
 	if err != nil {
 		return response.ResRefreshToken{}, fmt.Errorf("failed to store refresh token: %w", err)
+	}
+
+	// db에 기존 리프레시 토큰 삭제
+	if delErr := d.Repository.FindOneByUserIDAndDeleteToken(ctx, userID); delErr != nil {
+		// Log but don't fail -- new tokens are already stored
+		fmt.Printf("warning: failed to delete old refresh token for user %d: %v\n", userID, delErr)
 	}
 	res := response.ResRefreshToken{
 		AccessToken:  accessToken,

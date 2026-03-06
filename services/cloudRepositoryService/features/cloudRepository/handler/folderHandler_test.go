@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -265,4 +266,226 @@ func TestFolderHandler_InvalidFolderID(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.Contains(t, rec.Body.String(), "invalid folder id")
 	mockUC.AssertNotCalled(t, "GetFolderByID")
+}
+
+func TestFolderHandler_CreateFolder_InvalidBody(t *testing.T) {
+	t.Log("Running: CreateFolder invalid body -> 400")
+	e := setupTestEcho()
+	mockUC := new(mockFolderUseCase)
+	handler := &FolderHandler{UseCase: mockUC}
+
+	req := httptest.NewRequest(http.MethodPost, "/folders", bytes.NewReader([]byte(`{invalid}`)))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupAuthContext(c)
+
+	err := handler.CreateFolder(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	mockUC.AssertNotCalled(t, "CreateFolder")
+}
+
+func TestFolderHandler_CreateFolder_UseCaseError_ParentNotFound(t *testing.T) {
+	t.Log("Running: CreateFolder parent folder not found -> 404")
+	e := setupTestEcho()
+	mockUC := new(mockFolderUseCase)
+	handler := &FolderHandler{UseCase: mockUC}
+
+	body := mustJSON(t, map[string]interface{}{"folder_name": "Child", "parent_folder_id": float64(999)})
+	mockUC.On("CreateFolder", mock.Anything, testUserID, mock.AnythingOfType("*request.CreateFolderRequestDTO")).
+		Return(nil, fmt.Errorf("failed to create folder: parent folder not found"))
+
+	req := httptest.NewRequest(http.MethodPost, "/folders", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupAuthContext(c)
+
+	err := handler.CreateFolder(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.Contains(t, rec.Body.String(), "parent folder not found")
+	mockUC.AssertExpectations(t)
+}
+
+func TestFolderHandler_CreateFolder_UseCaseError_Internal(t *testing.T) {
+	t.Log("Running: CreateFolder UseCase internal error -> 500")
+	e := setupTestEcho()
+	mockUC := new(mockFolderUseCase)
+	handler := &FolderHandler{UseCase: mockUC}
+
+	body := mustJSON(t, map[string]interface{}{"folder_name": "Test"})
+	mockUC.On("CreateFolder", mock.Anything, testUserID, mock.AnythingOfType("*request.CreateFolderRequestDTO")).
+		Return(nil, assert.AnError)
+
+	req := httptest.NewRequest(http.MethodPost, "/folders", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupAuthContext(c)
+
+	err := handler.CreateFolder(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestFolderHandler_GetFolderByID_UseCaseError_NotFound(t *testing.T) {
+	t.Log("Running: GetFolderByID folder not found -> 404")
+	e := setupTestEcho()
+	mockUC := new(mockFolderUseCase)
+	handler := &FolderHandler{UseCase: mockUC}
+
+	mockUC.On("GetFolderByID", mock.Anything, uint(999), testUserID).
+		Return(nil, fmt.Errorf("folder not found: record not found"))
+
+	req := httptest.NewRequest(http.MethodGet, "/folders/999", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues("999")
+	setupAuthContext(c)
+
+	err := handler.GetFolderByID(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.Contains(t, rec.Body.String(), "folder not found")
+	mockUC.AssertExpectations(t)
+}
+
+func TestFolderHandler_GetFolders_UseCaseError(t *testing.T) {
+	t.Log("Running: GetFolders UseCase error -> 500")
+	e := setupTestEcho()
+	mockUC := new(mockFolderUseCase)
+	handler := &FolderHandler{UseCase: mockUC}
+
+	mockUC.On("GetFolders", mock.Anything, testUserID).Return(nil, assert.AnError)
+
+	req := httptest.NewRequest(http.MethodGet, "/folders", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupAuthContext(c)
+
+	err := handler.GetFolders(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestFolderHandler_UpdateFolder_UseCaseError_NotFound(t *testing.T) {
+	t.Log("Running: UpdateFolder folder not found -> 404")
+	e := setupTestEcho()
+	mockUC := new(mockFolderUseCase)
+	handler := &FolderHandler{UseCase: mockUC}
+
+	body := mustJSON(t, map[string]interface{}{"folder_name": "Updated"})
+	mockUC.On("UpdateFolder", mock.Anything, uint(999), testUserID, mock.AnythingOfType("*request.UpdateFolderRequestDTO")).
+		Return(nil, fmt.Errorf("folder not found: record not found"))
+
+	req := httptest.NewRequest(http.MethodPatch, "/folders/999", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues("999")
+	setupAuthContext(c)
+
+	err := handler.UpdateFolder(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestFolderHandler_DeleteFolder_UseCaseError_NotFound(t *testing.T) {
+	t.Log("Running: DeleteFolder folder not found -> 404")
+	e := setupTestEcho()
+	mockUC := new(mockFolderUseCase)
+	handler := &FolderHandler{UseCase: mockUC}
+
+	mockUC.On("DeleteFolder", mock.Anything, uint(999), testUserID).
+		Return(fmt.Errorf("failed to delete folder: record not found"))
+
+	req := httptest.NewRequest(http.MethodDelete, "/folders/999", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues("999")
+	setupAuthContext(c)
+
+	err := handler.DeleteFolder(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestFolderHandler_DeleteFolder_UseCaseError_HasSubfolders(t *testing.T) {
+	t.Log("Running: DeleteFolder has subfolders -> 400")
+	e := setupTestEcho()
+	mockUC := new(mockFolderUseCase)
+	handler := &FolderHandler{UseCase: mockUC}
+
+	mockUC.On("DeleteFolder", mock.Anything, uint(1), testUserID).
+		Return(fmt.Errorf("failed to delete folder: cannot delete folder with subfolders"))
+
+	req := httptest.NewRequest(http.MethodDelete, "/folders/1", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues("1")
+	setupAuthContext(c)
+
+	err := handler.DeleteFolder(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestFolderHandler_GetFolderFiles_UseCaseError_NotFound(t *testing.T) {
+	t.Log("Running: GetFolderFiles folder not found -> 404")
+	e := setupTestEcho()
+	mockUC := new(mockFolderUseCase)
+	handler := &FolderHandler{UseCase: mockUC}
+
+	mockUC.On("GetFolderFiles", mock.Anything, uint(999), testUserID).
+		Return(nil, fmt.Errorf("folder not found: record not found"))
+
+	req := httptest.NewRequest(http.MethodGet, "/folders/999/files", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues("999")
+	setupAuthContext(c)
+
+	err := handler.GetFolderFiles(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestFolderHandler_MoveFiles_UseCaseError_TargetNotFound(t *testing.T) {
+	t.Log("Running: MoveFiles target folder not found -> 404")
+	e := setupTestEcho()
+	mockUC := new(mockFolderUseCase)
+	handler := &FolderHandler{UseCase: mockUC}
+
+	body := mustJSON(t, map[string]interface{}{
+		"file_ids":         []float64{1, 2},
+		"target_folder_id": float64(999),
+	})
+
+	mockUC.On("MoveFiles", mock.Anything, testUserID, mock.AnythingOfType("*request.MoveFilesToFolderRequestDTO")).
+		Return(nil, fmt.Errorf("failed to move files: target folder not found"))
+
+	req := httptest.NewRequest(http.MethodPost, "/files/batch/move", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupAuthContext(c)
+
+	err := handler.MoveFiles(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.Contains(t, rec.Body.String(), "target folder not found")
+	mockUC.AssertExpectations(t)
 }

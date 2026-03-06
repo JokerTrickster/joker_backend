@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -19,10 +21,12 @@ func TestDeleteCloudRepository_SoftDeleteFile_Success(t *testing.T) {
 	requireTable(t, db, "cloud_files")
 	ctx := context.Background()
 
+	uid := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000))
+	s3Key := "user997/test_delete_" + uid + ".jpg"
 	file := &entity.CloudFile{
 		UserID:      997,
 		FileName:   "test_delete.jpg",
-		S3Key:      "user997/test_delete.jpg",
+		S3Key:      s3Key,
 		FileType:   entity.FileTypeImage,
 		ContentType: "image/jpeg",
 		FileSize:   512,
@@ -51,10 +55,12 @@ func TestDeleteCloudRepository_GetFileByID_Success(t *testing.T) {
 	requireTable(t, db, "cloud_files")
 	ctx := context.Background()
 
+	uid := fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000))
+	s3Key := "user996/test_get_" + uid + ".jpg"
 	file := &entity.CloudFile{
 		UserID:      996,
 		FileName:   "test_get.jpg",
-		S3Key:      "user996/test_get.jpg",
+		S3Key:      s3Key,
 		FileType:   entity.FileTypeImage,
 		ContentType: "image/jpeg",
 		FileSize:   1024,

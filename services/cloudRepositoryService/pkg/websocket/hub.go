@@ -91,15 +91,22 @@ func (h *Hub) unregisterClient(client *Client) {
 
 // broadcastMessage broadcasts a message to all clients
 func (h *Hub) broadcastMessage(message []byte) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
-	for _, clients := range h.clients {
+	for userID, clients := range h.clients {
 		for client := range clients {
 			select {
 			case client.send <- message:
 			default:
+				delete(clients, client)
 				close(client.send)
+				logger.Warn("WebSocket client removed due to full send buffer",
+					zap.Uint("user_id", client.userID),
+				)
+				if len(clients) == 0 {
+					delete(h.clients, userID)
+				}
 			}
 		}
 	}

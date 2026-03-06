@@ -273,3 +273,97 @@ func TestJWTAuth_InvalidToken(t *testing.T) {
 	}
 	t.Logf("Invalid token correctly rejected: %v", err)
 }
+
+func TestRequestLogger_WithExistingRequestID(t *testing.T) {
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	existingID := "pre-existing-req-id"
+	req.Header.Set(echo.HeaderXRequestID, existingID)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	handler := RequestLogger()(func(c echo.Context) error {
+		return c.String(http.StatusOK, "ok")
+	})
+
+	if err := handler(c); err != nil {
+		t.Errorf("RequestLogger with existing ID failed: %v", err)
+	}
+
+	gotID := c.Response().Header().Get(echo.HeaderXRequestID)
+	if gotID != existingID {
+		t.Errorf("RequestLogger should preserve existing X-Request-ID: got %q, want %q", gotID, existingID)
+	}
+	if rec.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", rec.Code)
+	}
+}
+
+func TestRequestLogger_HandlerReturnsError(t *testing.T) {
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/fail", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	handler := RequestLogger()(func(c echo.Context) error {
+		return echo.NewHTTPError(http.StatusInternalServerError, "handler error")
+	})
+
+	err := handler(c)
+	if err == nil {
+		t.Error("Expected handler error to propagate")
+	}
+	httpErr, ok := err.(*echo.HTTPError)
+	if !ok {
+		t.Errorf("Expected *echo.HTTPError, got %T", err)
+		return
+	}
+	if httpErr.Code != http.StatusInternalServerError {
+		t.Errorf("Expected 500, got %d", httpErr.Code)
+	}
+}
+
+func TestJWTAuth_SingleWordAuthorization(t *testing.T) {
+	initJWTForMiddlewareTest(t)
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req.Header.Set("Authorization", "Bearer")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	handler := JWTAuth()(func(c echo.Context) error {
+		return c.String(http.StatusOK, "should not reach")
+	})
+
+	err := handler(c)
+	if err == nil {
+		t.Fatal("JWTAuth with 'Bearer' only (no token) should fail")
+	}
+	httpErr, ok := err.(*echo.HTTPError)
+	if !ok {
+		t.Fatalf("Expected *echo.HTTPError, got %T", err)
+	}
+	if httpErr.Code != http.StatusUnauthorized {
+		t.Errorf("Expected 401, got %d", httpErr.Code)
+	}
+}
+
+func TestRecovery_NonErrorPanic(t *testing.T) {
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/panic", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	handler := Recovery()(func(c echo.Context) error {
+		panic(42)
+	})
+
+	err := handler(c)
+	if err != nil {
+		t.Logf("Recovery returned error: %v", err)
+	}
+	if rec.Code != http.StatusInternalServerError && rec.Code != 0 {
+		t.Logf("Recovery set status: %d", rec.Code)
+	}
+}

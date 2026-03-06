@@ -61,6 +61,9 @@ func (m *mockCommentDeleteGalleryRepository) GetAuthorInfo(ctx context.Context, 
 func (m *mockCommentDeleteGalleryRepository) IsLikedBatch(ctx context.Context, userID uint, galleryIDs []uint) (map[uint]bool, error) {
 	return map[uint]bool{}, nil
 }
+func (m *mockCommentDeleteGalleryRepository) GetUserRole(ctx context.Context, userID uint) (string, error) {
+	return "user", nil
+}
 
 var _ _interface.IGalleryRepository = (*mockCommentDeleteGalleryRepository)(nil)
 
@@ -109,7 +112,7 @@ func TestCommentDeleteUseCase_Delete_Forbidden(t *testing.T) {
 
 	err := uc.Delete(ctx, 1, 1, "user")
 	require.Error(t, err)
-	assert.Equal(t, "FORBIDDEN", err.Error())
+	assert.ErrorIs(t, err, ErrForbidden)
 	t.Logf("CommentDelete forbidden: user tries to delete other's comment")
 }
 

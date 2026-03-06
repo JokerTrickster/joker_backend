@@ -92,6 +92,49 @@ func TestTDRoomHandler_CreateRoom_Success(t *testing.T) {
 	mockUC.AssertExpectations(t)
 }
 
+func TestTDRoomHandler_CreateRoom_ValidationError(t *testing.T) {
+	t.Log("CreateRoom: validation error -> 400")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDRoomUseCase)
+	h := &TDRoomHandler{uc: mockUC}
+
+	body := tdMustJSON(t, map[string]interface{}{"room_type": ""})
+	req := httptest.NewRequest(http.MethodPost, "/coop/rooms", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupTDAuthContext(c)
+
+	err := h.CreateRoom(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, he.Code)
+	mockUC.AssertNotCalled(t, "CreateRoom")
+}
+
+func TestTDRoomHandler_CreateRoom_UseCaseError(t *testing.T) {
+	t.Log("CreateRoom: usecase error -> 500")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDRoomUseCase)
+	h := &TDRoomHandler{uc: mockUC}
+
+	body := tdMustJSON(t, &request.CreateRoomRequest{RoomType: "random"})
+	mockUC.On("CreateRoom", mock.Anything, tdTestUserID, mock.AnythingOfType("*request.CreateRoomRequest")).
+		Return(nil, errors.New("db error"))
+
+	req := httptest.NewRequest(http.MethodPost, "/coop/rooms", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupTDAuthContext(c)
+
+	err := h.CreateRoom(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
 func TestTDRoomHandler_CreateRoom_NoUserID(t *testing.T) {
 	t.Log("CreateRoom: no userID -> 401")
 	e := setupTDTestEcho()
@@ -241,6 +284,183 @@ func TestTDRoomHandler_LeaveRoom_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, rec.Code)
 	mockUC.AssertExpectations(t)
+}
+
+func TestTDRoomHandler_JoinRoom_ValidationError(t *testing.T) {
+	t.Log("JoinRoom: validation error -> 400")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDRoomUseCase)
+	h := &TDRoomHandler{uc: mockUC}
+
+	body := tdMustJSON(t, map[string]interface{}{"room_code": ""})
+	req := httptest.NewRequest(http.MethodPost, "/coop/rooms/join", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupTDAuthContext(c)
+
+	err := h.JoinRoom(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, he.Code)
+	mockUC.AssertNotCalled(t, "JoinRoom")
+}
+
+func TestTDRoomHandler_JoinRoom_RoomAlreadyStarted(t *testing.T) {
+	t.Log("JoinRoom: room already started -> 409")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDRoomUseCase)
+	h := &TDRoomHandler{uc: mockUC}
+
+	body := tdMustJSON(t, &request.JoinRoomRequest{RoomCode: "ABCD"})
+	mockUC.On("JoinRoom", mock.Anything, tdTestUserID, mock.AnythingOfType("*request.JoinRoomRequest")).
+		Return(nil, errors.New("room already started"))
+
+	req := httptest.NewRequest(http.MethodPost, "/coop/rooms/join", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupTDAuthContext(c)
+
+	err := h.JoinRoom(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusConflict, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestTDRoomHandler_JoinRoom_InternalError(t *testing.T) {
+	t.Log("JoinRoom: internal error -> 500")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDRoomUseCase)
+	h := &TDRoomHandler{uc: mockUC}
+
+	body := tdMustJSON(t, &request.JoinRoomRequest{RoomCode: "ABCD"})
+	mockUC.On("JoinRoom", mock.Anything, tdTestUserID, mock.AnythingOfType("*request.JoinRoomRequest")).
+		Return(nil, errors.New("unexpected db error"))
+
+	req := httptest.NewRequest(http.MethodPost, "/coop/rooms/join", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	setupTDAuthContext(c)
+
+	err := h.JoinRoom(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestTDRoomHandler_GetRoom_UseCaseError(t *testing.T) {
+	t.Log("GetRoom: usecase error -> 500")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDRoomUseCase)
+	h := &TDRoomHandler{uc: mockUC}
+
+	mockUC.On("GetRoom", mock.Anything, uint(999)).
+		Return(nil, errors.New("db error"))
+
+	req := httptest.NewRequest(http.MethodGet, "/coop/rooms/999", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/coop/rooms/:id")
+	c.SetParamNames("id")
+	c.SetParamValues("999")
+
+	err := h.GetRoom(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestTDRoomHandler_LeaveRoom_NoUserID(t *testing.T) {
+	t.Log("LeaveRoom: no userID -> 401")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDRoomUseCase)
+	h := &TDRoomHandler{uc: mockUC}
+
+	req := httptest.NewRequest(http.MethodPost, "/coop/rooms/1/leave", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/coop/rooms/:id/leave")
+	c.SetParamNames("id")
+	c.SetParamValues("1")
+
+	err := h.LeaveRoom(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusUnauthorized, he.Code)
+	mockUC.AssertNotCalled(t, "LeaveRoom")
+}
+
+func TestTDRoomHandler_LeaveRoom_UseCaseError(t *testing.T) {
+	t.Log("LeaveRoom: usecase error -> 500")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDRoomUseCase)
+	h := &TDRoomHandler{uc: mockUC}
+
+	mockUC.On("LeaveRoom", mock.Anything, tdTestUserID, uint(999)).Return(errors.New("db error"))
+
+	req := httptest.NewRequest(http.MethodPost, "/coop/rooms/999/leave", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/coop/rooms/:id/leave")
+	c.SetParamNames("id")
+	c.SetParamValues("999")
+	setupTDAuthContext(c)
+
+	err := h.LeaveRoom(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestTDRoomHandler_SetReady_InvalidID(t *testing.T) {
+	t.Log("SetReady: invalid id -> 400")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDRoomUseCase)
+	h := &TDRoomHandler{uc: mockUC}
+
+	body := tdMustJSON(t, &request.SetReadyRequest{IsReady: true})
+	req := httptest.NewRequest(http.MethodPost, "/coop/rooms/abc/ready", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/coop/rooms/:id/ready")
+	c.SetParamNames("id")
+	c.SetParamValues("abc")
+	setupTDAuthContext(c)
+
+	err := h.SetReady(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, he.Code)
+	mockUC.AssertNotCalled(t, "SetReady")
+}
+
+func TestTDRoomHandler_SetReady_NoUserID(t *testing.T) {
+	t.Log("SetReady: no userID -> 401")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDRoomUseCase)
+	h := &TDRoomHandler{uc: mockUC}
+
+	body := tdMustJSON(t, &request.SetReadyRequest{IsReady: true})
+	req := httptest.NewRequest(http.MethodPost, "/coop/rooms/1/ready", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/coop/rooms/:id/ready")
+	c.SetParamNames("id")
+	c.SetParamValues("1")
+
+	err := h.SetReady(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusUnauthorized, he.Code)
+	mockUC.AssertNotCalled(t, "SetReady")
 }
 
 func TestTDRoomHandler_SetReady_Success(t *testing.T) {

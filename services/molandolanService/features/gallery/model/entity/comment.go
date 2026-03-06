@@ -8,8 +8,8 @@ import (
 
 type GalleryComment struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
-	GalleryID uint           `gorm:"not null" json:"galleryId"`
-	AuthorID  uint           `gorm:"not null" json:"authorId"`
+	GalleryID uint           `gorm:"not null;index" json:"galleryId"`
+	AuthorID  uint           `gorm:"not null;index" json:"authorId"`
 	Content   string         `gorm:"size:300;not null" json:"content"`
 	CreatedAt time.Time      `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt time.Time      `gorm:"autoUpdateTime" json:"updatedAt"`

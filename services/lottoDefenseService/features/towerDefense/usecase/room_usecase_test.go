@@ -216,3 +216,126 @@ func TestTDRoomUseCase_SetReady_Success(t *testing.T) {
 	require.NotNil(t, resp)
 	mockRoomRepo.AssertExpectations(t)
 }
+
+func TestTDRoomUseCase_JoinRoom_AlreadyStarted(t *testing.T) {
+	t.Log("JoinRoom: room already started")
+	mockRoomRepo := new(mockTDRoomRepository)
+	mockUserRepo := new(mockTDUserRepository)
+	uc := NewTDRoomUseCase(mockRoomRepo, mockUserRepo, 5*time.Second)
+	ctx := context.Background()
+	userID := uint(1)
+	req := &request.JoinRoomRequest{RoomCode: "ABCD"}
+
+	room := &entity.TDRoom{ID: 1, RoomCode: "ABCD", MaxPlayers: 2, CurrentPlayers: 1, Status: "playing"}
+	mockRoomRepo.On("GetByCode", ctx, "ABCD").Return(room, nil)
+
+	resp, err := uc.JoinRoom(ctx, userID, req)
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	assert.Contains(t, err.Error(), "room already started")
+	mockRoomRepo.AssertExpectations(t)
+	mockRoomRepo.AssertNotCalled(t, "AddPlayer")
+}
+
+func TestTDRoomUseCase_UpdatePlayerState_Success(t *testing.T) {
+	t.Log("UpdatePlayerState: success")
+	mockRoomRepo := new(mockTDRoomRepository)
+	mockUserRepo := new(mockTDUserRepository)
+	uc := NewTDRoomUseCase(mockRoomRepo, mockUserRepo, 5*time.Second)
+	ctx := context.Background()
+	roomID := uint(1)
+	userID := uint(1)
+	req := &request.UpdateGameStateRequest{Round: 5, HP: 100, Gold: 50, Kills: 10, Timestamp: 12345}
+
+	mockRoomRepo.On("UpdatePlayerState", ctx, roomID, userID, mock.AnythingOfType("string")).Return(nil)
+
+	err := uc.UpdatePlayerState(ctx, roomID, userID, req)
+	require.NoError(t, err)
+	mockRoomRepo.AssertExpectations(t)
+}
+
+func TestTDRoomUseCase_GetOpponentState_Success(t *testing.T) {
+	t.Log("GetOpponentState: success")
+	mockRoomRepo := new(mockTDRoomRepository)
+	mockUserRepo := new(mockTDUserRepository)
+	uc := NewTDRoomUseCase(mockRoomRepo, mockUserRepo, 5*time.Second)
+	ctx := context.Background()
+	roomID := uint(1)
+	userID := uint(1)
+
+	stateJSON := `{"round":5,"hp":80,"gold":60,"kills":15,"timestamp":12345,"is_alive":true}`
+	mockRoomRepo.On("GetOpponentState", ctx, roomID, userID).
+		Return(stateJSON, uint(2), "Player2", nil)
+
+	resp, err := uc.GetOpponentState(ctx, roomID, userID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, uint(2), resp.OpponentID)
+	assert.Equal(t, "Player2", resp.OpponentName)
+	assert.Equal(t, 5, resp.Round)
+	assert.Equal(t, 80, resp.HP)
+	assert.True(t, resp.IsAlive)
+	mockRoomRepo.AssertExpectations(t)
+}
+
+func TestTDRoomUseCase_GetRoom_WithUserLookup(t *testing.T) {
+	t.Log("GetRoom: with user lookup for username")
+	mockRoomRepo := new(mockTDRoomRepository)
+	mockUserRepo := new(mockTDUserRepository)
+	uc := NewTDRoomUseCase(mockRoomRepo, mockUserRepo, 5*time.Second)
+	ctx := context.Background()
+	roomID := uint(1)
+
+	players := []entity.TDRoomPlayer{
+		{RoomID: roomID, UserID: 1, PlayerSlot: 0},
+	}
+	mockRoomRepo.On("GetByID", ctx, roomID).Return(&entity.TDRoom{ID: 1, RoomCode: "ABCD", Status: "waiting"}, nil)
+	mockRoomRepo.On("GetPlayers", ctx, roomID).Return(players, nil)
+	mockUserRepo.On("GetByID", ctx, uint(1)).Return(&entity.TDUser{ID: 1, Username: "Alice"}, nil)
+
+	resp, err := uc.GetRoom(ctx, roomID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Len(t, resp.Players, 1)
+	assert.Equal(t, "Alice", resp.Players[0].Username)
+	mockRoomRepo.AssertExpectations(t)
+	mockUserRepo.AssertExpectations(t)
+}
+
+func TestTDRoomUseCase_GetOpponentState_InvalidJSON(t *testing.T) {
+	t.Log("GetOpponentState: invalid JSON in state")
+	mockRoomRepo := new(mockTDRoomRepository)
+	mockUserRepo := new(mockTDUserRepository)
+	uc := NewTDRoomUseCase(mockRoomRepo, mockUserRepo, 5*time.Second)
+	ctx := context.Background()
+	roomID := uint(1)
+	userID := uint(1)
+
+	mockRoomRepo.On("GetOpponentState", ctx, roomID, userID).
+		Return(`{invalid json`, uint(2), "Player2", nil)
+
+	resp, err := uc.GetOpponentState(ctx, roomID, userID)
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	assert.Contains(t, err.Error(), "failed to parse")
+	mockRoomRepo.AssertExpectations(t)
+}
+
+func TestTDRoomUseCase_GetOpponentState_OpponentNotFound(t *testing.T) {
+	t.Log("GetOpponentState: opponent not found (empty state)")
+	mockRoomRepo := new(mockTDRoomRepository)
+	mockUserRepo := new(mockTDUserRepository)
+	uc := NewTDRoomUseCase(mockRoomRepo, mockUserRepo, 5*time.Second)
+	ctx := context.Background()
+	roomID := uint(1)
+	userID := uint(1)
+
+	mockRoomRepo.On("GetOpponentState", ctx, roomID, userID).
+		Return("", uint(0), "", nil)
+
+	resp, err := uc.GetOpponentState(ctx, roomID, userID)
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	assert.Contains(t, err.Error(), "opponent not found")
+	mockRoomRepo.AssertExpectations(t)
+}

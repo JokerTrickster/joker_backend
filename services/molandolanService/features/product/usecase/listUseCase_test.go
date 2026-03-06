@@ -85,3 +85,85 @@ func TestListProductUseCase_List_RepoError(t *testing.T) {
 	assert.Nil(t, res)
 	mockRepo.AssertExpectations(t)
 }
+
+func TestListProductUseCase_List_DefaultPage(t *testing.T) {
+	t.Log("List: page<1 defaults to 1")
+	mockRepo := new(mockListProductRepo)
+	uc := NewListUseCase(mockRepo, 5*time.Second)
+	ctx := context.Background()
+	req := &request.ReqListProduct{Page: 0, Limit: 20}
+
+	mockRepo.On("List", mock.Anything, 1, 20, "", (*bool)(nil)).Return([]entity.Product{}, int64(0), nil)
+
+	res, err := uc.List(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	assert.Equal(t, 1, res.Pagination.Page)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestListProductUseCase_List_DefaultLimit(t *testing.T) {
+	t.Log("List: limit<1 defaults to 20")
+	mockRepo := new(mockListProductRepo)
+	uc := NewListUseCase(mockRepo, 5*time.Second)
+	ctx := context.Background()
+	req := &request.ReqListProduct{Page: 1, Limit: 0}
+
+	mockRepo.On("List", mock.Anything, 1, 20, "", (*bool)(nil)).Return([]entity.Product{}, int64(0), nil)
+
+	res, err := uc.List(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	assert.Equal(t, 20, res.Pagination.Limit)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestListProductUseCase_List_MaxLimitClamped(t *testing.T) {
+	t.Log("List: limit>100 clamped to 100")
+	mockRepo := new(mockListProductRepo)
+	uc := NewListUseCase(mockRepo, 5*time.Second)
+	ctx := context.Background()
+	req := &request.ReqListProduct{Page: 1, Limit: 150}
+
+	mockRepo.On("List", mock.Anything, 1, 100, "", (*bool)(nil)).Return([]entity.Product{}, int64(0), nil)
+
+	res, err := uc.List(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	assert.Equal(t, 100, res.Pagination.Limit)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestListProductUseCase_List_EmptyResult(t *testing.T) {
+	t.Log("List: empty result sets totalPages to 0")
+	mockRepo := new(mockListProductRepo)
+	uc := NewListUseCase(mockRepo, 5*time.Second)
+	ctx := context.Background()
+	req := &request.ReqListProduct{Page: 1, Limit: 10}
+
+	mockRepo.On("List", mock.Anything, 1, 10, "", (*bool)(nil)).Return([]entity.Product{}, int64(0), nil)
+
+	res, err := uc.List(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	assert.Len(t, res.Items, 0)
+	assert.Equal(t, int64(0), res.Pagination.Total)
+	assert.Equal(t, 0, res.Pagination.TotalPages)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestListProductUseCase_List_WithCategoryAndInStock(t *testing.T) {
+	t.Log("List: passes category and inStock filter")
+	mockRepo := new(mockListProductRepo)
+	uc := NewListUseCase(mockRepo, 5*time.Second)
+	ctx := context.Background()
+	inStock := true
+	req := &request.ReqListProduct{Page: 1, Limit: 10, Category: "merch", InStock: &inStock}
+
+	mockRepo.On("List", mock.Anything, 1, 10, "merch", &inStock).Return([]entity.Product{}, int64(0), nil)
+
+	res, err := uc.List(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	mockRepo.AssertExpectations(t)
+}

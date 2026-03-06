@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/JokerTrickster/joker_backend/services/cloudRepositoryService/features/cloudRepository/model/entity"
@@ -14,6 +15,13 @@ import (
 type ListCloudRepositoryRepository struct {
 	db     *gorm.DB
 	bucket string
+}
+
+func escapeLike(s string) string {
+	s = strings.ReplaceAll(s, "\\", "\\\\")
+	s = strings.ReplaceAll(s, "%", "\\%")
+	s = strings.ReplaceAll(s, "_", "\\_")
+	return s
 }
 
 func NewListCloudRepositoryRepository(db *gorm.DB, bucket string) _interface.IListCloudRepositoryRepository {
@@ -54,7 +62,8 @@ func (r *ListCloudRepositoryRepository) GetFilesByUserID(ctx context.Context, us
 
 	// Keyword search (filename OR tag name)
 	if filter.Keyword != "" {
-		query = query.Where("file_name LIKE ? OR id IN (SELECT cloud_file_id FROM file_tags JOIN tags ON tags.id = file_tags.tag_id WHERE tags.name LIKE ?)", "%"+filter.Keyword+"%", "%"+filter.Keyword+"%")
+		kw := escapeLike(filter.Keyword)
+		query = query.Where("file_name LIKE ? OR id IN (SELECT cloud_file_id FROM file_tags JOIN tags ON tags.id = file_tags.tag_id WHERE tags.name LIKE ?)", "%"+kw+"%", "%"+kw+"%")
 	}
 
 	// Tag filtering (files must have ALL specified tags)
@@ -96,6 +105,9 @@ func (r *ListCloudRepositoryRepository) GetFilesByUserID(ctx context.Context, us
 	pageSize := filter.PageSize
 	if pageSize < 1 {
 		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
 	}
 
 	offset := (page - 1) * pageSize

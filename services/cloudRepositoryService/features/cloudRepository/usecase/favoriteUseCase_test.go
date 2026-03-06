@@ -185,3 +185,51 @@ func TestListFavorites_Success(t *testing.T) {
 	mockFavoriteRepo.AssertExpectations(t)
 	mockListRepo.AssertExpectations(t)
 }
+
+func TestListFavorites_RepoError(t *testing.T) {
+	t.Logf("TestListFavorites_RepoError: verifying error propagation when GetFavoritesByUserID fails")
+
+	mockFavoriteRepo := new(MockFavoriteRepository)
+	mockFileRepo := new(MockDownloadRepository)
+	mockListRepo := new(MockListRepository)
+
+	uc := NewFavoriteUseCase(mockFavoriteRepo, mockFileRepo, mockListRepo, 5*time.Second)
+
+	ctx := context.Background()
+	userID := uint(1)
+	filter := request.ListFavoritesRequestDTO{Page: 1, Size: 20}
+
+	mockFavoriteRepo.On("GetFavoritesByUserID", mock.Anything, userID, filter).
+		Return(nil, int64(0), errors.New("database connection failed"))
+
+	result, err := uc.ListFavorites(ctx, userID, filter)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to list favorites")
+	mockFavoriteRepo.AssertExpectations(t)
+	mockListRepo.AssertNotCalled(t, "GeneratePresignedDownloadURL")
+}
+
+func TestRemoveFavorite_RepoError(t *testing.T) {
+	t.Logf("TestRemoveFavorite_RepoError: verifying error propagation when RemoveFavorite fails")
+
+	mockFavoriteRepo := new(MockFavoriteRepository)
+	mockFileRepo := new(MockDownloadRepository)
+	mockListRepo := new(MockListRepository)
+
+	uc := NewFavoriteUseCase(mockFavoriteRepo, mockFileRepo, mockListRepo, 5*time.Second)
+
+	ctx := context.Background()
+	userID := uint(1)
+	fileID := uint(100)
+
+	mockFavoriteRepo.On("RemoveFavorite", mock.Anything, userID, fileID).
+		Return(errors.New("database error"))
+
+	err := uc.RemoveFavorite(ctx, userID, fileID)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "database error")
+	mockFavoriteRepo.AssertExpectations(t)
+}

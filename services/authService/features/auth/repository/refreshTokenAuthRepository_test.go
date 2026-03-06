@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -19,7 +21,7 @@ func TestRefreshTokenAuthRepository_CreateToken(t *testing.T) {
 	// Create a user first (tokens table may have FK or we need valid user_id)
 	user := mysql.Users{
 		Name:     "Refresh Repo User",
-		Email:    "refresh-repo-" + time.Now().Format("20060102150405") + "@example.com",
+		Email:    "refresh-repo-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com",
 		Password: "",
 		Provider: "game",
 	}
@@ -56,7 +58,7 @@ func TestRefreshTokenAuthRepository_FindOneByUserIDAndDeleteToken_DeletesTokens(
 
 	user := mysql.Users{
 		Name:     "Refresh Delete User",
-		Email:    "refresh-del-" + time.Now().Format("20060102150405") + "@example.com",
+		Email:    "refresh-del-" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), rand.Intn(100000)) + "@example.com",
 		Password: "",
 		Provider: "game",
 	}

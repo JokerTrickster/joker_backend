@@ -87,3 +87,50 @@ func TestCreateProductUseCase_Create_RepoError(t *testing.T) {
 	assert.Nil(t, res)
 	mockRepo.AssertExpectations(t)
 }
+
+func TestCreateProductUseCase_Create_InStockNilDefaultsTrue(t *testing.T) {
+	t.Log("Create: InStock nil defaults to true")
+	mockRepo := new(mockCreateProductRepo)
+	uc := NewCreateUseCase(mockRepo, 5*time.Second)
+	ctx := context.Background()
+	req := &request.ReqCreateProduct{
+		Name: "P", Price: 100, Description: "D", Image: "i", Category: "c", InStock: nil,
+	}
+
+	mockRepo.On("Create", mock.Anything, mock.MatchedBy(func(p *entity.Product) bool {
+		return p.InStock == true
+	})).Return(&entity.Product{
+		ID: 1, Name: req.Name, Price: req.Price, Description: req.Description, Image: req.Image,
+		Category: req.Category, InStock: true,
+	}, nil)
+
+	res, err := uc.Create(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	assert.True(t, res.InStock)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestCreateProductUseCase_Create_InStockFalse(t *testing.T) {
+	t.Log("Create: InStock false respected")
+	mockRepo := new(mockCreateProductRepo)
+	uc := NewCreateUseCase(mockRepo, 5*time.Second)
+	ctx := context.Background()
+	inStock := false
+	req := &request.ReqCreateProduct{
+		Name: "P", Price: 100, Description: "D", Image: "i", Category: "c", InStock: &inStock,
+	}
+
+	mockRepo.On("Create", mock.Anything, mock.MatchedBy(func(p *entity.Product) bool {
+		return p.InStock == false
+	})).Return(&entity.Product{
+		ID: 1, Name: req.Name, Price: req.Price, Description: req.Description, Image: req.Image,
+		Category: req.Category, InStock: false,
+	}, nil)
+
+	res, err := uc.Create(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	assert.False(t, res.InStock)
+	mockRepo.AssertExpectations(t)
+}

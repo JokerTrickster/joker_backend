@@ -13,6 +13,11 @@ import (
 	"gorm.io/gorm"
 )
 
+var (
+	ErrRoundNotFound  = errors.New("round not found or not owned by you")
+	ErrRoundCompleted = errors.New("round is already completed")
+)
+
 type GameRoundUseCase struct {
 	roundRepo _interface.IGameRoundRepository
 	drawRepo  _interface.ILottoDrawRepository
@@ -44,12 +49,12 @@ func (u *GameRoundUseCase) EndRound(ctx context.Context, userID uint, roundID ui
 	round, err := u.roundRepo.GetByIDAndUser(ctx, roundID, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("round not found or not owned by you")
+			return nil, ErrRoundNotFound
 		}
 		return nil, err
 	}
 	if round.Status != entity.RoundStatusActive {
-		return nil, errors.New("round is already completed")
+		return nil, ErrRoundCompleted
 	}
 
 	now := time.Now()
@@ -92,7 +97,7 @@ func (u *GameRoundUseCase) GetRound(ctx context.Context, userID uint, roundID ui
 	round, err := u.roundRepo.GetByIDAndUser(ctx, roundID, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("round not found or not owned by you")
+			return nil, ErrRoundNotFound
 		}
 		return nil, err
 	}

@@ -106,6 +106,157 @@ func TestTDCoopStateHandler_GetOpponentState_Success(t *testing.T) {
 	mockUC.AssertExpectations(t)
 }
 
+func TestTDCoopStateHandler_UpdateState_InvalidID(t *testing.T) {
+	t.Log("UpdateState: invalid id -> 400")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDRoomUseCase)
+	h := &TDCoopStateHandler{uc: mockUC}
+
+	body := tdMustJSON(t, &request.UpdateGameStateRequest{
+		Round:     5,
+		HP:        100,
+		Gold:      50,
+		Kills:     10,
+		Timestamp: 12345,
+	})
+	req := httptest.NewRequest(http.MethodPost, "/coop/rooms/xyz/state", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/coop/rooms/:id/state")
+	c.SetParamNames("id")
+	c.SetParamValues("xyz")
+	setupTDAuthContext(c)
+
+	err := h.UpdateState(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, he.Code)
+	mockUC.AssertNotCalled(t, "UpdatePlayerState")
+}
+
+func TestTDCoopStateHandler_UpdateState_ValidationError(t *testing.T) {
+	t.Log("UpdateState: validation error -> 400")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDRoomUseCase)
+	h := &TDCoopStateHandler{uc: mockUC}
+
+	body := tdMustJSON(t, map[string]interface{}{"round": "invalid"})
+	req := httptest.NewRequest(http.MethodPost, "/coop/rooms/1/state", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/coop/rooms/:id/state")
+	c.SetParamNames("id")
+	c.SetParamValues("1")
+	setupTDAuthContext(c)
+
+	err := h.UpdateState(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, he.Code)
+	mockUC.AssertNotCalled(t, "UpdatePlayerState")
+}
+
+func TestTDCoopStateHandler_UpdateState_UseCaseError(t *testing.T) {
+	t.Log("UpdateState: usecase error -> 500")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDRoomUseCase)
+	h := &TDCoopStateHandler{uc: mockUC}
+
+	body := tdMustJSON(t, &request.UpdateGameStateRequest{
+		Round:     5,
+		HP:        100,
+		Gold:      50,
+		Kills:     10,
+		Timestamp: 12345,
+	})
+	mockUC.On("UpdatePlayerState", mock.Anything, uint(1), tdTestUserID, mock.AnythingOfType("*request.UpdateGameStateRequest")).
+		Return(errors.New("room not found"))
+
+	req := httptest.NewRequest(http.MethodPost, "/coop/rooms/1/state", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/coop/rooms/:id/state")
+	c.SetParamNames("id")
+	c.SetParamValues("1")
+	setupTDAuthContext(c)
+
+	err := h.UpdateState(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestTDCoopStateHandler_GetOpponentState_InvalidID(t *testing.T) {
+	t.Log("GetOpponentState: invalid id -> 400")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDRoomUseCase)
+	h := &TDCoopStateHandler{uc: mockUC}
+
+	req := httptest.NewRequest(http.MethodGet, "/coop/rooms/abc/opponent-state", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/coop/rooms/:id/opponent-state")
+	c.SetParamNames("id")
+	c.SetParamValues("abc")
+	setupTDAuthContext(c)
+
+	err := h.GetOpponentState(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, he.Code)
+	mockUC.AssertNotCalled(t, "GetOpponentState")
+}
+
+func TestTDCoopStateHandler_GetOpponentState_NoUserID(t *testing.T) {
+	t.Log("GetOpponentState: no userID -> 401")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDRoomUseCase)
+	h := &TDCoopStateHandler{uc: mockUC}
+
+	req := httptest.NewRequest(http.MethodGet, "/coop/rooms/1/opponent-state", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/coop/rooms/:id/opponent-state")
+	c.SetParamNames("id")
+	c.SetParamValues("1")
+
+	err := h.GetOpponentState(c)
+	require.Error(t, err)
+	he, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusUnauthorized, he.Code)
+	mockUC.AssertNotCalled(t, "GetOpponentState")
+}
+
+func TestTDCoopStateHandler_GetOpponentState_InternalError(t *testing.T) {
+	t.Log("GetOpponentState: internal error -> 500")
+	e := setupTDTestEcho()
+	mockUC := new(mockTDRoomUseCase)
+	h := &TDCoopStateHandler{uc: mockUC}
+
+	mockUC.On("GetOpponentState", mock.Anything, uint(1), tdTestUserID).
+		Return(nil, errors.New("database connection failed"))
+
+	req := httptest.NewRequest(http.MethodGet, "/coop/rooms/1/opponent-state", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/coop/rooms/:id/opponent-state")
+	c.SetParamNames("id")
+	c.SetParamValues("1")
+	setupTDAuthContext(c)
+
+	err := h.GetOpponentState(c)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	mockUC.AssertExpectations(t)
+}
+
 func TestTDCoopStateHandler_GetOpponentState_OpponentNotFound(t *testing.T) {
 	t.Log("GetOpponentState: opponent not found -> 404")
 	e := setupTDTestEcho()

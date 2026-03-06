@@ -12,7 +12,7 @@ type News struct {
 	Summary   string         `gorm:"size:500" json:"summary"`
 	Content   string         `gorm:"type:text;not null" json:"content"`
 	Thumbnail string         `gorm:"size:512" json:"thumbnail"`
-	Category  string         `gorm:"size:50;not null" json:"category"`
+	Category  string         `gorm:"size:50;not null;index" json:"category"`
 	Date      string         `gorm:"type:date;not null" json:"date"`
 	CreatedAt time.Time      `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt time.Time      `gorm:"autoUpdateTime" json:"updatedAt"`

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
@@ -129,22 +130,26 @@ func emailSend(email []string, mailType emailType, templateDataJson, templateNam
 	select {
 	case sesMailReqChan <- mailData:
 	default:
-		<-sesMailReqChan
+		dropped := <-sesMailReqChan
+		fmt.Printf("WARNING: SES channel full, dropping email to %v (type=%s)\n", dropped.email, dropped.mailType)
 		sesMailReqChan <- mailData
 	}
 }
 
 var sesMailReqChan chan sesMailData
+var sesStopChan chan struct{}
 
 func InitAwsSes() error {
 	//메타 정보 저장
 	InitMeta()
 
 	sesMailReqChan = make(chan sesMailData, 100)
+	sesStopChan = make(chan struct{})
 	go func() {
 		for {
-			mailReq := <-sesMailReqChan
-			_, err := awsClientSes.SendEmail(context.TODO(), &sesv2.SendEmailInput{
+			select {
+			case mailReq := <-sesMailReqChan:
+				_, err := awsClientSes.SendEmail(context.TODO(), &sesv2.SendEmailInput{
 				Content: &types.EmailContent{
 					Template: &types.Template{
 						TemplateData: aws.String(mailReq.templateData),
@@ -164,12 +169,22 @@ func InitAwsSes() error {
 				if mailReq.failCount < 3 {
 					fmt.Println("Error sending email:", err)
 					mailReq.failCount += 1
+					time.Sleep(time.Duration(mailReq.failCount) * 2 * time.Second)
 					sesMailReqChan <- mailReq
 				}
+			}
+			case <-sesStopChan:
+				return
 			}
 		}
 	}()
 	return nil
+}
+
+func StopSesWorker() {
+	if sesStopChan != nil {
+		close(sesStopChan)
+	}
 }
 
 func GetReportID(name string) (int, error) {

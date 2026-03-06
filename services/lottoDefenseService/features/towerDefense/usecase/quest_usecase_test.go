@@ -185,3 +185,59 @@ func TestTDQuestUseCase_ClaimReward_QuestNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "quest not found")
 	mockQuestRepo.AssertExpectations(t)
 }
+
+func TestTDQuestUseCase_UpdateQuestProgress_WrongUser(t *testing.T) {
+	t.Log("UpdateQuestProgress: quest belongs to different user -> quest not found")
+	mockQuestRepo := new(mockTDQuestRepository)
+	mockUserRepo := new(mockTDUserRepository)
+	uc := NewTDQuestUseCase(mockQuestRepo, mockUserRepo, 5*time.Second)
+	ctx := context.Background()
+	userID := uint(2)
+	questID := uint(1)
+	req := &request.UpdateQuestProgressRequest{Increment: 5}
+
+	quest := &entity.TDQuest{ID: questID, UserID: 1, TargetCount: 10, CurrentCount: 5, Status: "active", CreatedAt: time.Now()}
+	mockQuestRepo.On("GetByID", ctx, questID).Return(quest, nil)
+
+	resp, err := uc.UpdateQuestProgress(ctx, userID, questID, req)
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	assert.Contains(t, err.Error(), "quest not found")
+	mockQuestRepo.AssertExpectations(t)
+	mockQuestRepo.AssertNotCalled(t, "UpdateProgress")
+}
+
+func TestTDQuestUseCase_GetActiveQuests_Empty(t *testing.T) {
+	t.Log("GetActiveQuests: empty list")
+	mockQuestRepo := new(mockTDQuestRepository)
+	mockUserRepo := new(mockTDUserRepository)
+	uc := NewTDQuestUseCase(mockQuestRepo, mockUserRepo, 5*time.Second)
+	ctx := context.Background()
+	userID := uint(1)
+
+	mockQuestRepo.On("GetActiveQuests", ctx, userID).Return([]entity.TDQuest{}, nil)
+
+	resp, err := uc.GetActiveQuests(ctx, userID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Empty(t, resp)
+	mockQuestRepo.AssertExpectations(t)
+}
+
+func TestTDQuestUseCase_GetActiveQuests_TargetCountZero(t *testing.T) {
+	t.Log("GetActiveQuests: target count 0 avoids division by zero")
+	mockQuestRepo := new(mockTDQuestRepository)
+	mockUserRepo := new(mockTDUserRepository)
+	uc := NewTDQuestUseCase(mockQuestRepo, mockUserRepo, 5*time.Second)
+	ctx := context.Background()
+	userID := uint(1)
+
+	quest := entity.TDQuest{ID: 1, UserID: userID, QuestType: "kill", TargetCount: 0, CurrentCount: 0, Status: "active", CreatedAt: time.Now()}
+	mockQuestRepo.On("GetActiveQuests", ctx, userID).Return([]entity.TDQuest{quest}, nil)
+
+	resp, err := uc.GetActiveQuests(ctx, userID)
+	require.NoError(t, err)
+	require.Len(t, resp, 1)
+	assert.Equal(t, float64(0), resp[0].Progress)
+	mockQuestRepo.AssertExpectations(t)
+}
